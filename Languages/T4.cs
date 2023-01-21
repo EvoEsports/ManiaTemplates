@@ -1,4 +1,6 @@
-﻿namespace ManiaTemplates.Languages;
+﻿using ManiaTemplates.Lib;
+
+namespace ManiaTemplates.Languages;
 
 public class T4 : ITargetLanguage
 {
@@ -17,9 +19,12 @@ public class T4 : ITargetLanguage
         return $"<# {content} #>";
     }
 
-    public string FeatureBlock(string content)
+    public Snippet FeatureBlock(string content)
     {
-        return $"<#+ {content} #>";
+        return new Snippet()
+            .AppendLine(FeatureBlockStart())
+            .AppendLine(content)
+            .AppendLine(FeatureBlockEnd());
     }
 
     public string FeatureBlockStart()
@@ -34,6 +39,6 @@ public class T4 : ITargetLanguage
 
     public string CallMethod(string methodExpression)
     {
-        return FeatureBlock(methodExpression);
+        return FeatureBlock(methodExpression).ToString(" ");
     }
 }

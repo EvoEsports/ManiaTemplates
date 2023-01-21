@@ -11,20 +11,25 @@ public class Transformer
     private int _indentation;
     private readonly ManiaTemplateEngine _engine;
     private readonly ITargetLanguage _targetLanguage;
-    private readonly List<string> _renderMethods;
-    private readonly List<string> _dataMethods;
+    private readonly List<Snippet> _renderMethods;
+    private readonly List<Snippet> _dataMethods;
 
     public Transformer(ManiaTemplateEngine engine, ITargetLanguage targetLanguage)
     {
         _engine = engine;
         _targetLanguage = targetLanguage;
-        _renderMethods = new List<string>();
-        _dataMethods = new List<string>();
+        _renderMethods = new List<Snippet>();
+        _dataMethods = new List<Snippet>();
     }
 
     public string BuildManialink(Component component)
     {
         var loadedComponents = _engine.BaseComponents.Overload(component.ImportedComponents);
+
+        var s = new Snippet()
+        {
+            "ayyy"
+        };
 
         var template = new List<string>
         {
@@ -34,24 +39,38 @@ public class Transformer
             // T4Directive(@"import namespace=""System.Collections.Generic"""),
             CreateTemplateParameters(component),
             @"<manialink version=""3"">",
-            CreateMethodCall(BootstrapMethodName, PropertiesToAnonymousType(component)),
+            _targetLanguage.Code(CreateMethodCall(BootstrapMethodName, PropertiesToAnonymousType(component))),
             @"</manialink>",
-            CreateRenderManialinkMethod(component, loadedComponents),
+            CreateRenderManialinkMethod(component, loadedComponents).ToString(),
             CreateRenderAndDataMethods()
         };
 
         var manialink = string.Join("\n", template);
-        var pattern = new Regex(@"#>\s*<#\+");
-        var match = pattern.Match(manialink);
+
+        return ReduceTemplateCode(manialink);
+    }
+
+    private string ReduceTemplateCode(string manialink)
+    {
+        var templateControlRegex = new Regex(@"#>\s*<#\+");
+        var match = templateControlRegex.Match(manialink);
+        var output = new Snippet();
 
         while (match.Success)
         {
             manialink = manialink.Replace(match.ToString(), "\n");
-
             match = match.NextMatch();
         }
 
-        return manialink;
+        foreach (var line in manialink.Split('\n'))
+        {
+            if (line.Trim().Length > 0)
+            {
+                output.AppendLine(line);
+            }
+        }
+
+        return output.ToString("\n");
     }
 
     private string CreateTemplateParameters(Component component)
@@ -73,35 +92,35 @@ public class Transformer
 
         foreach (var renderMethod in _renderMethods)
         {
-            snippet.AppendLine(renderMethod);
+            snippet.AppendSnippet(renderMethod);
         }
 
         foreach (var dataMethod in _dataMethods)
         {
-            var hash = Helper.Hash(dataMethod);
+            var hash = Helper.Hash(dataMethod.ToString());
             if (addedDataMethods.Contains(hash)) continue;
-            snippet.AppendLine(dataMethod);
+            snippet.AppendSnippet(dataMethod);
             addedDataMethods.Add(hash);
         }
 
         return snippet.ToString();
     }
 
-    private string CreateDataMethod(ComponentNode componentNode)
+    private Snippet CreateDataMethod(ComponentNode componentNode)
     {
-        var methodBody = new Snippet()
+        var methodBody = new Snippet(1)
             .AppendLine("Type __type = __data.GetType();")
             .AppendLine("return new {")
             .AppendSnippet(1, ComponentNodeToPropertyAssignments(componentNode))
-            .AppendLine("};");
+            .AppendLine(1, "};");
 
         return CreateMethodBlock("dynamic", GetDataMethodName(componentNode), "dynamic __data", methodBody);
     }
 
-    private string CreateRenderMethod(ComponentNode componentNode)
+    private Snippet CreateRenderMethod(ComponentNode componentNode)
     {
         var methodBody = new Snippet()
-            .AppendLine(1, NewDataContext(componentNode))
+            .AppendSnippet(1, NewDataContext(componentNode))
             .AppendLine(null, _targetLanguage.FeatureBlockEnd())
             .AppendLine(componentNode.TemplateContent)
             .AppendLine(null, _targetLanguage.FeatureBlockStart());
@@ -109,7 +128,7 @@ public class Transformer
         return CreateMethodBlock("void", GetRenderMethodName(componentNode), "dynamic __data", methodBody);
     }
 
-    private string CreateRenderManialinkMethod(Component component, ComponentList loadedComponents)
+    private Snippet CreateRenderManialinkMethod(Component component, ComponentList loadedComponents)
     {
         var body = new Snippet()
             .AppendLine(_targetLanguage.FeatureBlockEnd())
@@ -119,11 +138,11 @@ public class Transformer
         return CreateMethodBlock("void", BootstrapMethodName, "dynamic __componentData", body);
     }
 
-    private string CreateMethodBlock(string returnType, string methodName, string arguments, Snippet body)
+    private Snippet CreateMethodBlock(string returnType, string methodName, string arguments, Snippet body)
     {
-        var methodBlock = new Snippet()
+        var methodBlock = new Snippet(1)
             .AppendLine($"{returnType} {methodName}({arguments}){{")
-            .AppendSnippet(1, body)
+            .AppendSnippet(body)
             .AppendLine("}")
             .ToString();
 
@@ -141,8 +160,6 @@ public class Transformer
                 : GetPropertyDefaultValue(property);
 
             var assignment = ConvertPropertyAssignment(property, value);
-
-            Console.WriteLine(assignment);
 
             propertyAssignments.AppendLine(@$"{property.Name} = {assignment}");
         }
@@ -240,12 +257,11 @@ public class Transformer
         );
     }
 
-    private string NewDataContext(ComponentNode componentNode)
+    private Snippet NewDataContext(ComponentNode componentNode)
     {
         var component = componentNode.Component;
-
-        Snippet snippet = new(_indentation + 2);
-        snippet.AppendLine("Type __type = __data.GetType();");
+        var snippet = new Snippet()
+            .AppendLine("Type __type = __data.GetType();");
 
         foreach (var property in component.Properties.Values)
         {
@@ -256,7 +272,7 @@ public class Transformer
 
         snippet.AppendLine(CreateComponentDataVariable(component));
 
-        return snippet.ToString();
+        return snippet;
     }
 
     private static string ConvertPropertyAssignment(ComponentProperty property, string parameterValue)
@@ -297,7 +313,7 @@ public class Transformer
             matches = curlyMatcher.Match(output);
         }
 
-        output = Regex.Replace(output, @"(^("""")?\s*\+\s*|\s*\+\s*("""")?$)", ""); //Hotfix
+        output = Regex.Replace(output, @"(^("""")?\s*[+\-*/%]\s*|\s*[+\-*/%]\s*("""")?$)", ""); //Hotfix
 
         return output + ",";
     }
@@ -334,18 +350,16 @@ public class Transformer
 
     private string CreateComponentMethodCall(ComponentNode componentNode)
     {
-        return CreateMethodCall(GetDataMethodName(componentNode), "__componentData", false);
+        var dataMethodCall = CreateMethodCall(GetDataMethodName(componentNode), "__componentData", "");
+
+        return _targetLanguage.FeatureBlock(CreateMethodCall(GetRenderMethodName(componentNode), dataMethodCall))
+            .ToString(" ");
     }
 
     private string CreateMethodCall(string methodName, string methodArguments = "__componentData",
-        bool featureBlock = true)
+        string lineSuffix = ";")
     {
-        if (featureBlock)
-        {
-            return _targetLanguage.Code($"{methodName}({methodArguments});");
-        }
-
-        return _targetLanguage.CallMethod($"{methodName}({methodArguments});");
+        return $"{methodName}({methodArguments})" + lineSuffix;
     }
 
     private static string WrapIfString(ComponentProperty property, string value)

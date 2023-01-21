@@ -13,10 +13,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="Mono.TextTemplating" Version="2.3.1" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Compile Remove="Tester\**" />
     </ItemGroup>
 
@@ -26,6 +22,10 @@
 
     <ItemGroup>
       <None Remove="Tester\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Mono.TextTemplating" Version="2.3.1" />
     </ItemGroup>
 
 </Project>

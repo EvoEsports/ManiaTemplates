@@ -1,10 +1,11 @@
-﻿namespace ManiaTemplates.Lib;
+﻿using System.Collections;
 
-public class Snippet
+namespace ManiaTemplates.Lib;
+
+public class Snippet : List<string>
 {
     private const int IndentationMultiplier = 2;
     private readonly int _currentIndentation;
-    private readonly List<string> _output = new();
 
     public Snippet(int currentIndentation = 0)
     {
@@ -13,7 +14,7 @@ public class Snippet
 
     public Snippet AppendLine(string str)
     {
-        _output.Add(str);
+        Add(str);
         return this;
     }
 
@@ -21,17 +22,17 @@ public class Snippet
     {
         if (addIndent != null)
         {
-            _output.Add(Indentation((int)addIndent) + str);
+            AppendLine(Indentation((int)addIndent) + str);
             return this;
         }
 
-        _output.Add(str);
+        AppendLine(str);
         return this;
     }
 
     public Snippet AppendSnippet(int? addIndent, Snippet content)
     {
-        foreach (var line in content._output)
+        foreach (var line in content)
         {
             AppendLine(addIndent, line);
         }
@@ -41,7 +42,7 @@ public class Snippet
 
     public Snippet AppendSnippet(Snippet content)
     {
-        foreach (var line in content._output)
+        foreach (var line in content)
         {
             AppendLine(line);
         }
@@ -56,6 +57,6 @@ public class Snippet
 
     public string ToString(string joinWith = "\n")
     {
-        return string.Join(joinWith, _output).Trim();
+        return string.Join(joinWith, this).Trim();
     }
 }
