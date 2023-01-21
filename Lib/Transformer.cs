@@ -6,8 +6,6 @@ namespace ManiaTemplates.Lib;
 
 public class Transformer
 {
-    private const string BootstrapMethodName = "RenderManialink";
-
     private int _indentation;
     private readonly ManiaTemplateEngine _engine;
     private readonly ITargetLanguage _targetLanguage;
@@ -29,7 +27,6 @@ public class Transformer
         {
             _targetLanguage.Context(@"template language=""C#"""),
             _targetLanguage.Context(@"import namespace=""Models"""),
-            // _targetLanguage.Context(@"import namespace=""Models"""),
             CreateTemplateParameters(component),
             @"<manialink version=""3"">",
             ProcessNode(XmlStringToNode(component.TemplateContent), loadedComponents, null, true),
@@ -69,7 +66,6 @@ public class Transformer
 
         foreach (var (propertyName, property) in component.Properties)
         {
-            // snippet.AppendLine(_targetLanguage.Context(@$"parameter type=""System.Object"" name=""{propertyName}"""));
             snippet.AppendLine(_targetLanguage.Context(@$"parameter type=""{property.Type}"" name=""{propertyName}"""));
         }
 
@@ -97,17 +93,6 @@ public class Transformer
         return snippet.ToString();
     }
 
-    private Snippet CreateDataMethod(ComponentNode componentNode)
-    {
-        var methodBody = new Snippet(1)
-            .AppendLine("Type __type = __data.GetType();")
-            .AppendLine("return new {")
-            .AppendSnippet(1, ComponentNodeToPropertyAssignments(componentNode))
-            .AppendLine(1, "};");
-
-        return CreateMethodBlock("dynamic", GetDataMethodName(componentNode), "dynamic __data", methodBody);
-    }
-
     private Snippet CreateRenderMethod(ComponentNode componentNode)
     {
         var methodBody = new Snippet()
@@ -116,19 +101,7 @@ public class Transformer
             .AppendLine(componentNode.TemplateContent)
             .AppendLine(null, _targetLanguage.FeatureBlockStart());
 
-        // return CreateMethodBlock("void", GetRenderMethodName(componentNode), "dynamic __data", methodBody);
         return CreateMethodBlock("void", GetRenderMethodName(componentNode), DataToArguments(componentNode.Component), methodBody);
-    }
-
-    private Snippet CreateRenderManialinkMethod(Component component, ComponentList loadedComponents)
-    {
-        var body = new Snippet()
-            .AppendLine(_targetLanguage.FeatureBlockEnd())
-            .AppendLine(ProcessNode(XmlStringToNode(component.TemplateContent), loadedComponents))
-            .AppendLine(_targetLanguage.FeatureBlockStart());
-
-        // return CreateMethodBlock("void", BootstrapMethodName, "dynamic __componentData", body);
-        return CreateMethodBlock("void", BootstrapMethodName, DataToArguments(component), body);
     }
 
     private Snippet CreateMethodBlock(string returnType, string methodName, string arguments, Snippet body)
@@ -158,24 +131,6 @@ public class Transformer
         }
 
         return propertyAssignments.ToString(", ");
-    }
-
-    private Snippet ComponentNodeToPropertyAssignments(ComponentNode componentNode)
-    {
-        Snippet propertyAssignments = new();
-
-        foreach (var property in componentNode.Component.Properties.Values)
-        {
-            var value = componentNode.Attributes.Has(property.Name)
-                ? componentNode.Attributes.Get(property.Name)
-                : GetPropertyDefaultValue(property);
-
-            var assignment = ConvertPropertyAssignment(property, value);
-
-            propertyAssignments.AppendLine(@$"{property.Name} = {assignment}");
-        }
-
-        return propertyAssignments;
     }
 
     private string ProcessNode(XmlNode node, ComponentList availableComponents, string? slotContent = null, bool rootContext = false)
@@ -272,25 +227,6 @@ public class Transformer
         );
     }
 
-    private Snippet NewDataContext(ComponentNode componentNode)
-    {
-        var component = componentNode.Component;
-        var snippet = new Snippet()
-            .AppendLine("Type __type = __data.GetType();");
-
-        foreach (var property in component.Properties.Values)
-        {
-            var defaultValue = WrapIfString(property, GetPropertyDefaultValue(property));
-            snippet.AppendLine(@$"{property.Type} {property.Name} = __type.GetProperty(""{property.Name}"")?.GetValue(__data) ?? {defaultValue};");
-            // snippet.AppendLine(@$"var {property.Name} = __type.GetProperty(""{property.Name}"")?.GetValue(__data) ?? {defaultValue};");
-        }
-
-        //TODO: only add if sub-component are present
-        snippet.AppendLine(CreateComponentDataVariable(component));
-
-        return snippet;
-    }
-
     private string DataToArguments(Component component)
     {
         var snippet = new Snippet();
@@ -348,35 +284,6 @@ public class Transformer
         return output;
     }
 
-    private static string ConvertCurlyContent(string curlyContent)
-    {
-        var variableMatcher = new Regex(@"([a-z][a-zA-Z]*)([?!]?(?:\.\w+|\[.+?\]))?");
-        var output = curlyContent;
-        var match = variableMatcher.Match(output);
-        var offset = 0;
-
-        while (match.Success)
-        {
-            var group0 = match.Groups[0];
-            var body = match.Groups[1].Value;
-            var mutator = match.Groups[2].Value;
-            var matchStart = group0.Index + offset;
-            var matchLength = group0.Length;
-
-            var newBody = $"__type.GetProperty({Quotes(body)})?.GetValue(__data){mutator}";
-
-            output = output[..matchStart]
-                     + newBody
-                     + output.Substring(matchStart + matchLength);
-
-            offset += newBody.Length - matchLength;
-
-            match = match.NextMatch();
-        }
-
-        return output;
-    }
-
     private string CreateComponentMethodCall(ComponentNode componentNode, bool rootContext = false)
     {
         var args = ComponentNodeToMethodArguments(componentNode);
@@ -413,17 +320,7 @@ public class Transformer
 
     private static string GetRenderMethodName(ComponentNode componentNode)
     {
-        if (componentNode.HasSlot || true)
-        {
-            return $"Render{componentNode.Tag}_{componentNode.RenderId}";
-        }
-
-        return $"Render{componentNode.Tag}";
-    }
-
-    private static string GetDataMethodName(ComponentNode componentNode)
-    {
-        return $"Data{componentNode.Tag}_{componentNode.DataId}";
+        return $"Render{componentNode.Tag}_{componentNode.RenderId}";
     }
 
     private static string Quotes(string str)
