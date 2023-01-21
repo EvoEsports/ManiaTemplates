@@ -28,11 +28,12 @@ public class Transformer
         var template = new Snippet()
         {
             _targetLanguage.Context(@"template language=""C#"""),
+            _targetLanguage.Context(@"import namespace=""Models"""),
+            // _targetLanguage.Context(@"import namespace=""Models"""),
             CreateTemplateParameters(component),
             @"<manialink version=""3"">",
-            _targetLanguage.Code(CreateMethodCall(BootstrapMethodName, PropertiesToAnonymousType(component))),
+            ProcessNode(XmlStringToNode(component.TemplateContent), loadedComponents, null, true),
             @"</manialink>",
-            CreateRenderManialinkMethod(component, loadedComponents).ToString(),
             CreateRenderAndDataMethods()
         };
 
@@ -68,7 +69,8 @@ public class Transformer
 
         foreach (var (propertyName, property) in component.Properties)
         {
-            snippet.AppendLine(_targetLanguage.Context(@$"parameter type=""System.Object"" name=""{propertyName}"""));
+            // snippet.AppendLine(_targetLanguage.Context(@$"parameter type=""System.Object"" name=""{propertyName}"""));
+            snippet.AppendLine(_targetLanguage.Context(@$"parameter type=""{property.Type}"" name=""{propertyName}"""));
         }
 
         return snippet.ToString();
@@ -109,12 +111,13 @@ public class Transformer
     private Snippet CreateRenderMethod(ComponentNode componentNode)
     {
         var methodBody = new Snippet()
-            .AppendSnippet(1, NewDataContext(componentNode))
+            // .AppendSnippet(1, NewDataContext(componentNode))
             .AppendLine(null, _targetLanguage.FeatureBlockEnd())
             .AppendLine(componentNode.TemplateContent)
             .AppendLine(null, _targetLanguage.FeatureBlockStart());
 
-        return CreateMethodBlock("void", GetRenderMethodName(componentNode), "dynamic __data", methodBody);
+        // return CreateMethodBlock("void", GetRenderMethodName(componentNode), "dynamic __data", methodBody);
+        return CreateMethodBlock("void", GetRenderMethodName(componentNode), DataToArguments(componentNode.Component), methodBody);
     }
 
     private Snippet CreateRenderManialinkMethod(Component component, ComponentList loadedComponents)
@@ -124,7 +127,8 @@ public class Transformer
             .AppendLine(ProcessNode(XmlStringToNode(component.TemplateContent), loadedComponents))
             .AppendLine(_targetLanguage.FeatureBlockStart());
 
-        return CreateMethodBlock("void", BootstrapMethodName, "dynamic __componentData", body);
+        // return CreateMethodBlock("void", BootstrapMethodName, "dynamic __componentData", body);
+        return CreateMethodBlock("void", BootstrapMethodName, DataToArguments(component), body);
     }
 
     private Snippet CreateMethodBlock(string returnType, string methodName, string arguments, Snippet body)
@@ -136,6 +140,24 @@ public class Transformer
             .ToString();
 
         return _targetLanguage.FeatureBlock(methodBlock);
+    }
+
+    private string ComponentNodeToMethodArguments(ComponentNode componentNode)
+    {
+        Snippet propertyAssignments = new();
+
+        foreach (var property in componentNode.Component.Properties.Values)
+        {
+            var value = componentNode.Attributes.Has(property.Name)
+                ? componentNode.Attributes.Get(property.Name)
+                : GetPropertyDefaultValue(property);
+
+            var assignment = ConvertPropertyAssignment(property, value);
+
+            propertyAssignments.AppendLine(@$"{property.Name}: {assignment}");
+        }
+
+        return propertyAssignments.ToString(", ");
     }
 
     private Snippet ComponentNodeToPropertyAssignments(ComponentNode componentNode)
@@ -156,7 +178,7 @@ public class Transformer
         return propertyAssignments;
     }
 
-    private string ProcessNode(XmlNode node, ComponentList availableComponents, string? slotContent = null)
+    private string ProcessNode(XmlNode node, ComponentList availableComponents, string? slotContent = null, bool rootContext = false)
     {
         Snippet snippet = new(_indentation + 1);
         var oldIndentation = _indentation;
@@ -177,15 +199,13 @@ public class Transformer
                     slotContent
                 );
 
-                snippet.AppendLine(-1, CreateComponentMethodCall(componentNode));
+                snippet.AppendLine(CreateComponentMethodCall(componentNode, rootContext));
 
                 var renderMethodName = GetRenderMethodName(componentNode);
                 if (!_renderMethods.ContainsKey(renderMethodName))
                 {
                     _renderMethods.Add(renderMethodName, CreateRenderMethod(componentNode));
                 }
-
-                _dataMethods.Add(CreateDataMethod(componentNode));
             }
             else
             {
@@ -261,15 +281,27 @@ public class Transformer
         foreach (var property in component.Properties.Values)
         {
             var defaultValue = WrapIfString(property, GetPropertyDefaultValue(property));
-            // snippet.AppendLine(@$"{property.Type} {property.Name} = __type.GetProperty(""{property.Name}"")?.GetValue(__data) ?? {defaultValue};");
-            snippet.AppendLine(
-                @$"var {property.Name} = __type.GetProperty(""{property.Name}"")?.GetValue(__data) ?? {defaultValue};");
+            snippet.AppendLine(@$"{property.Type} {property.Name} = __type.GetProperty(""{property.Name}"")?.GetValue(__data) ?? {defaultValue};");
+            // snippet.AppendLine(@$"var {property.Name} = __type.GetProperty(""{property.Name}"")?.GetValue(__data) ?? {defaultValue};");
         }
 
         //TODO: only add if sub-component are present
         snippet.AppendLine(CreateComponentDataVariable(component));
 
         return snippet;
+    }
+
+    private string DataToArguments(Component component)
+    {
+        var snippet = new Snippet();
+
+        foreach (var property in component.Properties.Values)
+        {
+            var defaultValue = WrapIfString(property, GetPropertyDefaultValue(property));
+            snippet.AppendLine(@$"{property.Type} {property.Name} = {defaultValue}");
+        }
+
+        return snippet.ToString(", ");
     }
 
     private static string ConvertPropertyAssignment(ComponentProperty property, string parameterValue)
@@ -287,7 +319,8 @@ public class Transformer
 
             var matchStart = group0.Index - offset;
             var matchLength = group0.Length - offset;
-            var newBody = ConvertCurlyContent(body);
+            // var newBody = ConvertCurlyContent(body);
+            var newBody = body;
 
             if (isStringType)
             {
@@ -312,7 +345,7 @@ public class Transformer
 
         output = Regex.Replace(output, @"(^("""")?\s*[+\-*/%]\s*|\s*[+\-*/%]\s*("""")?$)", ""); //Hotfix
 
-        return output + ",";
+        return output;
     }
 
     private static string ConvertCurlyContent(string curlyContent)
@@ -327,11 +360,10 @@ public class Transformer
             var group0 = match.Groups[0];
             var body = match.Groups[1].Value;
             var mutator = match.Groups[2].Value;
-
-            var newBody = $"__type.GetProperty({Quotes(body)})?.GetValue(__data){mutator}";
-
             var matchStart = group0.Index + offset;
             var matchLength = group0.Length;
+
+            var newBody = $"__type.GetProperty({Quotes(body)})?.GetValue(__data){mutator}";
 
             output = output[..matchStart]
                      + newBody
@@ -345,11 +377,16 @@ public class Transformer
         return output;
     }
 
-    private string CreateComponentMethodCall(ComponentNode componentNode)
+    private string CreateComponentMethodCall(ComponentNode componentNode, bool rootContext = false)
     {
-        var dataMethodCall = CreateMethodCall(GetDataMethodName(componentNode), "__componentData", "");
+        var args = ComponentNodeToMethodArguments(componentNode);
 
-        return _targetLanguage.FeatureBlock(CreateMethodCall(GetRenderMethodName(componentNode), dataMethodCall))
+        if (rootContext)
+        {
+            return _targetLanguage.Code(CreateMethodCall(GetRenderMethodName(componentNode), args));
+        }
+
+        return _targetLanguage.FeatureBlock(CreateMethodCall(GetRenderMethodName(componentNode), args))
             .ToString(" ");
     }
 

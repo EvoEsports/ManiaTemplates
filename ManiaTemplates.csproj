@@ -14,14 +14,17 @@
 
     <ItemGroup>
       <Compile Remove="Tester\**" />
+      <Compile Remove="Models\**" />
     </ItemGroup>
 
     <ItemGroup>
       <EmbeddedResource Remove="Tester\**" />
+      <EmbeddedResource Remove="Models\**" />
     </ItemGroup>
 
     <ItemGroup>
       <None Remove="Tester\**" />
+      <None Remove="Models\**" />
     </ItemGroup>
 
     <ItemGroup>
