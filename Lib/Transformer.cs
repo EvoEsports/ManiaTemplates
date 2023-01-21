@@ -28,19 +28,30 @@ public class Transformer
 
         var template = new List<string>
         {
-            _targetLanguage.Context(@"template language=""CC#"""),
+            _targetLanguage.Context(@"template language=""C#"""),
             _targetLanguage.Context(@"assembly name=""Microsoft.CSharp"""),
             // T4Directive(@"output extension="".xml"""),
             // T4Directive(@"import namespace=""System.Collections.Generic"""),
             CreateTemplateParameters(component),
             @"<manialink version=""3"">",
-            _targetLanguage.Code(CreateMethodCall(BootstrapMethodName, PropertiesToAnonymousType(component))),
+            CreateMethodCall(BootstrapMethodName, PropertiesToAnonymousType(component)),
             @"</manialink>",
             CreateRenderManialinkMethod(component, loadedComponents),
             CreateRenderAndDataMethods()
         };
 
-        return string.Join("\n", template);
+        var manialink = string.Join("\n", template);
+        var pattern = new Regex(@"#>\s*<#\+");
+        var match = pattern.Match(manialink);
+
+        while (match.Success)
+        {
+            manialink = manialink.Replace(match.ToString(), "\n");
+
+            match = match.NextMatch();
+        }
+
+        return manialink;
     }
 
     private string CreateTemplateParameters(Component component)
@@ -81,7 +92,7 @@ public class Transformer
         var methodBody = new Snippet()
             .AppendLine("Type __type = __data.GetType();")
             .AppendLine("return new {")
-            .AppendLine(1, ComponentNodeToPropertyAssignments(componentNode).ToString(",\n"))
+            .AppendSnippet(1, ComponentNodeToPropertyAssignments(componentNode))
             .AppendLine("};");
 
         return CreateMethodBlock("dynamic", GetDataMethodName(componentNode), "dynamic __data", methodBody);
@@ -121,7 +132,7 @@ public class Transformer
 
     private Snippet ComponentNodeToPropertyAssignments(ComponentNode componentNode)
     {
-        Snippet propertyAssignments = new(_indentation);
+        Snippet propertyAssignments = new();
 
         foreach (var property in componentNode.Component.Properties.Values)
         {
@@ -130,6 +141,8 @@ public class Transformer
                 : GetPropertyDefaultValue(property);
 
             var assignment = ConvertPropertyAssignment(property, value);
+
+            Console.WriteLine(assignment);
 
             propertyAssignments.AppendLine(@$"{property.Name} = {assignment}");
         }
@@ -270,7 +283,8 @@ public class Transformer
 
             if (matchLength == parameterValue.Length)
             {
-                return newBody;
+                output = newBody;
+                break;
             }
 
             //Update output string
@@ -285,7 +299,7 @@ public class Transformer
 
         output = Regex.Replace(output, @"(^("""")?\s*\+\s*|\s*\+\s*("""")?$)", ""); //Hotfix
 
-        return output;
+        return output + ",";
     }
 
     private static string ConvertCurlyContent(string curlyContent)
@@ -320,12 +334,18 @@ public class Transformer
 
     private string CreateComponentMethodCall(ComponentNode componentNode)
     {
-        return CreateMethodCall(GetDataMethodName(componentNode));
+        return CreateMethodCall(GetDataMethodName(componentNode), "__componentData", false);
     }
 
-    private string CreateMethodCall(string methodName, string methodArguments = "__componentData")
+    private string CreateMethodCall(string methodName, string methodArguments = "__componentData",
+        bool featureBlock = true)
     {
-        return _targetLanguage.CallMethod($"{methodName}({methodArguments})");
+        if (featureBlock)
+        {
+            return _targetLanguage.Code($"{methodName}({methodArguments});");
+        }
+
+        return _targetLanguage.CallMethod($"{methodName}({methodArguments});");
     }
 
     private static string WrapIfString(ComponentProperty property, string value)

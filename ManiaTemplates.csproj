@@ -16,4 +16,16 @@
       <PackageReference Include="Mono.TextTemplating" Version="2.3.1" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="Tester\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="Tester\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Tester\**" />
+    </ItemGroup>
+
 </Project>
