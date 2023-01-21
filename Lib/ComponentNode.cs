@@ -6,7 +6,8 @@ public class ComponentNode
     public Component Component { get; }
     public ComponentAttributes Attributes { get; }
     public string TemplateContent { get; }
-    public string Id { get; }
+    public string RenderId { get; }
+    public string DataId { get; }
     public bool HasSlot { get; }
     public bool UsesComponents { get; }
 
@@ -18,6 +19,7 @@ public class ComponentNode
         TemplateContent = templateContent;
         HasSlot = component.HasSlot;
         UsesComponents = usesComponents;
-        Id = Helper.RandomString();
+        RenderId = Helper.Hash(Tag+Component.TemplateFileFile.Checksum);
+        DataId = Helper.RandomString(24);
     }
 }

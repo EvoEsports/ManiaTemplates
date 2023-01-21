@@ -11,31 +11,24 @@ public class Transformer
     private int _indentation;
     private readonly ManiaTemplateEngine _engine;
     private readonly ITargetLanguage _targetLanguage;
-    private readonly List<Snippet> _renderMethods;
+    private readonly Dictionary<string, Snippet> _renderMethods;
     private readonly List<Snippet> _dataMethods;
 
     public Transformer(ManiaTemplateEngine engine, ITargetLanguage targetLanguage)
     {
         _engine = engine;
         _targetLanguage = targetLanguage;
-        _renderMethods = new List<Snippet>();
-        _dataMethods = new List<Snippet>();
+        _renderMethods = new();
+        _dataMethods = new();
     }
 
     public string BuildManialink(Component component)
     {
         var loadedComponents = _engine.BaseComponents.Overload(component.ImportedComponents);
-
-        var s = new Snippet()
-        {
-            "ayyy"
-        };
-
-        var template = new List<string>
+        var template = new Snippet()
         {
             _targetLanguage.Context(@"template language=""C#"""),
             _targetLanguage.Context(@"assembly name=""Microsoft.CSharp"""),
-            // T4Directive(@"output extension="".xml"""),
             // T4Directive(@"import namespace=""System.Collections.Generic"""),
             CreateTemplateParameters(component),
             @"<manialink version=""3"">",
@@ -45,9 +38,7 @@ public class Transformer
             CreateRenderAndDataMethods()
         };
 
-        var manialink = string.Join("\n", template);
-
-        return ReduceTemplateCode(manialink);
+        return ReduceTemplateCode(template.ToString());
     }
 
     private string ReduceTemplateCode(string manialink)
@@ -90,7 +81,7 @@ public class Transformer
         Snippet snippet = new(_indentation);
         var addedDataMethods = new List<string>();
 
-        foreach (var renderMethod in _renderMethods)
+        foreach (var renderMethod in _renderMethods.Values)
         {
             snippet.AppendSnippet(renderMethod);
         }
@@ -189,7 +180,13 @@ public class Transformer
                 );
 
                 snippet.AppendLine(-1, CreateComponentMethodCall(componentNode));
-                _renderMethods.Add(CreateRenderMethod(componentNode));
+
+                var renderMethodName = GetRenderMethodName(componentNode);
+                if (!_renderMethods.ContainsKey(renderMethodName))
+                {
+                    _renderMethods.Add(renderMethodName, CreateRenderMethod(componentNode));
+                }
+
                 _dataMethods.Add(CreateDataMethod(componentNode));
             }
             else
@@ -266,10 +263,12 @@ public class Transformer
         foreach (var property in component.Properties.Values)
         {
             var defaultValue = WrapIfString(property, GetPropertyDefaultValue(property));
+            // snippet.AppendLine(@$"{property.Type} {property.Name} = __type.GetProperty(""{property.Name}"")?.GetValue(__data) ?? {defaultValue};");
             snippet.AppendLine(
-                @$"{property.Type} {property.Name} = __type.GetProperty(""{property.Name}"")?.GetValue(__data) ?? {defaultValue};");
+                @$"var {property.Name} = __type.GetProperty(""{property.Name}"")?.GetValue(__data) ?? {defaultValue};");
         }
 
+        //TODO: only add if sub-component are present
         snippet.AppendLine(CreateComponentDataVariable(component));
 
         return snippet;
@@ -381,16 +380,15 @@ public class Transformer
     {
         if (componentNode.HasSlot || true)
         {
-            return $"Render{componentNode.Tag}_{componentNode.Id}";
+            return $"Render{componentNode.Tag}_{componentNode.RenderId}";
         }
 
-        //TODO: slot methods
         return $"Render{componentNode.Tag}";
     }
 
     private static string GetDataMethodName(ComponentNode componentNode)
     {
-        return $"Data{componentNode.Tag}_{componentNode.Id}";
+        return $"Data{componentNode.Tag}_{componentNode.DataId}";
     }
 
     private static string Quotes(string str)
