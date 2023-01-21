@@ -10,17 +10,15 @@ public class Transformer
     private readonly ManiaTemplateEngine _engine;
     private readonly ITargetLanguage _targetLanguage;
     private readonly Dictionary<string, Snippet> _renderMethods;
-    private readonly List<Snippet> _dataMethods;
 
     public Transformer(ManiaTemplateEngine engine, ITargetLanguage targetLanguage)
     {
         _engine = engine;
         _targetLanguage = targetLanguage;
         _renderMethods = new();
-        _dataMethods = new();
     }
 
-    public string BuildManialink(Component component)
+    public string BuildManialink(Component component, int version = 3)
     {
         var loadedComponents = _engine.BaseComponents.Overload(component.ImportedComponents);
         var template = new Snippet()
@@ -28,9 +26,9 @@ public class Transformer
             _targetLanguage.Context(@"template language=""C#"""),
             _targetLanguage.Context(@"import namespace=""Models"""),
             CreateTemplateParameters(component),
-            @"<manialink version=""3"">",
+            $@"<manialink version=""{version}"">",
             ProcessNode(XmlStringToNode(component.TemplateContent), loadedComponents, null, true),
-            @"</manialink>",
+            "</manialink>",
             CreateRenderAndDataMethods()
         };
 
@@ -57,7 +55,7 @@ public class Transformer
             }
         }
 
-        return output.ToString("\n");
+        return output.ToString();
     }
 
     private string CreateTemplateParameters(Component component)
@@ -75,19 +73,10 @@ public class Transformer
     private string CreateRenderAndDataMethods()
     {
         Snippet snippet = new(_indentation);
-        var addedDataMethods = new List<string>();
 
         foreach (var renderMethod in _renderMethods.Values)
         {
             snippet.AppendSnippet(renderMethod);
-        }
-
-        foreach (var dataMethod in _dataMethods)
-        {
-            var hash = Helper.Hash(dataMethod.ToString());
-            if (addedDataMethods.Contains(hash)) continue;
-            snippet.AppendSnippet(dataMethod);
-            addedDataMethods.Add(hash);
         }
 
         return snippet.ToString();
@@ -101,7 +90,8 @@ public class Transformer
             .AppendLine(componentNode.TemplateContent)
             .AppendLine(null, _targetLanguage.FeatureBlockStart());
 
-        return CreateMethodBlock("void", GetRenderMethodName(componentNode), DataToArguments(componentNode.Component), methodBody);
+        return CreateMethodBlock("void", GetRenderMethodName(componentNode), DataToArguments(componentNode.Component),
+            methodBody);
     }
 
     private Snippet CreateMethodBlock(string returnType, string methodName, string arguments, Snippet body)
@@ -133,7 +123,8 @@ public class Transformer
         return propertyAssignments.ToString(", ");
     }
 
-    private string ProcessNode(XmlNode node, ComponentList availableComponents, string? slotContent = null, bool rootContext = false)
+    private string ProcessNode(XmlNode node, ComponentList availableComponents, string? slotContent = null,
+        bool rootContext = false)
     {
         Snippet snippet = new(_indentation + 1);
         var oldIndentation = _indentation;
@@ -326,16 +317,6 @@ public class Transformer
     private static string Quotes(string str)
     {
         return $@"""{str}""";
-    }
-
-    private static string CreateComponentDataVariable(Component component)
-    {
-        return "var __componentData = " + PropertiesToAnonymousType(component) + ";";
-    }
-
-    private static string PropertiesToAnonymousType(Component component)
-    {
-        return "new { " + string.Join(", ", component.Properties.Keys) + " }";
     }
 
     private string CreateXmlOpeningTag(string tag, ComponentAttributes attributeList, bool hasChildren)
