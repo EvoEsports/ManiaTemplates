@@ -28,8 +28,6 @@ public class Transformer
         var template = new Snippet()
         {
             _targetLanguage.Context(@"template language=""C#"""),
-            _targetLanguage.Context(@"assembly name=""Microsoft.CSharp"""),
-            // T4Directive(@"import namespace=""System.Collections.Generic"""),
             CreateTemplateParameters(component),
             @"<manialink version=""3"">",
             _targetLanguage.Code(CreateMethodCall(BootstrapMethodName, PropertiesToAnonymousType(component))),
@@ -70,7 +68,7 @@ public class Transformer
 
         foreach (var (propertyName, property) in component.Properties)
         {
-            snippet.AppendLine(_targetLanguage.Context(@$"parameter type=""{property.Type}"" name=""{propertyName}"""));
+            snippet.AppendLine(_targetLanguage.Context(@$"parameter type=""System.Object"" name=""{propertyName}"""));
         }
 
         return snippet.ToString();

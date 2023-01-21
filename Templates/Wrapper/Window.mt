@@ -2,13 +2,15 @@
     <import src="Includes/WindowTitleBar.mt"/>
 
     <property type="int" name="z"/>
+    <property type="double" name="x"/>
+    <property type="double" name="y"/>
     <property type="double" name="w"/>
     <property type="double" name="h"/>
     <property type="string" name="title"/>
     <property type="double" name="titleBarHeight" default="6.0"/>
 
     <template>
-        <frame size="{{ w }} {{ h }}">
+        <frame pos="{{ x }} {{ y }}" size="{{ w }} {{ h }}">
             <WindowTitleBar w="{{ w }}" h="{{ titleBarHeight }}" title="{{ title }}"/>
             <Frame y="{{ -titleBarHeight }}" w="{{ w }}" h="{{ h - titleBarHeight }}" z="{{ z }}">
                 <slot/>

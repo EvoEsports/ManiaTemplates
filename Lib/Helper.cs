@@ -13,7 +13,7 @@ public class Helper
         return string.Concat(hash.Select(b => b.ToString("x2")))[..32];
     }
 
-    internal static string RandomString(int length = 16)
+    public static string RandomString(int length = 16)
     {
         var random = new Random();
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -31,7 +31,7 @@ public class Helper
         return components.ContainsKey(node.Name);
     }
 
-    public static string PrettyXxml(string? uglyXml = null)
+    public static string PrettyXml(string? uglyXml = null)
     {
         if (uglyXml == null || uglyXml.Trim().Length == 0)
         {
