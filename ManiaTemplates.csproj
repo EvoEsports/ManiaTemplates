@@ -28,6 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.4.0" />
       <PackageReference Include="Mono.TextTemplating" Version="2.3.1" />
     </ItemGroup>
 

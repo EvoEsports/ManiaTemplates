@@ -19,6 +19,13 @@ public class ComponentAttributes
         return _attributes.ContainsKey(name);
     }
 
+    public string Pull(string name)
+    {
+        var value = Get(name);
+        _attributes.Remove(name);
+        return value;
+    }
+
     public string Get(string name)
     {
         return _attributes[name];

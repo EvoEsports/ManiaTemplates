@@ -151,7 +151,7 @@ public class Transformer
             string? forEachLoop = null;
             if (attributeList.Has("foreach"))
             {
-                forEachLoop = attributeList.Get("foreach");
+                forEachLoop = attributeList.Pull("foreach");
                 snippet.AppendLine(null, _targetLanguage.FeatureBlockStart());
                 snippet.AppendLine(null, " int __index = 0;");
                 snippet.AppendLine(null, $" foreach({forEachLoop})");

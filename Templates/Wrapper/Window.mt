@@ -11,8 +11,9 @@
 
     <template>
         <frame pos="{{ x }} {{ y }}" size="{{ w }} {{ h }}">
-            <WindowTitleBar w="{{ w }}" h="{{ titleBarHeight }}" title="{{ title }}"/>
-            <Frame y="{{ -titleBarHeight }}" w="{{ w }}" h="{{ h - titleBarHeight }}" z="{{ z }}">
+            <RoundedQuad w="{{ w }}" h="{{ h }}" r="{{ 0.1 }}" color="111" z="{{ -1 }}" />
+            <WindowTitleBar w="{{ w }}" h="{{ titleBarHeight }}" color="f06" title="{{ title }}"/>
+            <Frame x="{{ 2.0 }}" y="{{ titleBarHeight * -1.0 - 2.0 }}" w="{{ w - 4.0 }}" h="{{ h - titleBarHeight - 4.0 }}" z="{{ z }}">
                 <slot/>
             </Frame>
         </frame>

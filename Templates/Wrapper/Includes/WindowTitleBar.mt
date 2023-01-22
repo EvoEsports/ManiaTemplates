@@ -5,8 +5,8 @@
     <property type="string" name="color" default="333"/>
 
     <template>
-        <Quad w="{{ w }}" h="{{ h }}" bg="{{ color }}"/>
-        <Label text="{{ title }}" x="2" y="{{ h / -2 }}"/>
+        <RoundedQuad x="{{ 1.0 }}" y="{{ 3.0 }}" w="{{ w - 2.0 }}" h="{{ h - 2.0 }}" r="{{ 0.05 }}" color="{{ color }}" />
+        <Label text="{{ title }}" x="2" y="{{ h / -2.0 }}" valign="center"/>
         <Label text="close"
                x="{{ w - h / 2 }}"
                y="{{ h / -2 }}"
