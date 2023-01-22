@@ -1,9 +1,10 @@
 ﻿using System.Diagnostics;
+using System.Text.RegularExpressions;
 using System.Xml;
 
 namespace ManiaTemplates.Lib;
 
-public class Component
+public partial class Component
 {
     public string Tag { get; }
     public string TemplateContent { get; }
@@ -38,9 +39,9 @@ public class Component
         var foundProperties = new Dictionary<string, ComponentProperty>();
         var componentTemplate = "";
         var hasSlot = false;
-
-        XmlDocument doc = new XmlDocument();
-        doc.LoadXml(templateFile.Content());
+        
+        var doc = new XmlDocument();
+        doc.LoadXml(Helper.EscapePropertyTypes(templateFile.Content()));
 
         foreach (XmlNode node in doc.ChildNodes[0]!)
         {
@@ -113,7 +114,7 @@ public class Component
                     break;
 
                 case "type":
-                    type = attribute.Value;
+                    type = Helper.ReverseEscapeXmlAttributeString(attribute.Value);
                     break;
 
                 case "default":

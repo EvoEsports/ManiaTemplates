@@ -13,58 +13,70 @@ A templating engine to use for ManiaLinks, an XML based markup language for the 
 
 ````xml
 <component>
-    <property type="string" name="title"/>
-    <property type="double" name="w"/>
-    <property type="double" name="h"/>
+    <import src="MapRow.mt" />
+
+    <property type="List<Map>" name="maps" default="null" />
 
     <template>
-        <Label x="20.0" y="{{ 11 * 4.0 }}" text="{{ title }}_append_test"/>
-
-        <Window w="{{ w }}" h="{{ h }}" title="{{ title }}" z="123">
-            <Label text="Hey there!"/>
+        <Window title="Map list" x="10" w="{{ 120 }}" h="{{ 90 }}">
+            <MapRow foreach="var map in maps" y="{{ __index * -6 }}" map="{{ map }}" />
         </Window>
     </template>
 </component>
+
 ````
 
 #### Rendering
 
 ````csharp
-using ManiaTemplates;
-using ManiaTemplates.Languages;
-using ManiaTemplates.Lib;
+// 1. Compile the template
+new ManiaTemplateEngine(new T4()).PreProcess(
+    Component.FromFile("MapList.mt"),
+    "MapList"
+);
 
-//Initialize engine
-var engine = new ManiaTemplateEngine(new T4());
-
-//Load a component
-var testComponent = Component.FromFile("Templates/Test.xml");
-var manialink = engine.ConvertComponent(testComponent);
-
-//Render it
-var result = engine.Render(manialink, new
+// 2. Render the template
+var result = new MapList
 {
-    title = "Custom Window Title",
-    w = 120.0,
-    h = 90.0
-});
-
-//Print it
-Console.WriteLine($"\n{Helper.PrettyXxml(result.Result)}");
+    maps = new List<Map>
+    {
+        new() { Uid = Helper.RandomString(), Name = "TestMap1", Author = author },
+        new() { Uid = Helper.RandomString(), Name = "TestMap2", Author = author },
+        new() { Uid = Helper.RandomString(), Name = "TestMap3", Author = authorTwo },
+        new() { Uid = Helper.RandomString(), Name = "TestMap4", Author = author },
+        new() { Uid = Helper.RandomString(), Name = "TestMap5", Author = authorTwo },
+        new() { Uid = Helper.RandomString(), Name = "TestMap6", Author = authorTwo },
+    }
+}.TransformText();
 ````
 
 #### Output
-
 ````xml
 <manialink version="3">
-    <label text="Custom Window Title_append_test" pos="20 44" textsize="1" />
-    <frame size="120 90">
-        <quad pos="0 0" size="120 6" bgcolor="333" />
-        <label text="Custom Window Title" pos="2 -3" textsize="1" />
-        <label text="close" pos="117 -3" textsize="1" />
-        <frame pos="0 -6" size="120 84" z-index="123">
-            <label text="Hey there!" pos="0 0" textsize="1" />
-        </frame>
+  <frame pos="10 0" size="120 90">
+    <quad pos="0 0" size="120 6" bgcolor="333" />
+    <label text="Map list" pos="2 -3" textsize="1" />
+    <label text="close" pos="117 -3" textsize="1" />
+    <frame pos="0 6" size="120 84" z-index="0">
+      <label text="WX070D2TKX94HU0H" pos="0 0" textsize="1" />
+      <label text="TestMap1" pos="40 0" textsize="1" />
+      <label text="AuthorOne" pos="80 0" textsize="1" />
+      <label text="N471T748PKRSSCYQ" pos="0 -6" textsize="1" />
+      <label text="TestMap2" pos="40 -6" textsize="1" />
+      <label text="AuthorOne" pos="80 -6" textsize="1" />
+      <label text="0Z3JO3XRSMCBI25F" pos="0 -12" textsize="1" />
+      <label text="TestMap3" pos="40 -12" textsize="1" />
+      <label text="AuthorTwo" pos="80 -12" textsize="1" />
+      <label text="8QHV4TMUILV59H00" pos="0 -18" textsize="1" />
+      <label text="TestMap4" pos="40 -18" textsize="1" />
+      <label text="AuthorOne" pos="80 -18" textsize="1" />
+      <label text="XTKEPELQZ5LOBQMB" pos="0 -24" textsize="1" />
+      <label text="TestMap5" pos="40 -24" textsize="1" />
+      <label text="AuthorTwo" pos="80 -24" textsize="1" />
+      <label text="2NDUGKPCM18AD616" pos="0 -30" textsize="1" />
+      <label text="TestMap6" pos="40 -30" textsize="1" />
+      <label text="AuthorTwo" pos="80 -30" textsize="1" />
     </frame>
+  </frame>
 </manialink>
 ````

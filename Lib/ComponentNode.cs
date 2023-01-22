@@ -19,7 +19,7 @@ public class ComponentNode
         TemplateContent = templateContent;
         HasSlot = component.HasSlot;
         UsesComponents = usesComponents;
-        RenderId = Helper.Hash(Tag+Component.TemplateFileFile.Checksum);
+        RenderId = Helper.Hash(Component.TemplateFileFile.Checksum);
         DataId = Helper.RandomString(24);
     }
 }

@@ -33,6 +33,31 @@ public class ManiaTemplateEngine
         return new Transformer(this, _targetLanguage).BuildManialink(component);
     }
 
+    public void PreProcess(Component component, string outputName, string outputDirectory = "")
+    {
+        var t4Template = ConvertComponent(component);
+        var ttFilename = $"{outputName}.tt";
+        Console.WriteLine($"Writing {ttFilename}");
+        File.WriteAllText(Path.Combine(outputDirectory, ttFilename), t4Template);
+
+        var generator = new TemplateGenerator();
+        var parsedTemplate = generator.ParseTemplate(Path.Combine(outputDirectory, ttFilename), t4Template);
+        var templateSettings = TemplatingEngine.GetSettings(generator, parsedTemplate);
+        var references = Array.Empty<string>();
+        var classFilename = $"{outputName}.cs";
+
+        templateSettings.CompilerOptions = "-nullable:enable";
+        templateSettings.Name = outputName;
+        templateSettings.Namespace = "Tester";
+
+        Console.WriteLine($"Writing {classFilename}");
+        var preCompiledTemplate =
+            generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings, out references);
+        File.WriteAllText(Path.Combine(outputDirectory, classFilename), preCompiledTemplate);
+
+        Console.WriteLine("refs: " + string.Join(", ", references));
+    }
+
     public async Task<string?> Render(string t4Template, dynamic data)
     {
         var generator = new TemplateGenerator();

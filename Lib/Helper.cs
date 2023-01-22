@@ -1,11 +1,12 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 
 namespace ManiaTemplates.Lib;
 
-public class Helper
+public partial class Helper
 {
     internal static string Hash(string input)
     {
@@ -73,4 +74,38 @@ public class Helper
 
         return stringBuilder.ToString();
     }
+
+    public static string EscapePropertyTypes(string inputXml)
+    {
+        var outputXml = inputXml;
+        var propertyMatcher = ComponentPropertyMatcher();
+        var match = propertyMatcher.Match(inputXml);
+
+        while (match.Success)
+        {
+            var unescapedAttribute = match.Groups[1].Value;
+            outputXml = outputXml.Replace(unescapedAttribute, EscapeXmlAttributeString(unescapedAttribute));
+
+            match = match.NextMatch();
+        }
+
+        return outputXml;
+    }
+
+    public static string EscapeXmlAttributeString(string attributeValue)
+    {
+        return attributeValue.Replace("<", "&lt;")
+            .Replace(">", "&gt;")
+            .Replace("&", "&amp;");
+    }
+
+    public static string ReverseEscapeXmlAttributeString(string attributeValue)
+    {
+        return attributeValue.Replace("&lt;", "<")
+            .Replace("&gt;", ">")
+            .Replace("&amp;", "&");
+    }
+
+    [GeneratedRegex("<property.+type=[\"'](.+?)[\"'].+(?:\\s*\\/>|<\\/property>)")]
+    private static partial Regex ComponentPropertyMatcher();
 }

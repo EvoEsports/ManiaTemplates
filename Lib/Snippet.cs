@@ -4,7 +4,7 @@ namespace ManiaTemplates.Lib;
 
 public class Snippet : List<string>
 {
-    private const int IndentationMultiplier = 2;
+    private const int IndentationMultiplier = 0;
     private readonly int _currentIndentation;
 
     public Snippet(int currentIndentation = 0)
