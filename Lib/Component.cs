@@ -1,10 +1,9 @@
 ﻿using System.Diagnostics;
-using System.Text.RegularExpressions;
 using System.Xml;
 
 namespace ManiaTemplates.Lib;
 
-public partial class Component
+public class Component
 {
     public string Tag { get; }
     public string TemplateContent { get; }
@@ -13,9 +12,11 @@ public partial class Component
     public ComponentList ImportedComponents { get; }
     public Dictionary<string, ComponentProperty> Properties { get; }
 
+    public List<string> Namespaces { get; }
+
     private Component(string tag, ComponentList importedComponents,
         Dictionary<string, ComponentProperty> importedProperties,
-        string templateContent, bool hasSlot, TemplateFile templateFileFile)
+        string templateContent, bool hasSlot, TemplateFile templateFileFile, List<string> namespaces)
     {
         Tag = tag;
         TemplateFileFile = templateFileFile;
@@ -23,6 +24,7 @@ public partial class Component
         ImportedComponents = importedComponents;
         Properties = importedProperties;
         HasSlot = hasSlot;
+        Namespaces = namespaces;
     }
 
     public static Component FromFile(string filename)
@@ -36,10 +38,11 @@ public partial class Component
             $"Loading component ({templateFile.Name}|{templateFile.LastModification}) from {templateFile.TemplatePath}");
 
         var foundComponents = new ComponentList();
+        var namespaces = new List<string>();
         var foundProperties = new Dictionary<string, ComponentProperty>();
         var componentTemplate = "";
         var hasSlot = false;
-        
+
         var doc = new XmlDocument();
         doc.LoadXml(Helper.EscapePropertyTypes(templateFile.Content()));
 
@@ -49,7 +52,7 @@ public partial class Component
             switch (node.Name)
             {
                 case "property":
-                    var property = ParseProperty(node);
+                    var property = ParseComponentProperty(node);
                     foundProperties.Add(property.Name, property);
                     break;
 
@@ -58,15 +61,23 @@ public partial class Component
                     foundComponents.Add(component.Tag, component);
                     break;
 
+                case "using":
+                    var ns = ParseComponentUsingStatement(node);
+                    if (!namespaces.Contains(ns))
+                    {
+                        namespaces.Add(ns);
+                    }
+                    break;
+
                 case "template":
                     componentTemplate = node.InnerXml;
                     hasSlot = NodeHasSlot(node);
                     break;
             }
         }
-
+        
         return new Component(overwriteTag ?? templateFile.Name, foundComponents, foundProperties, componentTemplate,
-            hasSlot, templateFile);
+            hasSlot, templateFile, namespaces);
     }
 
     private static Component LoadComponent(XmlNode node, string currentDirectory)
@@ -101,7 +112,29 @@ public partial class Component
         return component;
     }
 
-    private static ComponentProperty ParseProperty(XmlNode node)
+    private static string ParseComponentUsingStatement(XmlNode node)
+    {
+        string? ns = null;
+
+        foreach (XmlAttribute attribute in node.Attributes!)
+        {
+            if (attribute.Name == "namespace")
+            {
+                ns = attribute.Value;
+                break;
+            }
+        }
+
+        if (ns == null)
+        {
+            throw new Exception($"Missing attribute 'namespace' for element '{node.OuterXml}'.");
+        }
+
+        return ns;
+    }
+
+
+    private static ComponentProperty ParseComponentProperty(XmlNode node)
     {
         string? name = null, type = null, defaultValue = null;
 

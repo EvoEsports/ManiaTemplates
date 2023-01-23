@@ -15,10 +15,29 @@ public class ManiaTemplateEngine
         LoadCoreComponents();
     }
 
-    public ManiaTemplateEngine(ITargetLanguage targetLanguage)
+    public ManiaLink PreProcess(Component component)
     {
-        _targetLanguage = targetLanguage;
-        LoadCoreComponents();
+        var t4Template = ConvertComponent(component);
+        var ttFilename = $"{component.Tag}.tt";
+        
+        File.WriteAllText(ttFilename, t4Template);
+
+        var generator = new TemplateGenerator();
+        var parsedTemplate = generator.ParseTemplate(ttFilename, t4Template);
+        var templateSettings = TemplatingEngine.GetSettings(generator, parsedTemplate);
+        var references = Array.Empty<string>();
+
+        templateSettings.CompilerOptions = "-nullable:enable";
+        templateSettings.Name = component.Tag;
+        templateSettings.Namespace = "ManiaTemplate";
+
+        var preCompiledTemplate =
+            generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings, out references);
+
+        //Remove namespace wrapper
+        preCompiledTemplate = preCompiledTemplate.Replace("namespace ManiaTemplate {", "")[..^5];
+
+        return new ManiaLink(component.Tag, preCompiledTemplate, Assembly.GetCallingAssembly());
     }
 
     private void LoadCoreComponents()
@@ -38,33 +57,8 @@ public class ManiaTemplateEngine
         BaseComponents.Add(importAs ?? template.Name, component);
     }
 
-    public string ConvertComponent(Component component)
+    private string ConvertComponent(Component component)
     {
         return new Transformer(this, _targetLanguage).BuildManialink(component);
-    }
-
-    public ManiaLink PreProcess(Component component)
-    {
-        var t4Template = ConvertComponent(component);
-        var ttFilename = $"{component.Tag}.tt";
-
-        var generator = new TemplateGenerator();
-        var parsedTemplate = generator.ParseTemplate(ttFilename, t4Template);
-        var templateSettings = TemplatingEngine.GetSettings(generator, parsedTemplate);
-        var references = Array.Empty<string>();
-
-        templateSettings.CompilerOptions = "-nullable:enable";
-        templateSettings.Name = component.Tag;
-        templateSettings.Namespace = "ManiaTemplate";
-
-        var preCompiledTemplate =
-            generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings, out references);
-
-        Console.WriteLine("Loaded assemblies:\n- " + string.Join("\n- ", references));
-
-        //Remove namespace wrapper
-        preCompiledTemplate = preCompiledTemplate.Replace("namespace ManiaTemplate {", "")[..^5];
-
-        return new ManiaLink(component.Tag, preCompiledTemplate, Assembly.GetCallingAssembly());
     }
 }

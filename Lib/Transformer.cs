@@ -6,10 +6,10 @@ namespace ManiaTemplates.Lib;
 
 public class Transformer
 {
-    private int _indentation;
     private readonly ManiaTemplateEngine _engine;
     private readonly ITargetLanguage _targetLanguage;
     private readonly Dictionary<string, Snippet> _renderMethods = new();
+    private readonly List<string> _namespaces = new();
 
     public Transformer(ManiaTemplateEngine engine, ITargetLanguage targetLanguage)
     {
@@ -20,22 +20,32 @@ public class Transformer
     public string BuildManialink(Component component, int version = 3)
     {
         var loadedComponents = _engine.BaseComponents.Overload(component.ImportedComponents);
+        var body = ProcessNode(XmlStringToNode(component.TemplateContent), loadedComponents, null, true);
         var template = new Snippet
         {
             _targetLanguage.Context(@"template language=""C#"""),
-            _targetLanguage.Context(@"assembly name=""C:\Users\arasz\Projects\ManiaTemplates\Tester\bin\Debug\net7.0\Models.dll"""),
             _targetLanguage.Context(@"import namespace=""System.Collections.Generic"""),
-            _targetLanguage.Context(@"import namespace=""Models"""),
-            // CreateTemplateParameters(component),
+            CreateImportStatements(),
             $@"<manialink version=""{version}"">",
-            ProcessNode(XmlStringToNode(component.TemplateContent), loadedComponents, null, true),
+            body,
             "</manialink>",
             CreateTemplateParametersPreCompiled(component),
             CreateRenderAndDataMethods()
         };
 
-        // return template.ToString();
         return ReduceTemplateCode(template.ToString());
+    }
+
+    private string CreateImportStatements()
+    {
+        var snippet = new Snippet();
+
+        foreach (var ns in _namespaces)
+        {
+            snippet.AppendLine(_targetLanguage.Context($@"import namespace=""{ns}"""));
+        }
+
+        return snippet.ToString();
     }
 
     private string ReduceTemplateCode(string manialink)
@@ -61,25 +71,14 @@ public class Transformer
         return output.ToString();
     }
 
-    private string CreateTemplateParameters(Component component)
-    {
-        var snippet = new Snippet();
-
-        foreach (var (propertyName, property) in component.Properties)
-        {
-            snippet.AppendLine(_targetLanguage.Context(@$"parameter type=""{property.Type}"" name=""{propertyName}"""));
-        }
-
-        return snippet.ToString();
-    }
-
     private string CreateTemplateParametersPreCompiled(Component component)
     {
         var snippet = new Snippet();
 
         foreach (var (propertyName, property) in component.Properties)
         {
-            snippet.AppendSnippet(_targetLanguage.FeatureBlock($"public {property.Type} {propertyName} {{ get; init; }}"));
+            snippet.AppendSnippet(
+                _targetLanguage.FeatureBlock($"public {property.Type} {propertyName} {{ get; init; }}"));
         }
 
         return snippet.ToString();
@@ -87,7 +86,7 @@ public class Transformer
 
     private string CreateRenderAndDataMethods()
     {
-        Snippet snippet = new(_indentation);
+        Snippet snippet = new();
 
         foreach (var renderMethod in _renderMethods.Values)
         {
@@ -141,7 +140,7 @@ public class Transformer
     private string ProcessNode(XmlNode node, ComponentList availableComponents, string? slotContent = null,
         bool rootContext = false)
     {
-        Snippet snippet = new(_indentation + 1);
+        Snippet snippet = new(1);
 
         foreach (XmlNode child in node.ChildNodes)
         {
@@ -161,6 +160,11 @@ public class Transformer
 
             if (availableComponents.ContainsKey(tag))
             {
+                foreach (var ns in availableComponents[tag].Namespaces)
+                {
+                    _namespaces.Add(ns);
+                }
+
                 var componentNode = CreateComponentNode(
                     child,
                     availableComponents[tag],
