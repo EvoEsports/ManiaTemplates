@@ -7,6 +7,9 @@ A templating engine to use for ManiaLinks, an XML based markup language for the 
 * Go to **Editor > File Types**, select *XML* in the recognized file types list.
 * Add *.mt* on the right side.
 
+## Components
+[List of available components](components.md)
+
 ## Example
 
 #### Component template (Test.xml)

@@ -5,7 +5,7 @@
     <property type="double" name="y" default="0.0"/>
     <property type="double" name="w" default="0.0"/>
     <property type="double" name="h" default="0.0"/>
-    <property type="double" name="opacity" default="1.0"/>
+    <property type="double" name="o" default="1.0"/>
     <property type="int" name="z" default="0"/>
     <property type="int" name="events" default="0"/>
     <property type="string" name="action" default=""/>
@@ -27,7 +27,7 @@
               size="{{ w }} {{ h }}"
               halign="{{ halign }}"
               valign="{{ valign }}"
-              opacity="{{ opacity }}"
+              opacity="{{ o }}"
               z-index="{{ z }}"
               ScriptEvents="{{ events }}"
               action="{{ action }}"
