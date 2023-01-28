@@ -42,6 +42,7 @@ public class ManiaLink
         var output = (string?)_renderMethod.Invoke(runnable, null);
 
         return output?.Replace(@"pos=""0 0""", "")
+            .Replace(@"size=""0 0""", "")
             .Replace(@"z-index=""0""", "")
             .Replace(@"scale=""1""", "")
             .Replace(@"rot=""0""", "")
@@ -57,11 +58,13 @@ public class ManiaLink
             .Replace(@"focusareacolor2=""""", "")
             .Replace(@"maxline=""0""", "")
             .Replace(@"translate=""0""", "")
+            .Replace(@"ScriptEvents=""0""", "")
             .Replace(@"textid=""""", "")
             .Replace(@"textfont=""""", "")
             .Replace(@"action=""""", "")
             .Replace(@"url=""""", "")
             .Replace(@"class=""""", "")
+            .Replace(@"manialink=""""", "")
             .Replace(@"style=""""", "");
     }
 

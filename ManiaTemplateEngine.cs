@@ -19,20 +19,22 @@ public class ManiaTemplateEngine
     {
         var t4Template = ConvertComponent(component);
         var ttFilename = $"{component.Tag}.tt";
-        
+
         File.WriteAllText(ttFilename, t4Template);
 
         var generator = new TemplateGenerator();
         var parsedTemplate = generator.ParseTemplate(ttFilename, t4Template);
         var templateSettings = TemplatingEngine.GetSettings(generator, parsedTemplate);
-        var references = Array.Empty<string>();
 
         templateSettings.CompilerOptions = "-nullable:enable";
         templateSettings.Name = component.Tag;
         templateSettings.Namespace = "ManiaTemplate";
+        
+        File.WriteAllText("../../../Debug.tt", t4Template);
 
         var preCompiledTemplate =
-            generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings, out references);
+            generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings,
+                out string[] loadedAssemblies);
 
         //Remove namespace wrapper
         preCompiledTemplate = preCompiledTemplate.Replace("namespace ManiaTemplate {", "")[..^5];

@@ -8,24 +8,24 @@
     <property type="double" name="opacity" default="1.0"/>
     <property type="int" name="z" default="0"/>
     <property type="int" name="events" default="0"/>
-    <property type="string" name="action"/>
-    <property type="string" name="url"/>
-    <property type="string" name="manialink"/>
+    <property type="string" name="action" default="" />
+    <property type="string" name="url" default="" />
+    <property type="string" name="manialink" default="" />
 
-    <property type="string" name="style"/>
+    <property type="string" name="style" default=""/>
     <property type="string" name="textfont" default="GameFont"/>
     <property type="double" name="textsize" default="1.0"/>
-    <property type="string" name="textcolor"/>
-    <property type="string" name="focusareacolor1"/>
-    <property type="string" name="focusareacolor2"/>
+    <property type="string" name="textcolor" default="" />
+    <property type="string" name="focusareacolor1" default="" />
+    <property type="string" name="focusareacolor2" default="" />
 
-    <property type="string" name="text"/>
-    <property type="string" name="textprefix"/>
+    <property type="string" name="text" default=""/>
+    <property type="string" name="textprefix" default=""/>
     <property type="int" name="bold" default="0"/>
     <property type="int" name="autonewline" default="0"/>
     <property type="int" name="maxline" default="0"/>
-    <property type="int" name="translate"/>
-    <property type="string" name="textid"/>
+    <property type="int" name="translate" default="0"/>
+    <property type="string" name="textid" default=""/>
 
     <template>
         <label text="{{ text }}"
@@ -36,13 +36,14 @@
                textsize="{{ textsize }}"
                textfont="{{ textfont }}"
                textcolor="{{ textcolor }}"
-               bold="{{ bold }}"
+               textemboss="{{ bold }}"
                autonewline="{{ autonewline }}"
                maxline="{{ maxline }}"
                translate="{{ translate }}"
                textid="{{ textid }}"
                halign="{{ halign }}"
                valign="{{ valign }}"
+               opacity="{{ opacity }}"
                z-index="{{ z }}"
                ScriptEvents="{{ events }}"
                action="{{ action }}"
