@@ -39,7 +39,30 @@ public class ManiaLink
             _type.GetProperty(dt.Name)?.SetValue(runnable, dt.GetValue(data));
         }
 
-        return (string?)_renderMethod.Invoke(runnable, null);
+        var output = (string?)_renderMethod.Invoke(runnable, null);
+
+        return output?.Replace(@"pos=""0 0""", "")
+            .Replace(@"z-index=""0""", "")
+            .Replace(@"scale=""1""", "")
+            .Replace(@"rot=""0""", "")
+            .Replace(@"scriptevents=""0""", "")
+            .Replace(@"opacity=""1""", "")
+            .Replace(@"valign=""top""", "")
+            .Replace(@"halign=""left""", "")
+            .Replace(@"textemboss=""0""", "")
+            .Replace(@"autonewline=""0""", "")
+            .Replace(@"textprefix=""""", "")
+            .Replace(@"textcolor=""""", "")
+            .Replace(@"focusareacolor1=""""", "")
+            .Replace(@"focusareacolor2=""""", "")
+            .Replace(@"maxline=""0""", "")
+            .Replace(@"translate=""0""", "")
+            .Replace(@"textid=""""", "")
+            .Replace(@"textfont=""""", "")
+            .Replace(@"action=""""", "")
+            .Replace(@"url=""""", "")
+            .Replace(@"class=""""", "")
+            .Replace(@"style=""""", "");
     }
 
     public string? RenderTimed(dynamic data)

@@ -18,13 +18,13 @@
     <property type="string" name="textcolor"/>
     <property type="string" name="focusareacolor1"/>
     <property type="string" name="focusareacolor2"/>
-    
+
     <property type="string" name="text"/>
     <property type="string" name="textprefix"/>
-    <property type="int"    name="bold" default="0"/>
-    <property type="int"    name="autonewline" default="0"/>
-    <property type="int"    name="maxline"/>
-    <property type="int"    name="translate"/>
+    <property type="int" name="bold" default="0"/>
+    <property type="int" name="autonewline" default="0"/>
+    <property type="int" name="maxline" default="0"/>
+    <property type="int" name="translate"/>
     <property type="string" name="textid"/>
 
     <template>
