@@ -33,7 +33,7 @@ public class Transformer
             CreateRenderAndDataMethods()
         };
 
-        return ReduceTemplateCode(template.ToString());
+        return JoinFeatureBlocks(template.ToString());
     }
 
     private string CreateImportStatements()
@@ -48,7 +48,7 @@ public class Transformer
         return snippet.ToString();
     }
 
-    private string ReduceTemplateCode(string manialink)
+    private static string JoinFeatureBlocks(string manialink)
     {
         var templateControlRegex = new Regex(@"#>\s*<#\+");
         var match = templateControlRegex.Match(manialink);
