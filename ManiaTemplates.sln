@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Tester", "Tester\Tester.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Models", "Models\Models.csproj", "{FE52896B-CA50-4187-BCE3-E1E8BC285081}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocGenerator", "DocGenerator\DocGenerator.csproj", "{DC627E42-16AE-4C37-A768-425134B288A0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{FE52896B-CA50-4187-BCE3-E1E8BC285081}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FE52896B-CA50-4187-BCE3-E1E8BC285081}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FE52896B-CA50-4187-BCE3-E1E8BC285081}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC627E42-16AE-4C37-A768-425134B288A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC627E42-16AE-4C37-A768-425134B288A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC627E42-16AE-4C37-A768-425134B288A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC627E42-16AE-4C37-A768-425134B288A0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

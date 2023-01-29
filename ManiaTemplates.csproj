@@ -15,16 +15,19 @@
     <ItemGroup>
       <Compile Remove="Tester\**" />
       <Compile Remove="Models\**" />
+      <Compile Remove="DocGenerator\**" />
     </ItemGroup>
 
     <ItemGroup>
       <EmbeddedResource Remove="Tester\**" />
       <EmbeddedResource Remove="Models\**" />
+      <EmbeddedResource Remove="DocGenerator\**" />
     </ItemGroup>
 
     <ItemGroup>
       <None Remove="Tester\**" />
       <None Remove="Models\**" />
+      <None Remove="DocGenerator\**" />
     </ItemGroup>
 
     <ItemGroup>

@@ -29,7 +29,7 @@ public class ManiaTemplateEngine
         templateSettings.CompilerOptions = "-nullable:enable";
         templateSettings.Name = component.Tag;
         templateSettings.Namespace = "ManiaTemplate";
-        
+
         File.WriteAllText("../../../Debug.tt", t4Template);
 
         var preCompiledTemplate =
@@ -64,5 +64,11 @@ public class ManiaTemplateEngine
     private string ConvertComponent(Component component)
     {
         return new Transformer(this, _targetLanguage).BuildManialink(component);
+    }
+
+    public string GenerateComponentsMarkdown()
+    {
+        var componentMdGenerator = new ComponentMarkdownGenerator(BaseComponents);
+        return componentMdGenerator.Generate();
     }
 }
