@@ -21,13 +21,14 @@ public class ComponentMarkdownGenerator
         {
             if (component.HasSlot)
             {
-                output.Add($"``<{componentTag}> ... </{componentTag}>``\n");
+                output.Add($"``<{componentTag}> ... </{componentTag}>``");
             }
             else
             {
-                output.Add($"``<{componentTag} />``\n");
+                output.Add($"``<{componentTag} />``");
             }
             
+            output.Add("\n\n");
             output.Add("| Attribute  | Type   | Default |");
             output.Add("|------------|--------|---------|");
 

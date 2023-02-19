@@ -5,7 +5,7 @@
     <property type="double" name="h" default="0.0"/>
     <property type="string" name="halign" default="left"/>
     <property type="string" name="valign" default="center"/>
-    <property type="int" name="z" default="0"/>
+    <property type="int" name="z-index" default="0"/>
     <property type="int" name="events" default="0"/>
 
     <template>
@@ -13,7 +13,7 @@
                size="{{ w }} {{ h }}"
                halign="{{ halign }}"
                valign="{{ valign }}"
-               z-index="{{ z }}"
+               z-index="{{ z-index }}"
                ScriptEvents="{{ events }}"
         >
             <slot/>

@@ -1,7 +1,7 @@
 ﻿<component>
     <import src="Includes/WindowTitleBar.mt"/>
 
-    <property type="int" name="z"/>
+    <property type="int" name="z-index"/>
     <property type="double" name="x"/>
     <property type="double" name="y"/>
     <property type="double" name="w"/>
@@ -11,11 +11,19 @@
 
     <template>
         <frame pos="{{ x }} {{ y }}" size="{{ w }} {{ h }}">
-            <RoundedQuad w="{{ w }}" h="{{ h }}" r="{{ 0.1 }}" color="111" z="{{ -1 }}" o="{{ 0.8 }}" />
+            <RoundedQuad w="{{ w }}" h="{{ h }}" r="{{ 0.1 }}" color="111" z-index="{{ -1 }}" o="{{ 0.8 }}" />
             <WindowTitleBar w="{{ w }}" h="{{ titleBarHeight }}" color="f06" title="{{ title }}"/>
-            <Frame x="{{ 2.0 }}" y="{{ titleBarHeight * -1.0 - 1.0 }}" w="{{ w - 4.0 }}" h="{{ h - titleBarHeight - 4.0 }}" z="{{ z + 1 }}">
+            <Frame x="{{ 2.0 }}" y="{{ titleBarHeight * -1.0 - 1.0 }}" w="{{ w - 4.0 }}" h="{{ h - titleBarHeight - 4.0 }}" z-index="{{ z-index + 1 }}">
                 <slot/>
             </Frame>
         </frame>
     </template>
+    
+    <script><!--
+    
+    main(){
+        log("Window opened.");
+    }
+    
+    --></script>
 </component>
