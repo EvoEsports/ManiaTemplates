@@ -50,13 +50,9 @@ public class Snippet : List<string>
         return this;
     }
 
-    private string Indentation(int additionalIndentation)
-    {
-        return new string(' ', (_currentIndentation + additionalIndentation) * IndentationMultiplier);
-    }
+    private string Indentation(int additionalIndentation) =>
+        new(' ', (_currentIndentation + additionalIndentation) * IndentationMultiplier);
 
-    public string ToString(string joinWith = "\n")
-    {
-        return string.Join(joinWith, this).Trim();
-    }
+    public string ToString(string joinWith = "\n") =>
+        string.Join(joinWith, this).Trim();
 }
