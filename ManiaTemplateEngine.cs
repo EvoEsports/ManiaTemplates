@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using ManiaTemplates.Components;
 using ManiaTemplates.Languages;
 using ManiaTemplates.Lib;
 using Mono.TextTemplating;
@@ -7,18 +8,18 @@ namespace ManiaTemplates;
 
 public class ManiaTemplateEngine
 {
-    private readonly ITargetLanguage _targetLanguage = new T4();
-    protected internal ComponentList BaseComponents { get; } = new();
+    private readonly IMtTargetLanguage _mtTargetLanguage = new MtLanguageT4();
+    protected internal MtComponentList BaseMtComponents { get; } = new();
 
     public ManiaTemplateEngine()
     {
         LoadCoreComponents();
     }
 
-    public ManiaLink PreProcess(Component component)
+    public ManiaLink PreProcess(MtComponent mtComponent)
     {
-        var t4Template = ConvertComponent(component);
-        var ttFilename = $"{component.Tag}.tt";
+        var t4Template = ConvertComponent(mtComponent);
+        var ttFilename = $"{mtComponent.Tag}.tt";
 
         File.WriteAllText(ttFilename, t4Template);
 
@@ -27,7 +28,7 @@ public class ManiaTemplateEngine
         var templateSettings = TemplatingEngine.GetSettings(generator, parsedTemplate);
 
         templateSettings.CompilerOptions = "-nullable:enable";
-        templateSettings.Name = component.Tag;
+        templateSettings.Name = mtComponent.Tag;
         templateSettings.Namespace = "ManiaTemplate";
 
         File.WriteAllText("../../../Debug.tt", t4Template);
@@ -39,7 +40,7 @@ public class ManiaTemplateEngine
         //Remove namespace wrapper
         preCompiledTemplate = preCompiledTemplate.Replace("namespace ManiaTemplate {", "")[..^5];
 
-        return new ManiaLink(component.Tag, preCompiledTemplate, Assembly.GetCallingAssembly());
+        return new ManiaLink(mtComponent.Tag, preCompiledTemplate, Assembly.GetCallingAssembly());
     }
 
     private void LoadCoreComponents()
@@ -57,18 +58,18 @@ public class ManiaTemplateEngine
     private void AddComponentFile(string templateFile, string? importAs = null)
     {
         var template = new TemplateFile(templateFile);
-        var component = Component.FromTemplate(template, importAs);
-        BaseComponents.Add(importAs ?? template.Name, component);
+        var component = MtComponent.FromTemplate(template, importAs);
+        BaseMtComponents.Add(importAs ?? template.Name, component);
     }
 
-    private string ConvertComponent(Component component)
+    private string ConvertComponent(MtComponent mtComponent)
     {
-        return new Transformer(this, _targetLanguage).BuildManialink(component);
+        return new Transformer(this, _mtTargetLanguage).BuildManialink(mtComponent);
     }
 
     public string GenerateComponentsMarkdown()
     {
-        var componentMdGenerator = new ComponentMarkdownGenerator(BaseComponents);
+        var componentMdGenerator = new MtComponentMarkdownGenerator(BaseMtComponents);
         return componentMdGenerator.Generate();
     }
 }

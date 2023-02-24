@@ -1,45 +1,46 @@
 ﻿using System.Diagnostics;
 using System.Xml;
+using ManiaTemplates.Lib;
 
-namespace ManiaTemplates.Lib;
+namespace ManiaTemplates.Components;
 
-public class Component
+public class MtComponent
 {
     public string Tag { get; }
     public string TemplateContent { get; }
     public TemplateFile TemplateFileFile { get; }
     public bool HasSlot { get; }
-    public ComponentList ImportedComponents { get; }
-    public Dictionary<string, ComponentProperty> Properties { get; }
+    public MtComponentList ImportedMtComponents { get; }
+    public Dictionary<string, MtComponentProperty> Properties { get; }
 
     public List<string> Namespaces { get; }
 
-    private Component(string tag, ComponentList importedComponents,
-        Dictionary<string, ComponentProperty> importedProperties,
+    private MtComponent(string tag, MtComponentList importedMtComponents,
+        Dictionary<string, MtComponentProperty> importedProperties,
         string templateContent, bool hasSlot, TemplateFile templateFileFile, List<string> namespaces)
     {
         Tag = tag;
         TemplateFileFile = templateFileFile;
         TemplateContent = templateContent;
-        ImportedComponents = importedComponents;
+        ImportedMtComponents = importedMtComponents;
         Properties = importedProperties;
         HasSlot = hasSlot;
         Namespaces = namespaces;
     }
 
-    public static Component FromFile(string filename)
+    public static MtComponent FromFile(string filename)
     {
         return FromTemplate(new TemplateFile(filename));
     }
 
-    internal static Component FromTemplate(TemplateFile templateFile, string? overwriteTag = null)
+    internal static MtComponent FromTemplate(TemplateFile templateFile, string? overwriteTag = null)
     {
         Debug.WriteLine(
             $"Loading component ({templateFile.Name}|{templateFile.LastModification}) from {templateFile.TemplatePath}");
 
-        var foundComponents = new ComponentList();
+        var foundComponents = new MtComponentList();
         var namespaces = new List<string>();
-        var foundProperties = new Dictionary<string, ComponentProperty>();
+        var foundProperties = new Dictionary<string, MtComponentProperty>();
         var componentTemplate = "";
         var hasSlot = false;
 
@@ -76,11 +77,11 @@ public class Component
             }
         }
         
-        return new Component(overwriteTag ?? templateFile.Name, foundComponents, foundProperties, componentTemplate,
+        return new MtComponent(overwriteTag ?? templateFile.Name, foundComponents, foundProperties, componentTemplate,
             hasSlot, templateFile, namespaces);
     }
 
-    private static Component LoadComponent(XmlNode node, string currentDirectory)
+    private static MtComponent LoadComponent(XmlNode node, string currentDirectory)
     {
         string? src = null, importAs = null;
 
@@ -134,7 +135,7 @@ public class Component
     }
 
 
-    private static ComponentProperty ParseComponentProperty(XmlNode node)
+    private static MtComponentProperty ParseComponentProperty(XmlNode node)
     {
         string? name = null, type = null, defaultValue = null;
 
@@ -166,7 +167,7 @@ public class Component
             throw new Exception($"Missing attribute 'type' for element '{node.OuterXml}'.");
         }
 
-        var property = new ComponentProperty(type, name, defaultValue);
+        var property = new MtComponentProperty(type, name, defaultValue);
 
         Debug.WriteLine($"Loaded property '{property.Name}' (default:{property.Default ?? "null"})");
 

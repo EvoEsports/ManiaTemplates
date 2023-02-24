@@ -1,12 +1,12 @@
-﻿namespace ManiaTemplates.Lib;
+﻿namespace ManiaTemplates.Components;
 
-public class ComponentMarkdownGenerator
+public class MtComponentMarkdownGenerator
 {
-    private readonly ComponentList _components;
+    private readonly MtComponentList _mtComponents;
 
-    public ComponentMarkdownGenerator(ComponentList components)
+    public MtComponentMarkdownGenerator(MtComponentList mtComponents)
     {
-        _components = components;
+        _mtComponents = mtComponents;
     }
 
     public string Generate()
@@ -17,7 +17,7 @@ public class ComponentMarkdownGenerator
             "This list contains available components and their attributes.\n"
         };
 
-        foreach (var (componentTag, component) in _components)
+        foreach (var (componentTag, component) in _mtComponents)
         {
             if (component.HasSlot)
             {

@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using System.Xml;
+using ManiaTemplates.Components;
 using ManiaTemplates.Languages;
 
 namespace ManiaTemplates.Lib;
@@ -7,29 +8,29 @@ namespace ManiaTemplates.Lib;
 public class Transformer
 {
     private readonly ManiaTemplateEngine _engine;
-    private readonly ITargetLanguage _targetLanguage;
+    private readonly IMtTargetLanguage _mtTargetLanguage;
     private readonly Dictionary<string, Snippet> _renderMethods = new();
     private readonly List<string> _namespaces = new();
 
-    public Transformer(ManiaTemplateEngine engine, ITargetLanguage targetLanguage)
+    public Transformer(ManiaTemplateEngine engine, IMtTargetLanguage mtTargetLanguage)
     {
         _engine = engine;
-        _targetLanguage = targetLanguage;
+        _mtTargetLanguage = mtTargetLanguage;
     }
 
-    public string BuildManialink(Component component, int version = 3)
+    public string BuildManialink(MtComponent mtComponent, int version = 3)
     {
-        var loadedComponents = _engine.BaseComponents.Overload(component.ImportedComponents);
-        var body = ProcessNode(XmlStringToNode(component.TemplateContent), loadedComponents, null, true);
+        var loadedComponents = _engine.BaseMtComponents.Overload(mtComponent.ImportedMtComponents);
+        var body = ProcessNode(XmlStringToNode(mtComponent.TemplateContent), loadedComponents, null, true);
         var template = new Snippet
         {
-            _targetLanguage.Context(@"template language=""C#"""),
-            _targetLanguage.Context(@"import namespace=""System.Collections.Generic"""),
+            _mtTargetLanguage.Context(@"template language=""C#"""),
+            _mtTargetLanguage.Context(@"import namespace=""System.Collections.Generic"""),
             CreateImportStatements(),
             $@"<manialink version=""{version}"">",
             body,
             "</manialink>",
-            CreateTemplateParametersPreCompiled(component),
+            CreateTemplateParametersPreCompiled(mtComponent),
             CreateRenderAndDataMethods()
         };
 
@@ -42,7 +43,7 @@ public class Transformer
 
         foreach (var ns in _namespaces)
         {
-            snippet.AppendLine(_targetLanguage.Context($@"import namespace=""{ns}"""));
+            snippet.AppendLine(_mtTargetLanguage.Context($@"import namespace=""{ns}"""));
         }
 
         return snippet.ToString();
@@ -71,14 +72,14 @@ public class Transformer
         return output.ToString();
     }
 
-    private string CreateTemplateParametersPreCompiled(Component component)
+    private string CreateTemplateParametersPreCompiled(MtComponent mtComponent)
     {
         var snippet = new Snippet();
 
-        foreach (var (propertyName, property) in component.Properties)
+        foreach (var (propertyName, property) in mtComponent.Properties)
         {
             snippet.AppendSnippet(
-                _targetLanguage.FeatureBlock($"public {property.Type} {propertyName} {{ get; init; }}"));
+                _mtTargetLanguage.FeatureBlock($"public {property.Type} {propertyName} {{ get; init; }}"));
         }
 
         return snippet.ToString();
@@ -96,14 +97,14 @@ public class Transformer
         return snippet.ToString();
     }
 
-    private Snippet CreateRenderMethod(ComponentNode componentNode)
+    private Snippet CreateRenderMethod(MtComponentNode mtComponentNode)
     {
         var methodBody = new Snippet()
-            .AppendLine(null, _targetLanguage.FeatureBlockEnd())
-            .AppendLine(componentNode.TemplateContent)
-            .AppendLine(null, _targetLanguage.FeatureBlockStart());
+            .AppendLine(null, _mtTargetLanguage.FeatureBlockEnd())
+            .AppendLine(mtComponentNode.TemplateContent)
+            .AppendLine(null, _mtTargetLanguage.FeatureBlockStart());
 
-        return CreateMethodBlock("void", GetRenderMethodName(componentNode), DataToArguments(componentNode.Component),
+        return CreateMethodBlock("void", GetRenderMethodName(mtComponentNode), DataToArguments(mtComponentNode.MtComponent),
             methodBody);
     }
 
@@ -116,17 +117,17 @@ public class Transformer
             .AppendLine("}")
             .ToString();
 
-        return _targetLanguage.FeatureBlock(methodBlock);
+        return _mtTargetLanguage.FeatureBlock(methodBlock);
     }
 
-    private string ComponentNodeToMethodArguments(ComponentNode componentNode)
+    private string ComponentNodeToMethodArguments(MtComponentNode mtComponentNode)
     {
         Snippet propertyAssignments = new();
 
-        foreach (var property in componentNode.Component.Properties.Values)
+        foreach (var property in mtComponentNode.MtComponent.Properties.Values)
         {
-            var value = componentNode.Attributes.Has(property.Name)
-                ? componentNode.Attributes.Get(property.Name)
+            var value = mtComponentNode.Attributes.Has(property.Name)
+                ? mtComponentNode.Attributes.Get(property.Name)
                 : GetPropertyDefaultValue(property);
 
             var assignment = ConvertPropertyAssignment(property, value);
@@ -137,7 +138,7 @@ public class Transformer
         return propertyAssignments.ToString(", ");
     }
 
-    private string ProcessNode(XmlNode node, ComponentList availableComponents, string? slotContent = null,
+    private string ProcessNode(XmlNode node, MtComponentList availableMtComponents, string? slotContent = null,
         bool rootContext = false)
     {
         Snippet snippet = new(1);
@@ -151,24 +152,24 @@ public class Transformer
             if (attributeList.Has("foreach"))
             {
                 forEachLoop = attributeList.Pull("foreach");
-                snippet.AppendLine(null, _targetLanguage.FeatureBlockStart());
+                snippet.AppendLine(null, _mtTargetLanguage.FeatureBlockStart());
                 snippet.AppendLine(null, " int __index = 0;");
                 snippet.AppendLine(null, $" foreach({forEachLoop})");
                 snippet.AppendLine(null, " {");
-                snippet.AppendLine(null, _targetLanguage.FeatureBlockEnd());
+                snippet.AppendLine(null, _mtTargetLanguage.FeatureBlockEnd());
             }
 
-            if (availableComponents.ContainsKey(tag))
+            if (availableMtComponents.ContainsKey(tag))
             {
-                foreach (var ns in availableComponents[tag].Namespaces)
+                foreach (var ns in availableMtComponents[tag].Namespaces)
                 {
                     _namespaces.Add(ns);
                 }
 
                 var componentNode = CreateComponentNode(
                     child,
-                    availableComponents[tag],
-                    availableComponents,
+                    availableMtComponents[tag],
+                    availableMtComponents,
                     attributeList,
                     slotContent
                 );
@@ -201,7 +202,7 @@ public class Transformer
 
                         if (hasChildren)
                         {
-                            snippet.AppendLine(1, ProcessNode(child, availableComponents, slotContent));
+                            snippet.AppendLine(1, ProcessNode(child, availableMtComponents, slotContent));
                             snippet.AppendLine(CreateXmlClosingTag(tag));
                         }
 
@@ -212,19 +213,19 @@ public class Transformer
 
             if (forEachLoop != null)
             {
-                snippet.AppendLine(null, _targetLanguage.FeatureBlockStart());
+                snippet.AppendLine(null, _mtTargetLanguage.FeatureBlockStart());
                 snippet.AppendLine(null, " __index++;");
                 snippet.AppendLine(null, " }");
-                snippet.AppendLine(null, _targetLanguage.FeatureBlockEnd());
+                snippet.AppendLine(null, _mtTargetLanguage.FeatureBlockEnd());
             }
         }
 
         return snippet.ToString();
     }
 
-    private static ComponentAttributes GetNodeAttributes(XmlNode node)
+    private static MtComponentAttributes GetNodeAttributes(XmlNode node)
     {
-        var attributeList = new ComponentAttributes();
+        var attributeList = new MtComponentAttributes();
         if (node.Attributes == null) return attributeList;
 
         foreach (XmlAttribute attribute in node.Attributes)
@@ -235,27 +236,27 @@ public class Transformer
         return attributeList;
     }
 
-    private ComponentNode CreateComponentNode(XmlNode currentNode, Component component,
-        ComponentList availableComponents, ComponentAttributes attributeList, string? slotContent)
+    private MtComponentNode CreateComponentNode(XmlNode currentNode, MtComponent mtComponent,
+        MtComponentList availableMtComponents, MtComponentAttributes attributeList, string? slotContent)
     {
-        var subComponents = availableComponents.Overload(component.ImportedComponents);
+        var subComponents = availableMtComponents.Overload(mtComponent.ImportedMtComponents);
         var subSlotContent = ProcessNode(currentNode, subComponents, slotContent);
-        var componentTemplate = ProcessNode(XmlStringToNode(component.TemplateContent), subComponents, subSlotContent);
+        var componentTemplate = ProcessNode(XmlStringToNode(mtComponent.TemplateContent), subComponents, subSlotContent);
 
-        return new ComponentNode(
+        return new MtComponentNode(
             currentNode.Name,
-            component,
+            mtComponent,
             attributeList,
             componentTemplate,
-            Helper.UsesComponents(currentNode, availableComponents)
+            Helper.UsesComponents(currentNode, availableMtComponents)
         );
     }
 
-    private string DataToArguments(Component component)
+    private string DataToArguments(MtComponent mtComponent)
     {
         var snippet = new Snippet();
 
-        foreach (var property in component.Properties.Values)
+        foreach (var property in mtComponent.Properties.Values)
         {
             if (property.Default != null)
             {
@@ -271,7 +272,7 @@ public class Transformer
         return snippet.ToString(", ");
     }
 
-    private static string ConvertPropertyAssignment(ComponentProperty property, string parameterValue)
+    private static string ConvertPropertyAssignment(MtComponentProperty property, string parameterValue)
     {
         var curlyMatcher = new Regex(@"\{\{\s*(.+?)\s*\}\}");
         var output = WrapIfString(property, parameterValue);
@@ -315,16 +316,16 @@ public class Transformer
         return output;
     }
 
-    private string CreateComponentMethodCall(ComponentNode componentNode, bool rootContext = false)
+    private string CreateComponentMethodCall(MtComponentNode mtComponentNode, bool rootContext = false)
     {
-        var args = ComponentNodeToMethodArguments(componentNode);
+        var args = ComponentNodeToMethodArguments(mtComponentNode);
 
         if (rootContext)
         {
-            return _targetLanguage.Code(CreateMethodCall(GetRenderMethodName(componentNode), args));
+            return _mtTargetLanguage.Code(CreateMethodCall(GetRenderMethodName(mtComponentNode), args));
         }
 
-        return _targetLanguage.FeatureBlock(CreateMethodCall(GetRenderMethodName(componentNode), args))
+        return _mtTargetLanguage.FeatureBlock(CreateMethodCall(GetRenderMethodName(mtComponentNode), args))
             .ToString(" ");
     }
 
@@ -334,24 +335,24 @@ public class Transformer
         return $"{methodName}({methodArguments})" + lineSuffix;
     }
 
-    private static string WrapIfString(ComponentProperty property, string value)
+    private static string WrapIfString(MtComponentProperty property, string value)
     {
         return IsStringType(property) ? @$"""{value}""" : value;
     }
 
-    private static bool IsStringType(ComponentProperty property)
+    private static bool IsStringType(MtComponentProperty property)
     {
         return property.Type.ToLower().Contains("string"); //TODO: find better way to determine string
     }
 
-    private static string GetPropertyDefaultValue(ComponentProperty property)
+    private static string GetPropertyDefaultValue(MtComponentProperty property)
     {
         return property.Default ?? $"new {property.Type}()";
     }
 
-    private static string GetRenderMethodName(ComponentNode componentNode)
+    private static string GetRenderMethodName(MtComponentNode mtComponentNode)
     {
-        return $"Render{componentNode.Tag}_{componentNode.RenderId}";
+        return $"Render{mtComponentNode.Tag}_{mtComponentNode.RenderId}";
     }
 
     private static string Quotes(string str)
@@ -359,7 +360,7 @@ public class Transformer
         return $@"""{str}""";
     }
 
-    private string CreateXmlOpeningTag(string tag, ComponentAttributes attributeList, bool hasChildren)
+    private string CreateXmlOpeningTag(string tag, MtComponentAttributes attributeList, bool hasChildren)
     {
         var output = $"<{tag}";
 
@@ -400,7 +401,7 @@ public class Transformer
             var match = matches.Groups[0].Value.Trim();
             var content = matches.Groups[1].Value.Trim();
 
-            output = output.Replace(match, _targetLanguage.InsertResult(content));
+            output = output.Replace(match, _mtTargetLanguage.InsertResult(content));
 
             matches = matches.NextMatch();
         }

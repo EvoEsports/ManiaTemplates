@@ -1,10 +1,12 @@
-﻿namespace ManiaTemplates.Lib;
+﻿using ManiaTemplates.Lib;
 
-public class ComponentAttributes
+namespace ManiaTemplates.Components;
+
+public class MtComponentAttributes
 {
     private Dictionary<string, string> _attributes;
 
-    public ComponentAttributes()
+    public MtComponentAttributes()
     {
         _attributes = new();
     }

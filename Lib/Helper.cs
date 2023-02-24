@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using ManiaTemplates.Components;
 
 namespace ManiaTemplates.Lib;
 
@@ -22,14 +23,14 @@ public partial class Helper
             .Select(s => s[random.Next(s.Length)]).ToArray());
     }
 
-    internal static bool UsesComponents(XmlNode node, ComponentList components)
+    internal static bool UsesComponents(XmlNode node, MtComponentList mtComponents)
     {
         foreach (XmlNode child in node.ChildNodes)
         {
-            return UsesComponents(child, components);
+            return UsesComponents(child, mtComponents);
         }
 
-        return components.ContainsKey(node.Name);
+        return mtComponents.ContainsKey(node.Name);
     }
 
     public static string PrettyXml(string? uglyXml = null)

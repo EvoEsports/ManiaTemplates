@@ -1,12 +1,12 @@
-﻿namespace ManiaTemplates.Lib;
+﻿namespace ManiaTemplates.Components;
 
-public class ComponentProperty
+public class MtComponentProperty
 {
     public string Type { get; }
     public string Name { get; }
     public string? Default { get; }
 
-    public ComponentProperty(string type, string name, string? defaultValue = null)
+    public MtComponentProperty(string type, string name, string? defaultValue = null)
     {
         Type = type;
         Name = name;
