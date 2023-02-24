@@ -1,7 +1,7 @@
 ﻿<component>
     <property type="double" name="w"/>
     <property type="double" name="h"/>
-    <property type="int" name="z-index" default="0" />
+    <property type="int" name="zIndex" default="0" />
     <property type="string" name="title" default="$iMissing title"/>
     <property type="string" name="color" default="333"/>
 

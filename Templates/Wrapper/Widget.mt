@@ -1,5 +1,5 @@
 ﻿<component>
-    <property type="int" name="z-index"/>
+    <property type="int" name="zIndex"/>
     <property type="double" name="x"/>
     <property type="double" name="y"/>
     <property type="double" name="w"/>

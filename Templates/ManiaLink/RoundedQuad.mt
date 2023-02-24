@@ -9,11 +9,11 @@
     <property type="bool" name="br" default="true"/>
     <property type="bool" name="bl" default="true"/>
     <property type="bool" name="tl" default="true"/>
-    <property type="int" name="z-index" default="1"/>
+    <property type="int" name="zIndex" default="1"/>
     <property type="string" name="color" default="FFF"/>
 
     <template>
-        <frame pos="{{ x }} {{ y }}" z-index="{{ z-index }}">
+        <frame pos="{{ x }} {{ y }}" z-index="{{ zIndex }}">
             <framemodel id="EvoSC_RQTB_{{ color + opacity + w + radius }}">
                 <quad size="{{ w - radius * 20.0 }} {{ radius * 10.0 }}"
                       bgcolor="{{ color }}"

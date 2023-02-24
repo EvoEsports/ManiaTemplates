@@ -6,7 +6,7 @@
     <property type="string" name="halign" default="left"/>
     <property type="string" name="valign" default="center"/>
     <property type="double" name="opacity" default="1.0"/>
-    <property type="int" name="z-index" default="0"/>
+    <property type="int" name="zIndex" default="0"/>
     <property type="int" name="events" default="0"/>
     <property type="string" name="action" default=""/>
     <property type="string" name="url" default=""/>
@@ -33,7 +33,7 @@
                halign="{{ halign }}"
                valign="{{ valign }}"
                opacity="{{ opacity }}"
-               z-index="{{ z-index }}"
+               z-index="{{ zIndex }}"
                ScriptEvents="{{ events }}"
                action="{{ action }}"
                url="{{ url }}"
