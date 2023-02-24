@@ -8,7 +8,7 @@ namespace ManiaTemplates;
 
 public class ManiaTemplateEngine
 {
-    private readonly IMtTargetLanguage _mtTargetLanguage = new MtLanguageT4();
+    private readonly IMtLanguage _mtLanguage = new MtLanguageT4();
     protected internal MtComponentList BaseMtComponents { get; } = new();
 
     public ManiaTemplateEngine()
@@ -64,7 +64,7 @@ public class ManiaTemplateEngine
 
     private string ConvertComponent(MtComponent mtComponent)
     {
-        return new Transformer(this, _mtTargetLanguage).BuildManialink(mtComponent);
+        return new Transformer(this, _mtLanguage).BuildManialink(mtComponent);
     }
 
     public string GenerateComponentsMarkdown()

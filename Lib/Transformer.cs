@@ -8,14 +8,14 @@ namespace ManiaTemplates.Lib;
 public class Transformer
 {
     private readonly ManiaTemplateEngine _engine;
-    private readonly IMtTargetLanguage _mtTargetLanguage;
+    private readonly IMtLanguage _mtLanguage;
     private readonly Dictionary<string, Snippet> _renderMethods = new();
     private readonly List<string> _namespaces = new();
 
-    public Transformer(ManiaTemplateEngine engine, IMtTargetLanguage mtTargetLanguage)
+    public Transformer(ManiaTemplateEngine engine, IMtLanguage mtLanguage)
     {
         _engine = engine;
-        _mtTargetLanguage = mtTargetLanguage;
+        _mtLanguage = mtLanguage;
     }
 
     public string BuildManialink(MtComponent mtComponent, int version = 3)
@@ -24,8 +24,8 @@ public class Transformer
         var body = ProcessNode(XmlStringToNode(mtComponent.TemplateContent), loadedComponents, null, true);
         var template = new Snippet
         {
-            _mtTargetLanguage.Context(@"template language=""C#"""),
-            _mtTargetLanguage.Context(@"import namespace=""System.Collections.Generic"""),
+            _mtLanguage.Context(@"template language=""C#"""),
+            _mtLanguage.Context(@"import namespace=""System.Collections.Generic"""),
             CreateImportStatements(),
             $@"<manialink version=""{version}"">",
             body,
@@ -43,7 +43,7 @@ public class Transformer
 
         foreach (var ns in _namespaces)
         {
-            snippet.AppendLine(_mtTargetLanguage.Context($@"import namespace=""{ns}"""));
+            snippet.AppendLine(_mtLanguage.Context($@"import namespace=""{ns}"""));
         }
 
         return snippet.ToString();
@@ -79,7 +79,7 @@ public class Transformer
         foreach (var (propertyName, property) in mtComponent.Properties)
         {
             snippet.AppendSnippet(
-                _mtTargetLanguage.FeatureBlock($"public {property.Type} {propertyName} {{ get; init; }}"));
+                _mtLanguage.FeatureBlock($"public {property.Type} {propertyName} {{ get; init; }}"));
         }
 
         return snippet.ToString();
@@ -100,9 +100,9 @@ public class Transformer
     private Snippet CreateRenderMethod(MtComponentNode mtComponentNode)
     {
         var methodBody = new Snippet()
-            .AppendLine(null, _mtTargetLanguage.FeatureBlockEnd())
+            .AppendLine(null, _mtLanguage.FeatureBlockEnd())
             .AppendLine(mtComponentNode.TemplateContent)
-            .AppendLine(null, _mtTargetLanguage.FeatureBlockStart());
+            .AppendLine(null, _mtLanguage.FeatureBlockStart());
 
         return CreateMethodBlock("void", GetRenderMethodName(mtComponentNode), DataToArguments(mtComponentNode.MtComponent),
             methodBody);
@@ -117,7 +117,7 @@ public class Transformer
             .AppendLine("}")
             .ToString();
 
-        return _mtTargetLanguage.FeatureBlock(methodBlock);
+        return _mtLanguage.FeatureBlock(methodBlock);
     }
 
     private string ComponentNodeToMethodArguments(MtComponentNode mtComponentNode)
@@ -152,11 +152,11 @@ public class Transformer
             if (attributeList.Has("foreach"))
             {
                 forEachLoop = attributeList.Pull("foreach");
-                snippet.AppendLine(null, _mtTargetLanguage.FeatureBlockStart());
+                snippet.AppendLine(null, _mtLanguage.FeatureBlockStart());
                 snippet.AppendLine(null, " int __index = 0;");
                 snippet.AppendLine(null, $" foreach({forEachLoop})");
                 snippet.AppendLine(null, " {");
-                snippet.AppendLine(null, _mtTargetLanguage.FeatureBlockEnd());
+                snippet.AppendLine(null, _mtLanguage.FeatureBlockEnd());
             }
 
             if (availableMtComponents.ContainsKey(tag))
@@ -213,10 +213,10 @@ public class Transformer
 
             if (forEachLoop != null)
             {
-                snippet.AppendLine(null, _mtTargetLanguage.FeatureBlockStart());
+                snippet.AppendLine(null, _mtLanguage.FeatureBlockStart());
                 snippet.AppendLine(null, " __index++;");
                 snippet.AppendLine(null, " }");
-                snippet.AppendLine(null, _mtTargetLanguage.FeatureBlockEnd());
+                snippet.AppendLine(null, _mtLanguage.FeatureBlockEnd());
             }
         }
 
@@ -322,10 +322,10 @@ public class Transformer
 
         if (rootContext)
         {
-            return _mtTargetLanguage.Code(CreateMethodCall(GetRenderMethodName(mtComponentNode), args));
+            return _mtLanguage.Code(CreateMethodCall(GetRenderMethodName(mtComponentNode), args));
         }
 
-        return _mtTargetLanguage.FeatureBlock(CreateMethodCall(GetRenderMethodName(mtComponentNode), args))
+        return _mtLanguage.FeatureBlock(CreateMethodCall(GetRenderMethodName(mtComponentNode), args))
             .ToString(" ");
     }
 
@@ -401,7 +401,7 @@ public class Transformer
             var match = matches.Groups[0].Value.Trim();
             var content = matches.Groups[1].Value.Trim();
 
-            output = output.Replace(match, _mtTargetLanguage.InsertResult(content));
+            output = output.Replace(match, _mtLanguage.InsertResult(content));
 
             matches = matches.NextMatch();
         }

@@ -2,7 +2,7 @@
 
 namespace ManiaTemplates.Languages;
 
-public class MtLanguageT4 : IMtTargetLanguage
+public class MtLanguageT4 : IMtLanguage
 {
     public string Context(string content)
     {

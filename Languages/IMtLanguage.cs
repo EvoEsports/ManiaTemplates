@@ -2,7 +2,7 @@
 
 namespace ManiaTemplates.Languages;
 
-public interface IMtTargetLanguage
+public interface IMtLanguage
 {
     public string Context(string content);
     public string InsertResult(string content);
