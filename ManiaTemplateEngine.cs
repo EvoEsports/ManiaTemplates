@@ -62,14 +62,12 @@ public class ManiaTemplateEngine
         BaseMtComponents.Add(importAs ?? template.Name, component);
     }
 
-    private string ConvertComponent(MtComponent mtComponent)
-    {
-        return new Transformer(this, _mtLanguage).BuildManialink(mtComponent);
-    }
+    private string ConvertComponent(MtComponent mtComponent) =>
+        new Transformer(this, _mtLanguage).BuildManialink(mtComponent);
 
-    public string GenerateComponentsMarkdown()
-    {
-        var componentMdGenerator = new MtComponentMarkdownGenerator(BaseMtComponents);
-        return componentMdGenerator.Generate();
-    }
+    public string GenerateComponentsMarkdown() =>
+        new MtComponentMarkdownGenerator
+        {
+            Components = BaseMtComponents
+        }.Generate();
 }

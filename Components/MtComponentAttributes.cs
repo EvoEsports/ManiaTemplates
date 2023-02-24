@@ -4,12 +4,7 @@ namespace ManiaTemplates.Components;
 
 public class MtComponentAttributes
 {
-    private Dictionary<string, string> _attributes;
-
-    public MtComponentAttributes()
-    {
-        _attributes = new();
-    }
+    private readonly Dictionary<string, string> _attributes = new();
 
     public void Add(string name, string value)
     {

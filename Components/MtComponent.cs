@@ -6,33 +6,22 @@ namespace ManiaTemplates.Components;
 
 public class MtComponent
 {
-    public string Tag { get; }
-    public string TemplateContent { get; }
-    public TemplateFile TemplateFileFile { get; }
-    public bool HasSlot { get; }
-    public MtComponentList ImportedMtComponents { get; }
-    public Dictionary<string, MtComponentProperty> Properties { get; }
+    public required string Tag { get; init; }
+    public required string TemplateContent { get; init; }
+    public required TemplateFile TemplateFileFile { get; init; }
+    public required bool HasSlot { get; init; }
+    public required MtComponentList ImportedMtComponents { get; init; }
+    public required Dictionary<string, MtComponentProperty> Properties { get; init; }
+    public required List<string> Namespaces { get; init; }
 
-    public List<string> Namespaces { get; }
+    /// <summary>
+    /// Creates a manialink-template instance from given file content.
+    /// </summary>
+    public static MtComponent FromFile(string filename) => FromTemplate(new TemplateFile(filename));
 
-    private MtComponent(string tag, MtComponentList importedMtComponents,
-        Dictionary<string, MtComponentProperty> importedProperties,
-        string templateContent, bool hasSlot, TemplateFile templateFileFile, List<string> namespaces)
-    {
-        Tag = tag;
-        TemplateFileFile = templateFileFile;
-        TemplateContent = templateContent;
-        ImportedMtComponents = importedMtComponents;
-        Properties = importedProperties;
-        HasSlot = hasSlot;
-        Namespaces = namespaces;
-    }
-
-    public static MtComponent FromFile(string filename)
-    {
-        return FromTemplate(new TemplateFile(filename));
-    }
-
+    /// <summary>
+    /// Creates a manialink-template instance from an TemplateFile instance.
+    /// </summary>
     internal static MtComponent FromTemplate(TemplateFile templateFile, string? overwriteTag = null)
     {
         Debug.WriteLine(
@@ -68,6 +57,7 @@ public class MtComponent
                     {
                         namespaces.Add(ns);
                     }
+
                     break;
 
                 case "template":
@@ -76,11 +66,22 @@ public class MtComponent
                     break;
             }
         }
-        
-        return new MtComponent(overwriteTag ?? templateFile.Name, foundComponents, foundProperties, componentTemplate,
-            hasSlot, templateFile, namespaces);
+
+        return new MtComponent
+        {
+            Tag = overwriteTag ?? templateFile.Name,
+            TemplateContent = componentTemplate,
+            TemplateFileFile = templateFile,
+            HasSlot = hasSlot,
+            ImportedMtComponents = foundComponents,
+            Properties = foundProperties,
+            Namespaces = namespaces
+        };
     }
 
+    /// <summary>
+    /// Parse an import-node and load the referenced component from the given directory.
+    /// </summary>
     private static MtComponent LoadComponent(XmlNode node, string currentDirectory)
     {
         string? src = null, importAs = null;
@@ -113,25 +114,28 @@ public class MtComponent
         return component;
     }
 
+    /// <summary>
+    /// Get the namespace of a XML-node, or throw an exception if none present.
+    /// </summary>
     private static string ParseComponentUsingStatement(XmlNode node)
     {
-        string? ns = null;
+        var nameSpace = GetNameSpaceAttributeValue(node.Attributes);
 
-        foreach (XmlAttribute attribute in node.Attributes!)
-        {
-            if (attribute.Name == "namespace")
-            {
-                ns = attribute.Value;
-                break;
-            }
-        }
-
-        if (ns == null)
+        if (nameSpace == null)
         {
             throw new Exception($"Missing attribute 'namespace' for element '{node.OuterXml}'.");
         }
 
-        return ns;
+        return nameSpace;
+    }
+
+    /// <summary>
+    /// Returns the namespace-attribute value of a given XmlAttributeCollection.
+    /// </summary>
+    private static string? GetNameSpaceAttributeValue(XmlAttributeCollection? attributes)
+    {
+        return (from XmlAttribute attribute in attributes! where attribute.Name == "namespace" select attribute.Value)
+            .FirstOrDefault();
     }
 
 
@@ -167,7 +171,12 @@ public class MtComponent
             throw new Exception($"Missing attribute 'type' for element '{node.OuterXml}'.");
         }
 
-        var property = new MtComponentProperty(type, name, defaultValue);
+        var property = new MtComponentProperty
+        {
+            Type = type,
+            Name = name,
+            Default = defaultValue
+        };
 
         Debug.WriteLine($"Loaded property '{property.Name}' (default:{property.Default ?? "null"})");
 
@@ -181,14 +190,7 @@ public class MtComponent
             return true;
         }
 
-        foreach (XmlNode child in node.ChildNodes)
-        {
-            if (NodeHasSlot(child))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return node.ChildNodes.Cast<XmlNode>()
+            .Any(NodeHasSlot);
     }
 }

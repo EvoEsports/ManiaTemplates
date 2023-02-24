@@ -2,13 +2,8 @@
 
 public class MtComponentMarkdownGenerator
 {
-    private readonly MtComponentList _mtComponents;
-
-    public MtComponentMarkdownGenerator(MtComponentList mtComponents)
-    {
-        _mtComponents = mtComponents;
-    }
-
+    public required MtComponentList Components { get; init; }
+    
     public string Generate()
     {
         var output = new List<string>
@@ -17,7 +12,7 @@ public class MtComponentMarkdownGenerator
             "This list contains available components and their attributes.\n"
         };
 
-        foreach (var (componentTag, component) in _mtComponents)
+        foreach (var (componentTag, component) in Components)
         {
             if (component.HasSlot)
             {

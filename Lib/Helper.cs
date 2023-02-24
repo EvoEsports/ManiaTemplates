@@ -93,7 +93,7 @@ public partial class Helper
         return outputXml;
     }
 
-    public static string EscapeXmlAttributeString(string attributeValue)
+    private static string EscapeXmlAttributeString(string attributeValue)
     {
         return attributeValue.Replace("<", "&lt;")
             .Replace(">", "&gt;")
