@@ -1,5 +1,5 @@
 ﻿<component>
-    <import resource="Includes.WindowTitleBar.mt" relative="true"/>
+    <import resource="ManiaTemplates.Templates.Wrapper.Includes.WindowTitleBar.mt" relative="true"/>
 
     <property type="int" name="zIndex"/>
     <property type="double" name="x"/>

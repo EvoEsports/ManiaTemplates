@@ -81,7 +81,7 @@ public class MtComponent
     /// </summary>
     private static MtComponent LoadComponent(XmlNode node, string currentDirectory)
     {
-        string? src = null, importAs = null;
+        string? src = null, importAs = null, resource = null, relative = null;
 
         foreach (XmlAttribute attribute in node.Attributes!)
         {
@@ -90,6 +90,14 @@ public class MtComponent
                 case "src":
                     src = attribute.Value;
                     break;
+                
+                case "relative":
+                    relative = attribute.Value;
+                    break;
+                
+                case "resource":
+                    resource = attribute.Value;
+                    break;
 
                 case "as":
                     importAs = attribute.Value;
@@ -97,21 +105,26 @@ public class MtComponent
             }
         }
 
-        if (src == null)
+        if (src == null && resource == null)
         {
-            throw new Exception($"Missing attribute 'src' for element '{node.OuterXml}'.");
+            throw new Exception($"Missing attribute 'src' or 'resource' for element '{node.OuterXml}'.");
         }
 
-        var subPath = Path.GetFullPath(Path.Combine(currentDirectory ?? "", src));
-        Debug.WriteLine("new path: " + subPath);
-        var component = FromTemplate(new MtTemplateFile
+        if (resource != null)
         {
-            Filename = subPath
-        }, importAs);
+            //TODO: relative check
+            var component = FromTemplate(new MtTemplateResource { ResourcePath = resource });
 
-        Debug.WriteLine($"Loaded sub-component '{component.Tag}'");
+            return component;
+        }
+        else
+        {
+            var subPath = Path.GetFullPath(Path.Combine(currentDirectory ?? "", src));
+            var component = FromTemplate(new MtTemplateFile { Filename = subPath }, importAs);
+            Debug.WriteLine($"Loaded sub-component '{component.Tag}'");
 
-        return component;
+            return component;
+        }
     }
 
     /// <summary>
