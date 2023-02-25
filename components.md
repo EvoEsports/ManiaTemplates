@@ -3,12 +3,16 @@ This list contains available components and their attributes.
 
 ``<Pagination />``
 
+
+
 | Attribute  | Type   | Default |
 |------------|--------|---------|
 | x | double | 0.0 |
 | y | double | 0.0 |
-| z | int | 0 |
+| zIndex | int | 0 |
 ``<Graph> ... </Graph>``
+
+
 
 | Attribute  | Type   | Default |
 |------------|--------|---------|
@@ -18,10 +22,12 @@ This list contains available components and their attributes.
 | h | double | 0.0 |
 | halign | string | left |
 | valign | string | center |
-| z | int | 0 |
+| zIndex | int | 0 |
 | events | int | 0 |
 ``<Label />``
 
+
+
 | Attribute  | Type   | Default |
 |------------|--------|---------|
 | x | double | 0.0 |
@@ -30,8 +36,8 @@ This list contains available components and their attributes.
 | h | double | 0.0 |
 | halign | string | left |
 | valign | string | center |
-| o | double | 1.0 |
-| z | int | 0 |
+| opacity | double | 1.0 |
+| zIndex | int | 0 |
 | events | int | 0 |
 | action | string |  |
 | url | string |  |
@@ -51,6 +57,8 @@ This list contains available components and their attributes.
 | textid | string |  |
 ``<Quad />``
 
+
+
 | Attribute  | Type   | Default |
 |------------|--------|---------|
 | halign | string | left |
@@ -59,8 +67,8 @@ This list contains available components and their attributes.
 | y | double | 0.0 |
 | w | double | 0.0 |
 | h | double | 0.0 |
-| o | double | 1.0 |
-| z | int | 0 |
+| opacity | double | 1.0 |
+| zIndex | int | 0 |
 | events | int | 0 |
 | action | string |  |
 | url | string |  |
@@ -76,43 +84,51 @@ This list contains available components and their attributes.
 | keepratio | string | Inactive |
 ``<RoundedQuad />``
 
+
+
 | Attribute  | Type   | Default |
 |------------|--------|---------|
 | x | double | 0.0 |
 | y | double | 0.0 |
 | w | double | 0.0 |
 | h | double | 0.0 |
-| r | double | 0.5 |
-| o | double | 1.0 |
+| radius | double | 0.5 |
+| opacity | double | 1.0 |
 | tr | bool | true |
 | br | bool | true |
 | bl | bool | true |
 | tl | bool | true |
-| z | int | 1 |
+| zIndex | int | 1 |
 | color | string | FFF |
 ``<Frame> ... </Frame>``
 
+
+
 | Attribute  | Type   | Default |
 |------------|--------|---------|
-| z | int |  |
+| zIndex | int |  |
 | w | double |  |
 | h | double |  |
 | x | double |  |
 | y | double |  |
 ``<Widget />``
 
+
+
 | Attribute  | Type   | Default |
 |------------|--------|---------|
-| z | int |  |
+| zIndex | int |  |
 | x | double |  |
 | y | double |  |
 | w | double |  |
 | h | double |  |
 ``<Window> ... </Window>``
 
+
+
 | Attribute  | Type   | Default |
 |------------|--------|---------|
-| z | int |  |
+| zIndex | int |  |
 | x | double |  |
 | y | double |  |
 | w | double |  |
