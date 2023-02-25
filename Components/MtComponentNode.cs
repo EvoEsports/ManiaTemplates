@@ -21,7 +21,7 @@ public class MtComponentNode
         TemplateContent = templateContent;
         HasSlot = mtComponent.HasSlot;
         UsesComponents = usesComponents;
-        RenderId = Helper.Hash(MtComponent.TemplateFileFile.TemplatePath);
+        RenderId = Helper.Hash(MtComponent.TemplateFileFile.GetHashCode() + "");
         DataId = Helper.RandomString(24);
     }
 }

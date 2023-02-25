@@ -1,6 +1,8 @@
 ﻿using System.Diagnostics;
 using System.Xml;
+using ManiaTemplates.Interfaces;
 using ManiaTemplates.Lib;
+using ManiaTemplates.TemplateSources;
 
 namespace ManiaTemplates.Components;
 
@@ -8,24 +10,19 @@ public class MtComponent
 {
     public required string Tag { get; init; }
     public required string TemplateContent { get; init; }
-    public required TemplateFile TemplateFileFile { get; init; }
+    public required IMtTemplate TemplateFileFile { get; init; }
     public required bool HasSlot { get; init; }
     public required MtComponentList ImportedMtComponents { get; init; }
     public required Dictionary<string, MtComponentProperty> Properties { get; init; }
     public required List<string> Namespaces { get; init; }
 
     /// <summary>
-    /// Creates a manialink-template instance from given file content.
-    /// </summary>
-    public static MtComponent FromFile(string filename) => FromTemplate(new TemplateFile(filename));
-
-    /// <summary>
     /// Creates a manialink-template instance from an TemplateFile instance.
     /// </summary>
-    internal static MtComponent FromTemplate(TemplateFile templateFile, string? overwriteTag = null)
+    public static MtComponent FromTemplate(IMtTemplate template, string? overwriteTag = null)
     {
         // Debug.WriteLine(
-            // $"Loading component ({templateFile.Name}|{templateFile.LastModification}) from {templateFile.TemplatePath}");
+        // $"Loading component ({templateFile.Name}|{templateFile.LastModification}) from {templateFile.TemplatePath}");
 
         var foundComponents = new MtComponentList();
         var namespaces = new List<string>();
@@ -34,7 +31,7 @@ public class MtComponent
         var hasSlot = false;
 
         var doc = new XmlDocument();
-        doc.LoadXml(Helper.EscapePropertyTypes(templateFile.Content()));
+        doc.LoadXml(Helper.EscapePropertyTypes(template.GetContent().Result));
 
         foreach (XmlNode node in doc.ChildNodes[0]!)
         {
@@ -47,7 +44,7 @@ public class MtComponent
                     break;
 
                 case "import":
-                    var component = LoadComponent(node, templateFile.Directory() ?? "");
+                    var component = LoadComponent(node, template.GetBasePath() ?? "");
                     foundComponents.Add(component.Tag, component);
                     break;
 
@@ -69,9 +66,9 @@ public class MtComponent
 
         return new MtComponent
         {
-            Tag = overwriteTag ?? templateFile.Name,
+            Tag = overwriteTag ?? template.GetXmlTag(),
             TemplateContent = componentTemplate,
-            TemplateFileFile = templateFile,
+            TemplateFileFile = template,
             HasSlot = hasSlot,
             ImportedMtComponents = foundComponents,
             Properties = foundProperties,
@@ -107,7 +104,10 @@ public class MtComponent
 
         var subPath = Path.GetFullPath(Path.Combine(currentDirectory ?? "", src));
         Debug.WriteLine("new path: " + subPath);
-        var component = FromTemplate(new TemplateFile(subPath), importAs);
+        var component = FromTemplate(new MtTemplateFile
+        {
+            Filename = subPath
+        }, importAs);
 
         Debug.WriteLine($"Loaded sub-component '{component.Tag}'");
 

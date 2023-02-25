@@ -1,5 +1,5 @@
 ﻿<component>
-    <import src="Includes/WindowTitleBar.mt"/>
+    <import resource="Includes.WindowTitleBar.mt" relative="true"/>
 
     <property type="int" name="zIndex"/>
     <property type="double" name="x"/>

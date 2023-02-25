@@ -6,33 +6,35 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <!--    <ItemGroup>-->
+    <!--        <Content Include="Templates\**\*">-->
+    <!--            <CopyToOutputDirectory>Always</CopyToOutputDirectory>-->
+    <!--        </Content>-->
+    <!--    </ItemGroup>-->
+
     <ItemGroup>
-        <Content Include="Templates\**\*">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
+        <Compile Remove="Tester\**" />
+        <Compile Remove="Models\**" />
+        <Compile Remove="DocGenerator\**" />
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Remove="Tester\**" />
-      <Compile Remove="Models\**" />
-      <Compile Remove="DocGenerator\**" />
+        <EmbeddedResource Remove="Tester\**" />
+        <EmbeddedResource Remove="Models\**" />
+        <EmbeddedResource Remove="DocGenerator\**" />
+        <EmbeddedResource Include="Templates\**\*" />
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Remove="Tester\**" />
-      <EmbeddedResource Remove="Models\**" />
-      <EmbeddedResource Remove="DocGenerator\**" />
+        <None Remove="Tester\**" />
+        <None Remove="Models\**" />
+        <None Remove="DocGenerator\**" />
+        <None Remove="Templates\**\*" />
     </ItemGroup>
 
     <ItemGroup>
-      <None Remove="Tester\**" />
-      <None Remove="Models\**" />
-      <None Remove="DocGenerator\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.4.0" />
-      <PackageReference Include="Mono.TextTemplating" Version="2.3.1" />
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.4.0" />
+        <PackageReference Include="Mono.TextTemplating" Version="2.3.1" />
     </ItemGroup>
 
 </Project>

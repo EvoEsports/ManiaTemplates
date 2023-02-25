@@ -29,6 +29,9 @@ public class ManiaLink
         _renderMethod = method;
     }
 
+    /// <summary>
+    /// Render the manialink instance with the given data.
+    /// </summary>
     public string? Render(dynamic data)
     {
         var runnable = Activator.CreateInstance(_type);
@@ -72,17 +75,5 @@ public class ManiaLink
             .Replace(@"class=""""", "")
             .Replace(@"manialink=""""", "")
             .Replace(@"style=""""", "");
-    }
-
-    public string? RenderTimed(dynamic data)
-    {
-        var stopwatch = new Stopwatch();
-        stopwatch.Start();
-        var output = Render(data);
-        stopwatch.Stop();
-        var stopwatchElapsed = stopwatch.Elapsed;
-        var renderTimeMs = Convert.ToInt32(stopwatchElapsed.TotalMilliseconds);
-        Console.WriteLine($"Rendering took {renderTimeMs}ms.");
-        return output;
     }
 }

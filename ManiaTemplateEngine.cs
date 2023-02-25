@@ -9,14 +9,12 @@ namespace ManiaTemplates;
 public class ManiaTemplateEngine
 {
     private readonly IMtLanguage _mtLanguage = new MtLanguageT4();
-    protected internal MtComponentList BaseMtComponents { get; } = new();
+    protected internal MtComponentList BaseMtComponents { get; } = LoadCoreComponents();
 
-    public ManiaTemplateEngine()
-    {
-        LoadCoreComponents();
-    }
-
-    public ManiaLink PreProcess(MtComponent mtComponent)
+    /// <summary>
+    /// Takes a MtComponent instance and prepares it for rendering.
+    /// </summary>
+    public ManiaLink PreProcess(MtComponent mtComponent, string? writeTo = null)
     {
         var t4Template = ConvertComponent(mtComponent);
         var ttFilename = $"{mtComponent.Tag}.tt";
@@ -31,7 +29,10 @@ public class ManiaTemplateEngine
         templateSettings.Name = mtComponent.Tag;
         templateSettings.Namespace = "ManiaTemplate";
 
-        File.WriteAllText("../../../Debug.tt", t4Template);
+        if (writeTo != null)
+        {
+            File.WriteAllText(writeTo, t4Template);
+        }
 
         var preCompiledTemplate =
             generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings,
@@ -43,31 +44,28 @@ public class ManiaTemplateEngine
         return new ManiaLink(mtComponent.Tag, preCompiledTemplate, Assembly.GetCallingAssembly());
     }
 
-    private void LoadCoreComponents()
+    /// <summary>
+    /// Loads the components that are available by default.
+    /// </summary>
+    private static MtComponentList LoadCoreComponents()
     {
-        AddComponentFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates/Components/Pagination.mt"));
-        AddComponentFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates/ManiaLink/Graph.mt"));
-        AddComponentFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates/ManiaLink/Label.mt"));
-        AddComponentFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates/ManiaLink/Quad.mt"));
-        AddComponentFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates/ManiaLink/RoundedQuad.mt"));
-        AddComponentFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates/Wrapper/Frame.mt"));
-        AddComponentFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates/Wrapper/Widget.mt"));
-        AddComponentFile(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Templates/Wrapper/Window.mt"));
-    }
+        var components = new MtComponentList();
+        
+        components.AddResource("ManiaTemplates.Templates.Components.Pagination.mt");
+        components.AddResource("ManiaTemplates.Templates.ManiaLink.Graph.mt");
+        components.AddResource("ManiaTemplates.Templates.ManiaLink.Label.mt");
+        components.AddResource("ManiaTemplates.Templates.ManiaLink.Quad.mt");
+        components.AddResource("ManiaTemplates.Templates.ManiaLink.RoundedQuad.mt");
+        components.AddResource("ManiaTemplates.Templates.Wrapper.Frame.mt");
+        components.AddResource("ManiaTemplates.Templates.Wrapper.Widget.mt");
+        components.AddResource("ManiaTemplates.Templates.Wrapper.Window.mt");
 
-    private void AddComponentFile(string templateFile, string? importAs = null)
-    {
-        var template = new TemplateFile(templateFile);
-        var component = MtComponent.FromTemplate(template, importAs);
-        BaseMtComponents.Add(importAs ?? template.Name, component);
+        return components;
     }
 
     private string ConvertComponent(MtComponent mtComponent) =>
         new Transformer(this, _mtLanguage).BuildManialink(mtComponent);
 
     public string GenerateComponentsMarkdown() =>
-        new MtComponentMarkdownGenerator
-        {
-            Components = BaseMtComponents
-        }.Generate();
+        new MtComponentMarkdownGenerator { Components = BaseMtComponents }.Generate();
 }

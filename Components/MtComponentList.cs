@@ -1,4 +1,6 @@
-﻿namespace ManiaTemplates.Components;
+﻿using ManiaTemplates.TemplateSources;
+
+namespace ManiaTemplates.Components;
 
 public class MtComponentList : Dictionary<string, MtComponent>
 {
@@ -11,5 +13,12 @@ public class MtComponentList : Dictionary<string, MtComponent>
         foreach (var (name, component) in this) subSet.Add(name, component);
         foreach (var (name, component) in components) subSet.Add(name, component);
         return subSet;
+    }
+
+    public void AddResource(string resource)
+    {
+        var template = new MtTemplateResource { ResourcePath = resource };
+        var component = MtComponent.FromTemplate(template);
+        Add(template.GetXmlTag(), component);
     }
 }
