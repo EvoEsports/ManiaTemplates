@@ -7,14 +7,20 @@ using ManiaTemplates.Components;
 
 namespace ManiaTemplates.Lib;
 
-public partial class Helper
+public abstract partial class Helper
 {
+    /// <summary>
+    /// Creates a hash from the given string with a fixed length.
+    /// </summary>
     internal static string Hash(string input)
     {
         var hash = new SHA1Managed().ComputeHash(Encoding.UTF8.GetBytes(input));
         return string.Concat(hash.Select(b => b.ToString("x2")))[..32];
     }
 
+    /// <summary>
+    /// Creates random alpha-numeric string with given length.
+    /// </summary>
     public static string RandomString(int length = 16)
     {
         var random = new Random();
@@ -23,6 +29,9 @@ public partial class Helper
             .Select(s => s[random.Next(s.Length)]).ToArray());
     }
 
+    /// <summary>
+    /// Determines whether a XML-node uses one of the given components.
+    /// </summary>
     internal static bool UsesComponents(XmlNode node, MtComponentList mtComponents)
     {
         foreach (XmlNode child in node.ChildNodes)
@@ -33,6 +42,9 @@ public partial class Helper
         return mtComponents.ContainsKey(node.Name);
     }
 
+    /// <summary>
+    /// Takes a XML-string and aligns all nodes properly.
+    /// </summary>
     public static string PrettyXml(string? uglyXml = null)
     {
         if (uglyXml == null || uglyXml.Trim().Length == 0)
@@ -56,26 +68,9 @@ public partial class Helper
         return stringBuilder.ToString();
     }
 
-    public static string EscapeXml(string xml)
-    {
-        var stringBuilder = new StringBuilder();
-        var element = XElement.Parse(xml);
-
-        var settings = new XmlWriterSettings();
-        settings.OmitXmlDeclaration = true;
-        settings.Indent = true;
-        settings.NewLineOnAttributes = false;
-        settings.ConformanceLevel = ConformanceLevel.Fragment;
-        settings.Encoding = Encoding.Unicode;
-
-        using (var xmlWriter = XmlWriter.Create(stringBuilder, settings))
-        {
-            element.Save(xmlWriter);
-        }
-
-        return stringBuilder.ToString();
-    }
-
+    /// <summary>
+    /// Escape all type-Attributes on property-Nodes in the given XML.
+    /// </summary>
     public static string EscapePropertyTypes(string inputXml)
     {
         var outputXml = inputXml;
@@ -93,6 +88,9 @@ public partial class Helper
         return outputXml;
     }
 
+    /// <summary>
+    /// Takes the value of a XML-attribute and escapes special chars, which would break the XML reader.
+    /// </summary>
     private static string EscapeXmlAttributeString(string attributeValue)
     {
         return attributeValue.Replace("<", "&lt;")
@@ -100,6 +98,9 @@ public partial class Helper
             .Replace("&", "&amp;");
     }
 
+    /// <summary>
+    /// Takes the escaped value of a XML-attribute and converts it back into it's original form.
+    /// </summary>
     public static string ReverseEscapeXmlAttributeString(string attributeValue)
     {
         return attributeValue.Replace("&lt;", "<")

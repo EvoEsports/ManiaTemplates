@@ -24,8 +24,8 @@ public class MtComponent
     /// </summary>
     internal static MtComponent FromTemplate(TemplateFile templateFile, string? overwriteTag = null)
     {
-        Debug.WriteLine(
-            $"Loading component ({templateFile.Name}|{templateFile.LastModification}) from {templateFile.TemplatePath}");
+        // Debug.WriteLine(
+            // $"Loading component ({templateFile.Name}|{templateFile.LastModification}) from {templateFile.TemplatePath}");
 
         var foundComponents = new MtComponentList();
         var namespaces = new List<string>();
