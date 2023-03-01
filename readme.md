@@ -56,9 +56,15 @@ dynamic GetMapListData()
 
 //Prepare
 var engine = new ManiaTemplateEngine();
-var mapList = engine.PreProcess(Component.FromFile("MapList/MapList.mt"));
+var template = new MtTemplateFile
+{
+    Filename = "Templates/MapList.mt"
+};
 
-//Render (~5ms)
+//Create pre-compiled instance
+var mapList = engine.PreProcess(MtComponent.FromTemplate(template));
+
+//Render
 var result = mapList.Render(GetMapListData());
 Console.WriteLine(Helper.PrettyXml(result));
 ````
