@@ -39,7 +39,7 @@ public class ManiaTemplateEngine
                 out string[] loadedAssemblies);
 
         //Remove namespace wrapper
-        preCompiledTemplate = preCompiledTemplate.Replace("namespace ManiaTemplate {", "")[..^5];
+        preCompiledTemplate = preCompiledTemplate.Replace("namespace ManiaTemplate {", "")[..^2];
 
         return new ManiaLink(mtComponent.Tag, preCompiledTemplate, Assembly.GetCallingAssembly());
     }

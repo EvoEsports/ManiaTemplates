@@ -11,6 +11,10 @@ public class Transformer
     private readonly IMtLanguage _mtLanguage;
     private readonly Dictionary<string, Snippet> _renderMethods = new();
     private readonly List<string> _namespaces = new();
+    
+    private static readonly Regex TemplateControlRegex = new(@"#>\s*<#\+");
+    private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
+    private static readonly Regex TemplateReplacerRegex = new(@"(^("""")?\s*[+\-*/%]\s*|\s*[+\-*/%]\s*("""")?$)");
 
     public Transformer(ManiaTemplateEngine engine, IMtLanguage mtLanguage)
     {
@@ -50,9 +54,8 @@ public class Transformer
     }
 
     private static string JoinFeatureBlocks(string manialink)
-    {
-        var templateControlRegex = new Regex(@"#>\s*<#\+");
-        var match = templateControlRegex.Match(manialink);
+    { 
+        var match = TemplateControlRegex.Match(manialink);
         var output = new Snippet();
 
         while (match.Success)
@@ -141,7 +144,7 @@ public class Transformer
     private string ProcessNode(XmlNode node, MtComponentList availableMtComponents, string? slotContent = null,
         bool rootContext = false)
     {
-        Snippet snippet = new(1);
+        Snippet snippet = new();
 
         foreach (XmlNode child in node.ChildNodes)
         {
@@ -274,9 +277,8 @@ public class Transformer
 
     private static string ConvertPropertyAssignment(MtComponentProperty property, string parameterValue)
     {
-        var curlyMatcher = new Regex(@"\{\{\s*(.+?)\s*\}\}");
         var output = WrapIfString(property, parameterValue);
-        var matches = curlyMatcher.Match(output);
+        var matches = TemplateInterpolationRegex.Match(output);
         var isStringType = IsStringType(property);
         var offset = 0;
 
@@ -287,7 +289,6 @@ public class Transformer
 
             var matchStart = group0.Index - offset;
             var matchLength = group0.Length - offset;
-            // var newBody = ConvertCurlyContent(body);
             var newBody = body;
 
             if (isStringType)
@@ -308,10 +309,10 @@ public class Transformer
             offset += matchLength - newBody.Length;
 
             //Look for next match
-            matches = curlyMatcher.Match(output);
+            matches = TemplateInterpolationRegex.Match(output);
         }
 
-        output = Regex.Replace(output, @"(^("""")?\s*[+\-*/%]\s*|\s*[+\-*/%]\s*("""")?$)", ""); //Hotfix
+        output = TemplateReplacerRegex.Replace(output, ""); //Hotfix
 
         return output;
     }
@@ -392,8 +393,7 @@ public class Transformer
 
     private string ReplaceCurlyBraces(string value)
     {
-        var curlyMatcher = new Regex(@"\{\{(.+?)\}\}");
-        var matches = curlyMatcher.Match(value);
+        var matches = TemplateInterpolationRegex.Match(value);
         var output = value;
 
         while (matches.Success)
