@@ -16,6 +16,9 @@ public class ManiaLink
             @"\s(\w[\w0-9]*=""\s*""|(pos|size)=""0 0""|(z-index|rot|scriptevents|textemboss|autonewline|maxline|translate)=""0""|(scale|opacity)=""1""|valign=""top""|halign=""left"")",
             RegexOptions.IgnoreCase);
 
+    /// <summary>
+    /// Creates an ManiaLink-instance from tag & pre-compiled template with given context.
+    /// </summary>
     public ManiaLink(string tag, string preCompiledTemplate, Assembly context)
     {
         var script = CSharpScript.Create(
