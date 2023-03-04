@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text.RegularExpressions;
 using ManiaTemplates.Components;
 using ManiaTemplates.Languages;
 using ManiaTemplates.Lib;
@@ -11,10 +12,12 @@ public class ManiaTemplateEngine
     private readonly IMtLanguage _mtLanguage = new MtLanguageT4();
     protected internal MtComponentList BaseMtComponents { get; } = LoadCoreComponents();
 
+    private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplate \{((?:.|\n)+)\}");
+
     /// <summary>
     /// Takes a MtComponent instance and prepares it for rendering.
     /// </summary>
-    public ManiaLink PreProcess(MtComponent mtComponent, string? writeTo = null)
+    public ManiaLink PreProcess(MtComponent mtComponent, Assembly assembly, string? writeTo = null)
     {
         var t4Template = ConvertComponent(mtComponent);
         var ttFilename = $"{mtComponent.Tag}.tt";
@@ -39,9 +42,9 @@ public class ManiaTemplateEngine
                 out string[] loadedAssemblies);
 
         //Remove namespace wrapper
-        preCompiledTemplate = preCompiledTemplate.Replace("namespace ManiaTemplate {", "")[..^2];
+        preCompiledTemplate = NamespaceWrapperMatcher.Replace(preCompiledTemplate, "$1");
 
-        return new ManiaLink(mtComponent.Tag, preCompiledTemplate, Assembly.GetCallingAssembly());
+        return new ManiaLink(mtComponent.Tag, preCompiledTemplate, assembly);
     }
 
     /// <summary>
@@ -50,7 +53,7 @@ public class ManiaTemplateEngine
     private static MtComponentList LoadCoreComponents()
     {
         var components = new MtComponentList();
-        
+
         components.AddResource("ManiaTemplates.Templates.Components.Pagination.mt");
         components.AddResource("ManiaTemplates.Templates.ManiaLink.Graph.mt");
         components.AddResource("ManiaTemplates.Templates.ManiaLink.Label.mt");
