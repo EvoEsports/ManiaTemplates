@@ -55,6 +55,7 @@ This list contains available components and their attributes.
 | maxline | int | 0 |
 | translate | int | 0 |
 | textid | string |  |
+| id | string |  |
 ``<Quad />``
 
 
