@@ -15,6 +15,7 @@ public class MtComponent
     public required MtComponentList ImportedMtComponents { get; init; }
     public required Dictionary<string, MtComponentProperty> Properties { get; init; }
     public required List<string> Namespaces { get; init; }
+    public required List<MtComponentScript> Scripts { get; init; }
 
     /// <summary>
     /// Creates a manialink-template instance from an TemplateFile instance.
@@ -27,6 +28,7 @@ public class MtComponent
         var foundComponents = new MtComponentList();
         var namespaces = new List<string>();
         var foundProperties = new Dictionary<string, MtComponentProperty>();
+        var maniaScripts = new Dictionary<int, MtComponentScript>();
         var componentTemplate = "";
         var hasSlot = false;
 
@@ -61,6 +63,17 @@ public class MtComponent
                     componentTemplate = node.InnerXml;
                     hasSlot = NodeHasSlot(node);
                     break;
+
+                case "script":
+                    var script = MtComponentScript.FromNode(node);
+                    var scriptContentHash = script.ContentHash();
+                    if (script.Once && maniaScripts.ContainsKey(scriptContentHash))
+                    {
+                        break;
+                    }
+
+                    maniaScripts.Add(scriptContentHash, script);
+                    break;
             }
         }
 
@@ -72,7 +85,8 @@ public class MtComponent
             HasSlot = hasSlot,
             ImportedMtComponents = foundComponents,
             Properties = foundProperties,
-            Namespaces = namespaces
+            Namespaces = namespaces,
+            Scripts = maniaScripts.Values.ToList()
         };
     }
 
@@ -90,11 +104,11 @@ public class MtComponent
                 case "src":
                     src = attribute.Value;
                     break;
-                
+
                 case "relative":
                     relative = attribute.Value;
                     break;
-                
+
                 case "resource":
                     resource = attribute.Value;
                     break;

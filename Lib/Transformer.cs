@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 using ManiaTemplates.Components;
 using ManiaTemplates.Languages;
@@ -11,7 +12,7 @@ public class Transformer
     private readonly IMtLanguage _mtLanguage;
     private readonly Dictionary<string, Snippet> _renderMethods = new();
     private readonly List<string> _namespaces = new();
-    
+
     private static readonly Regex TemplateControlRegex = new(@"#>\s*<#\+");
     private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
     private static readonly Regex TemplateReplacerRegex = new(@"(^("""")?\s*[+\-*/%]\s*|\s*[+\-*/%]\s*("""")?$)");
@@ -25,7 +26,9 @@ public class Transformer
     public string BuildManialink(MtComponent mtComponent, int version = 3)
     {
         var loadedComponents = _engine.BaseMtComponents.Overload(mtComponent.ImportedMtComponents);
-        var body = ProcessNode(XmlStringToNode(mtComponent.TemplateContent), loadedComponents, null, true);
+        var maniaScripts = new Dictionary<int, MtComponentScript>();
+        var body = ProcessNode(XmlStringToNode(mtComponent.TemplateContent), loadedComponents, maniaScripts, null,
+            true);
         var template = new Snippet
         {
             _mtLanguage.Context(@"template language=""C#"""),
@@ -33,9 +36,11 @@ public class Transformer
             CreateImportStatements(),
             $@"<manialink version=""{version}"">",
             body,
+            "<# RenderManiaScripts(); #>",
             "</manialink>",
             CreateTemplateParametersPreCompiled(mtComponent),
-            CreateRenderAndDataMethods()
+            CreateRenderAndDataMethods(),
+            BuildManiaScripts(maniaScripts)
         };
 
         return JoinFeatureBlocks(template.ToString());
@@ -54,7 +59,7 @@ public class Transformer
     }
 
     private static string JoinFeatureBlocks(string manialink)
-    { 
+    {
         var match = TemplateControlRegex.Match(manialink);
         var output = new Snippet();
 
@@ -107,7 +112,8 @@ public class Transformer
             .AppendLine(mtComponentNode.TemplateContent)
             .AppendLine(null, _mtLanguage.FeatureBlockStart());
 
-        return CreateMethodBlock("void", GetRenderMethodName(mtComponentNode), DataToArguments(mtComponentNode.MtComponent),
+        return CreateMethodBlock("void", GetRenderMethodName(mtComponentNode),
+            DataToArguments(mtComponentNode.MtComponent),
             methodBody);
     }
 
@@ -141,7 +147,8 @@ public class Transformer
         return propertyAssignments.ToString(", ");
     }
 
-    private string ProcessNode(XmlNode node, MtComponentList availableMtComponents, string? slotContent = null,
+    private string ProcessNode(XmlNode node, MtComponentList availableMtComponents,
+        Dictionary<int, MtComponentScript> maniaScripts, string? slotContent = null,
         bool rootContext = false)
     {
         //TODO: slim down method/outsource code from method
@@ -186,7 +193,8 @@ public class Transformer
                     availableMtComponents[tag],
                     availableMtComponents,
                     attributeList,
-                    slotContent
+                    slotContent,
+                    maniaScripts
                 );
 
                 snippet.AppendLine(CreateComponentMethodCall(componentNode, rootContext));
@@ -217,7 +225,7 @@ public class Transformer
 
                         if (hasChildren)
                         {
-                            snippet.AppendLine(1, ProcessNode(child, availableMtComponents, slotContent));
+                            snippet.AppendLine(1, ProcessNode(child, availableMtComponents, maniaScripts, slotContent));
                             snippet.AppendLine(CreateXmlClosingTag(tag));
                         }
 
@@ -259,11 +267,24 @@ public class Transformer
     }
 
     private MtComponentNode CreateComponentNode(XmlNode currentNode, MtComponent mtComponent,
-        MtComponentList availableMtComponents, MtComponentAttributes attributeList, string? slotContent)
+        MtComponentList availableMtComponents, MtComponentAttributes attributeList, string? slotContent,
+        Dictionary<int, MtComponentScript> maniaScripts)
     {
         var subComponents = availableMtComponents.Overload(mtComponent.ImportedMtComponents);
-        var subSlotContent = ProcessNode(currentNode, subComponents, slotContent);
-        var componentTemplate = ProcessNode(XmlStringToNode(mtComponent.TemplateContent), subComponents, subSlotContent);
+        var subSlotContent = ProcessNode(currentNode, subComponents, maniaScripts, slotContent);
+        var componentTemplate =
+            ProcessNode(XmlStringToNode(mtComponent.TemplateContent), subComponents, maniaScripts, subSlotContent);
+
+        foreach (var script in mtComponent.Scripts)
+        {
+            var scriptHash = script.ContentHash();
+            if (script.Once && maniaScripts.ContainsKey(scriptHash))
+            {
+                continue;
+            }
+
+            maniaScripts.Add(scriptHash, script);
+        }
 
         return new MtComponentNode(
             currentNode.Name,
@@ -334,6 +355,28 @@ public class Transformer
         output = TemplateReplacerRegex.Replace(output, ""); //Hotfix
 
         return output;
+    }
+
+    private string BuildManiaScripts(Dictionary<int, MtComponentScript> scripts)
+    {
+        var scriptMethod = new Snippet
+        {
+            "void RenderManiaScripts()",
+            "{",
+            "#>",
+            "<script><!--"
+        };
+
+        foreach (var script in scripts.Values)
+        {
+            scriptMethod.AppendLine(script.Content);
+        }
+
+        scriptMethod.AppendLine("--></script>");
+        scriptMethod.AppendLine("<#+");
+        scriptMethod.AppendLine("}");
+
+        return _mtLanguage.FeatureBlock(scriptMethod.ToString()).ToString();
     }
 
     private string CreateComponentMethodCall(MtComponentNode mtComponentNode, bool rootContext = false)
@@ -410,6 +453,9 @@ public class Transformer
         return doc.FirstChild!;
     }
 
+    /// <summary>
+    /// Replaces curly braces with template engine statement.
+    /// </summary>
     private string ReplaceCurlyBraces(string value)
     {
         var matches = TemplateInterpolationRegex.Match(value);
