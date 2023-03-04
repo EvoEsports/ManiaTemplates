@@ -119,7 +119,7 @@ public class MtComponent
         }
         else
         {
-            var subPath = Path.GetFullPath(Path.Combine(currentDirectory ?? "", src));
+            var subPath = Path.GetFullPath(Path.Combine(currentDirectory ?? "", src ?? ""));
             var component = FromTemplate(new MtTemplateFile { Filename = subPath }, importAs);
             Debug.WriteLine($"Loaded sub-component '{component.Tag}'");
 

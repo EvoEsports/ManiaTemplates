@@ -11,7 +11,7 @@ public class MtTemplateResource : IMtTemplate
     {
         var assembly = Assembly.GetExecutingAssembly();
         await using var stream = assembly.GetManifestResourceStream(ResourcePath) ??
-                                 throw new InvalidOperationException();
+                                 throw new InvalidOperationException("Could not load contents of " + ResourcePath);
 
         return await new StreamReader(stream).ReadToEndAsync();
     }
