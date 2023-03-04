@@ -144,6 +144,7 @@ public class Transformer
     private string ProcessNode(XmlNode node, MtComponentList availableMtComponents, string? slotContent = null,
         bool rootContext = false)
     {
+        //TODO: slim down method/outsource code from method
         Snippet snippet = new();
 
         foreach (XmlNode child in node.ChildNodes)
@@ -158,6 +159,17 @@ public class Transformer
                 snippet.AppendLine(null, _mtLanguage.FeatureBlockStart());
                 snippet.AppendLine(null, " int __index = 0;");
                 snippet.AppendLine(null, $" foreach({forEachLoop})");
+                snippet.AppendLine(null, " {");
+                snippet.AppendLine(null, _mtLanguage.FeatureBlockEnd());
+            }
+
+            string? ifStatement = null;
+            if (attributeList.Has("if"))
+            {
+                ifStatement = attributeList.Pull("if");
+                string ifContent = TemplateInterpolationRegex.Replace(ifStatement, "$1");
+                snippet.AppendLine(null, _mtLanguage.FeatureBlockStart());
+                snippet.AppendLine(null, $" if({ifContent})");
                 snippet.AppendLine(null, " {");
                 snippet.AppendLine(null, _mtLanguage.FeatureBlockEnd());
             }
@@ -212,6 +224,13 @@ public class Transformer
                         break;
                     }
                 }
+            }
+
+            if (ifStatement != null)
+            {
+                snippet.AppendLine(null, _mtLanguage.FeatureBlockStart());
+                snippet.AppendLine(null, " }");
+                snippet.AppendLine(null, _mtLanguage.FeatureBlockEnd());
             }
 
             if (forEachLoop != null)
