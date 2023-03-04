@@ -18,13 +18,17 @@
                valign="center"
                textfont="GameFontBlack"
                textsize="{{ 1.4 }}"
+               id="window_close_button"
         />
         
         <script><!--
-        *** MyLabel ***
-        ***
-        // do something in the scope of the extension point
-        ***
+            *** OnMouseClick ***
+            ***
+            if(Event.Control && Event.Control.ControlId == "window_close_button"){
+                Page.MainFrame.Hide();
+                return;
+            }
+            ***
         --></script>
     </template>
 </component>

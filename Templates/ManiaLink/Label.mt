@@ -26,6 +26,7 @@
     <property type="int" name="maxline" default="0"/>
     <property type="int" name="translate" default="0"/>
     <property type="string" name="textid" default=""/>
+    <property type="string" name="id" default=""/>
 
     <template>
         <label pos="{{ x }} {{ y }}"
@@ -51,6 +52,7 @@
                maxline="{{ maxline }}"
                translate="{{ translate }}"
                textid="{{ textid }}"
+               id="{{ id }}"
         />
     </template>
 </component>

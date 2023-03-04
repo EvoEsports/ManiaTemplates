@@ -18,12 +18,4 @@
             </Frame>
         </frame>
     </template>
-    
-    <script><!--
-    
-    main(){
-        log("Window opened.");
-    }
-    
-    --></script>
 </component>
