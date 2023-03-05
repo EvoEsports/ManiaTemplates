@@ -112,7 +112,7 @@ public class MtComponent
         return new
         {
             Tag = tag,
-            Component = resource
+            Component = engine.GetComponent(resource)
         };
     }
 

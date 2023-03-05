@@ -1,8 +1,8 @@
 ﻿using ManiaTemplates.Lib;
 
-namespace ManiaTemplates.Languages;
+namespace ManiaTemplates.Interfaces;
 
-public interface IMtLanguage
+public interface IManiaTemplateLanguage
 {
     public string Context(string content);
     public string InsertResult(string content);
@@ -10,5 +10,4 @@ public interface IMtLanguage
     public Snippet FeatureBlock(string content);
     public string FeatureBlockStart();
     public string FeatureBlockEnd();
-    public string CallMethod(string methodExpression);
 }

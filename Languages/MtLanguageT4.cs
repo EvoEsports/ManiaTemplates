@@ -1,8 +1,9 @@
-﻿using ManiaTemplates.Lib;
+﻿using ManiaTemplates.Interfaces;
+using ManiaTemplates.Lib;
 
 namespace ManiaTemplates.Languages;
 
-public class MtLanguageT4 : IMtLanguage
+public class MtLanguageT4 : IManiaTemplateLanguage
 {
     public string Context(string content)
     {
@@ -35,10 +36,5 @@ public class MtLanguageT4 : IMtLanguage
     public string FeatureBlockEnd()
     {
         return "#>";
-    }
-
-    public string CallMethod(string methodExpression)
-    {
-        return FeatureBlock(methodExpression).ToString(" ");
     }
 }
