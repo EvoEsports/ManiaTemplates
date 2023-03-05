@@ -25,7 +25,7 @@ public class Transformer
 
     public string BuildManialink(MtComponent mtComponent, string className, int version = 3)
     {
-        var loadedComponents = _engine.BaseMtComponents.Overload(mtComponent.ImportedMtComponents);
+        var loadedComponents = _engine.BaseMtComponents.Overload(mtComponent.ImportedComponents);
         var maniaScripts = new Dictionary<int, MtComponentScript>();
         var body = ProcessNode(XmlStringToNode(mtComponent.TemplateContent), loadedComponents, maniaScripts, null,
             true);
@@ -271,7 +271,7 @@ public class Transformer
         MtComponentMap availableMtComponents, MtComponentAttributes attributeList, string? slotContent,
         Dictionary<int, MtComponentScript> maniaScripts)
     {
-        var subComponents = availableMtComponents.Overload(mtComponent.ImportedMtComponents);
+        var subComponents = availableMtComponents.Overload(mtComponent.ImportedComponents);
         var subSlotContent = ProcessNode(currentNode, subComponents, maniaScripts, slotContent);
         var componentTemplate =
             ProcessNode(XmlStringToNode(mtComponent.TemplateContent), subComponents, maniaScripts, subSlotContent);

@@ -1,19 +1,14 @@
 ﻿using System.Diagnostics;
-using System.Reflection;
 using System.Xml;
-using ManiaTemplates.Interfaces;
 using ManiaTemplates.Lib;
-using ManiaTemplates.TemplateSources;
 
 namespace ManiaTemplates.Components;
 
 public class MtComponent
 {
-    public required string Tag { get; set; }
     public required string TemplateContent { get; init; }
-    public required IMtTemplate TemplateFileFile { get; init; }
     public required bool HasSlot { get; init; }
-    public required MtComponentMap ImportedMtComponents { get; init; }
+    public required MtComponentMap ImportedComponents { get; init; }
     public required Dictionary<string, MtComponentProperty> Properties { get; init; }
     public required List<string> Namespaces { get; init; }
     public required List<MtComponentScript> Scripts { get; init; }
@@ -21,8 +16,7 @@ public class MtComponent
     /// <summary>
     /// Creates a manialink-template instance from an TemplateFile instance.
     /// </summary>
-    public static MtComponent FromTemplate(ManiaTemplateEngine engine, string templateContent,
-        string? overwriteTag = null)
+    public static MtComponent FromTemplate(ManiaTemplateEngine engine, string templateContent)
     {
         var foundComponents = new MtComponentMap();
         var namespaces = new List<string>();
@@ -78,11 +72,9 @@ public class MtComponent
 
         return new MtComponent
         {
-            Tag = overwriteTag ?? "",
             TemplateContent = componentTemplate,
-            TemplateFileFile = new MtTemplateString { Content = templateContent },
             HasSlot = hasSlot,
-            ImportedMtComponents = foundComponents,
+            ImportedComponents = foundComponents,
             Properties = foundProperties,
             Namespaces = namespaces,
             Scripts = maniaScripts.Values.ToList()
