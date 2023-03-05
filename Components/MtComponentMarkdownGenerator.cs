@@ -2,9 +2,9 @@
 
 public class MtComponentMarkdownGenerator
 {
-    public required MtComponentList Components { get; init; }
+    public required MtComponentMap Components { get; init; }
     
-    public string Generate()
+    public string Generate(ManiaTemplateEngine engine)
     {
         var output = new List<string>
         {
@@ -12,8 +12,9 @@ public class MtComponentMarkdownGenerator
             "This list contains available components and their attributes.\n"
         };
 
-        foreach (var (componentTag, component) in Components)
+        foreach (var (componentTag, componentPath) in Components)
         {
+            var component = engine.GetComponent(componentPath);
             if (component.HasSlot)
             {
                 output.Add($"``<{componentTag}> ... </{componentTag}>``");

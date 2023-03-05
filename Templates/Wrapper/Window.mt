@@ -1,5 +1,5 @@
 ﻿<component>
-    <import resource="ManiaTemplates.Templates.Wrapper.Includes.WindowTitleBar.mt"/>
+    <import component="ManiaTemplates.Templates.Wrapper.Includes.WindowTitleBar.mt"/>
 
     <property type="int" name="zIndex"/>
     <property type="double" name="x"/>
@@ -20,7 +20,7 @@
         </frame>
     </template>
 
-    <script resource="ManiaTemplates.ManiaScripts.WindowBase.ms"><![CDATA[
+    <script component="ManiaTemplates.ManiaScripts.WindowBase.ms"><![CDATA[
 #Include "TextLib" as TextLib
 #Include "MathLib" as MathLib
 #Include "AnimLib" as AnimLib

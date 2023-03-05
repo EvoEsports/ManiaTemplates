@@ -147,7 +147,7 @@ public class Transformer
         return propertyAssignments.ToString(", ");
     }
 
-    private string ProcessNode(XmlNode node, MtComponentList availableMtComponents,
+    private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents,
         Dictionary<int, MtComponentScript> maniaScripts, string? slotContent = null,
         bool rootContext = false)
     {
@@ -183,14 +183,15 @@ public class Transformer
 
             if (availableMtComponents.ContainsKey(tag))
             {
-                foreach (var ns in availableMtComponents[tag].Namespaces)
+                var component = _engine.GetComponent(availableMtComponents[tag]);
+                foreach (var ns in component.Namespaces)
                 {
                     _namespaces.Add(ns);
                 }
 
                 var componentNode = CreateComponentNode(
                     child,
-                    availableMtComponents[tag],
+                    component,
                     availableMtComponents,
                     attributeList,
                     slotContent,
@@ -267,7 +268,7 @@ public class Transformer
     }
 
     private MtComponentNode CreateComponentNode(XmlNode currentNode, MtComponent mtComponent,
-        MtComponentList availableMtComponents, MtComponentAttributes attributeList, string? slotContent,
+        MtComponentMap availableMtComponents, MtComponentAttributes attributeList, string? slotContent,
         Dictionary<int, MtComponentScript> maniaScripts)
     {
         var subComponents = availableMtComponents.Overload(mtComponent.ImportedMtComponents);

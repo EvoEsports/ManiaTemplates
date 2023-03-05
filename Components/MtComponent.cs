@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using System.Xml;
 using ManiaTemplates.Interfaces;
 using ManiaTemplates.Lib;
@@ -8,11 +9,11 @@ namespace ManiaTemplates.Components;
 
 public class MtComponent
 {
-    public required string Tag { get; init; }
+    public required string Tag { get; set; }
     public required string TemplateContent { get; init; }
     public required IMtTemplate TemplateFileFile { get; init; }
     public required bool HasSlot { get; init; }
-    public required MtComponentList ImportedMtComponents { get; init; }
+    public required MtComponentMap ImportedMtComponents { get; init; }
     public required Dictionary<string, MtComponentProperty> Properties { get; init; }
     public required List<string> Namespaces { get; init; }
     public required List<MtComponentScript> Scripts { get; init; }
@@ -20,12 +21,10 @@ public class MtComponent
     /// <summary>
     /// Creates a manialink-template instance from an TemplateFile instance.
     /// </summary>
-    public static MtComponent FromTemplate(IMtTemplate template, string? overwriteTag = null)
+    public static MtComponent FromTemplate(ManiaTemplateEngine engine, string templateContent,
+        string? overwriteTag = null)
     {
-        // Debug.WriteLine(
-        // $"Loading component ({templateFile.Name}|{templateFile.LastModification}) from {templateFile.TemplatePath}");
-
-        var foundComponents = new MtComponentList();
+        var foundComponents = new MtComponentMap();
         var namespaces = new List<string>();
         var foundProperties = new Dictionary<string, MtComponentProperty>();
         var maniaScripts = new Dictionary<int, MtComponentScript>();
@@ -33,7 +32,7 @@ public class MtComponent
         var hasSlot = false;
 
         var doc = new XmlDocument();
-        doc.LoadXml(Helper.EscapePropertyTypes(template.GetContent().Result));
+        doc.LoadXml(Helper.EscapePropertyTypes(templateContent));
 
         foreach (XmlNode node in doc.ChildNodes[0]!)
         {
@@ -46,8 +45,8 @@ public class MtComponent
                     break;
 
                 case "import":
-                    var component = LoadComponent(node, template.GetBasePath() ?? "");
-                    foundComponents.Add(component.Tag, component);
+                    var component = ImportComponent(engine, node);
+                    foundComponents.Add(component.Tag, component.Component);
                     break;
 
                 case "using":
@@ -79,9 +78,9 @@ public class MtComponent
 
         return new MtComponent
         {
-            Tag = overwriteTag ?? template.GetXmlTag(),
+            Tag = overwriteTag ?? "",
             TemplateContent = componentTemplate,
-            TemplateFileFile = template,
+            TemplateFileFile = new MtTemplateString { Content = templateContent },
             HasSlot = hasSlot,
             ImportedMtComponents = foundComponents,
             Properties = foundProperties,
@@ -93,52 +92,36 @@ public class MtComponent
     /// <summary>
     /// Parse an import-node and load the referenced component from the given directory.
     /// </summary>
-    private static MtComponent LoadComponent(XmlNode node, string currentDirectory)
+    private static dynamic ImportComponent(ManiaTemplateEngine engine, XmlNode node)
     {
-        string? src = null, importAs = null, resource = null, relative = null;
+        string? tag = null, resource = null;
 
         foreach (XmlAttribute attribute in node.Attributes!)
         {
             switch (attribute.Name)
             {
-                case "src":
-                    src = attribute.Value;
-                    break;
-
-                case "relative":
-                    relative = attribute.Value;
-                    break;
-
-                case "resource":
+                case "component":
                     resource = attribute.Value;
                     break;
 
                 case "as":
-                    importAs = attribute.Value;
+                    tag = attribute.Value;
                     break;
             }
         }
 
-        if (src == null && resource == null)
+        if (resource == null)
         {
-            throw new Exception($"Missing attribute 'src' or 'resource' for element '{node.OuterXml}'.");
+            throw new Exception($"Missing required attribute 'component' for element '{node.OuterXml}'.");
         }
 
-        if (resource != null)
-        {
-            //TODO: relative check
-            var component = FromTemplate(new MtTemplateResource { ResourcePath = resource });
+        tag ??= resource.Split('.')[^2];
 
-            return component;
-        }
-        else
+        return new
         {
-            var subPath = Path.GetFullPath(Path.Combine(currentDirectory ?? "", src ?? ""));
-            var component = FromTemplate(new MtTemplateFile { Filename = subPath }, importAs);
-            Debug.WriteLine($"Loaded sub-component '{component.Tag}'");
-
-            return component;
-        }
+            Tag = tag,
+            Component = resource
+        };
     }
 
     /// <summary>

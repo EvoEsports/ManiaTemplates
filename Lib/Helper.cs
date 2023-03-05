@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -9,6 +10,25 @@ namespace ManiaTemplates.Lib;
 
 public abstract partial class Helper
 {
+    /// <summary>
+    /// Gets the embedded resources contents of the current assembly.
+    /// </summary>
+    public static async Task<string> GetEmbeddedResourceContent(string path)
+    {
+        return await GetEmbeddedResourceContent(path, Assembly.GetCallingAssembly());
+    }
+
+    /// <summary>
+    /// Gets the embedded resources contents of the given assembly.
+    /// </summary>
+    public static async Task<string> GetEmbeddedResourceContent(string path, Assembly assembly)
+    {
+        await using var stream = assembly.GetManifestResourceStream(path) ??
+                                 throw new InvalidOperationException("Could not load contents of: " + path);
+
+        return await new StreamReader(stream).ReadToEndAsync();
+    }
+
     /// <summary>
     /// Creates a hash from the given string with a fixed length.
     /// </summary>
@@ -31,7 +51,7 @@ public abstract partial class Helper
     /// <summary>
     /// Determines whether a XML-node uses one of the given components.
     /// </summary>
-    internal static bool UsesComponents(XmlNode node, MtComponentList mtComponents)
+    internal static bool UsesComponents(XmlNode node, MtComponentMap mtComponents)
     {
         foreach (XmlNode child in node.ChildNodes)
         {

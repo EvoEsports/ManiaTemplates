@@ -19,10 +19,10 @@ public class ManiaLink
     /// <summary>
     /// Creates an ManiaLink-instance from tag & pre-compiled template with given context.
     /// </summary>
-    public ManiaLink(string tag, string preCompiledTemplate, Assembly context)
+    public ManiaLink(string className, string preCompiledTemplate, Assembly context)
     {
         var script = CSharpScript.Create(
-            $@"{preCompiledTemplate} return typeof({tag});",
+            $@"{preCompiledTemplate} return typeof({className});",
             ScriptOptions.Default.WithReferences(context)
         );
 
