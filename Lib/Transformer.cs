@@ -23,7 +23,7 @@ public class Transformer
         _mtLanguage = mtLanguage;
     }
 
-    public string BuildManialink(MtComponent mtComponent, int version = 3)
+    public string BuildManialink(MtComponent mtComponent, string className, int version = 3)
     {
         var loadedComponents = _engine.BaseMtComponents.Overload(mtComponent.ImportedMtComponents);
         var maniaScripts = new Dictionary<int, MtComponentScript>();
@@ -34,7 +34,7 @@ public class Transformer
             _mtLanguage.Context(@"template language=""C#"""),
             _mtLanguage.Context(@"import namespace=""System.Collections.Generic"""),
             CreateImportStatements(),
-            $@"<manialink version=""{version}"">",
+            $@"<manialink version=""{version}"" id=""{className}"">",
             body,
             "<# RenderManiaScripts(); #>",
             "</manialink>",

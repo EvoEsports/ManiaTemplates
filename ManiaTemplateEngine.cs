@@ -82,7 +82,7 @@ public class ManiaTemplateEngine
     public ManiaLink CreateManiaLink(IMtTemplate template)
     {
         var callingAssembly = Assembly.GetCallingAssembly();
-        var className = string.Join("", callingAssembly.GetName().FullName.Split('.')[..^1]);
+        var className = NamespaceToClassName(callingAssembly.GetName().FullName);
 
         return PreProcess(MtComponent.FromTemplate(this, template.GetContent().Result), callingAssembly, className);
     }
@@ -94,7 +94,7 @@ public class ManiaTemplateEngine
     {
         var callingAssembly = Assembly.GetCallingAssembly();
         var templateContent = Helper.GetEmbeddedResourceContent(resourcePath, callingAssembly);
-        var className = string.Join("", resourcePath.Split('.')[..^1]);
+        var className = NamespaceToClassName(resourcePath, 1);
 
         return PreProcess(MtComponent.FromTemplate(this, templateContent.Result), callingAssembly, className);
     }
@@ -104,7 +104,7 @@ public class ManiaTemplateEngine
     /// </summary>
     private ManiaLink PreProcess(MtComponent mtComponent, Assembly assembly, string className, string? writeTo = null)
     {
-        var t4Template = ConvertComponentToT4Template(mtComponent);
+        var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
 
         var generator = new TemplateGenerator();
@@ -130,11 +130,16 @@ public class ManiaTemplateEngine
         return new ManiaLink(className, preCompiledTemplate, assembly);
     }
 
+    private static string NamespaceToClassName(string nameSpace, int skipLastNth = 0)
+    {
+        return string.Join("", nameSpace.Split('.')[..^skipLastNth]);
+    }
+
     /// <summary>
     /// Converts a component instance into a renderable instance.
     /// </summary>
-    private string ConvertComponentToT4Template(MtComponent mtComponent) =>
-        new Transformer(this, _mtLanguage).BuildManialink(mtComponent);
+    private string ConvertComponentToT4Template(MtComponent mtComponent, string className) =>
+        new Transformer(this, _mtLanguage).BuildManialink(mtComponent, className);
 
     /// <summary>
     /// Generates the contents for a markdown file describing all base components shipped with the template engine.

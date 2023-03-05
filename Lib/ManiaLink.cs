@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
@@ -10,6 +9,7 @@ public class ManiaLink
 {
     private readonly Type _type;
     private readonly MethodInfo _renderMethod;
+    private readonly string _className;
 
     private static readonly Regex ReplaceDefaultAttr =
         new(
@@ -35,12 +35,16 @@ public class ManiaLink
             throw new Exception("Missing method 'TransformText' in pre-compiled script.");
         }
 
+        _className = className;
         _renderMethod = method;
     }
 
     /// <summary>
     /// Render the manialink instance with the given data.
     /// </summary>
+    /// <returns>
+    /// A string containing the rendered manialink, ready to be displayed.
+    /// </returns>
     public string? Render(dynamic data)
     {
         var runnable = Activator.CreateInstance(_type);
@@ -54,5 +58,16 @@ public class ManiaLink
         var output = (string?)_renderMethod.Invoke(runnable, null);
 
         return output == null ? null : ReplaceDefaultAttr.Replace(output, "");
+    }
+
+    /// <summary>
+    /// Create empty manialink for this instance, used to hide displayed UI elements.
+    /// </summary>
+    /// <returns>
+    /// A string containing the empty manialink, ready to be send to the player(s).
+    /// </returns>
+    public string Hide()
+    {
+        return @$"<manialink version=""3"" id=""{_className}""></manialink>";
     }
 }
