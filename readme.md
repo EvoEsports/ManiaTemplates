@@ -16,17 +16,15 @@ A templating engine to use for ManiaLinks, an XML based markup language for the 
 //Prepare template engine
 var engine = new ManiaTemplateEngine();
 
-//Add custom resources when module loads (to be used in ManiaTemplates)
-engine.AddComponentFromResource("Tester.Templates.MapRow.mt");
+//Add resources when module loads
+engine.LoadTemplateFromEmbeddedResource("Tester.Templates.MapRow.mt");
+var mapList = engine.LoadTemplateFromEmbeddedResource("Tester.Templates.MapList.mt");
 
-//Create the renderable instances in the module
-var myPseudoModule = new
-{
-    MapList = engine.CreateManiaLinkFromResource("Tester.Templates.MapList.mt")
-};
+//Optionally pre-process the template for faster first render
+mapList.PreProcess();
 
 //Render manialink
-var result = myPseudoModule.MapList.Render(GetMapListData());
+var result = mapList.RenderAsync(GetMapListData());
 ````
 
 ## How to add embedded resources
