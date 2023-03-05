@@ -43,6 +43,23 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Used to add components for ManiaTemplates. These components may not be rendered individually.
     /// </summary>
+    public IManiaTemplate LoadTemplateFromString(string templateContent, string templateName)
+    {
+        var component = MtComponent.FromTemplate(this, templateContent);
+        _components.Add(templateName, component);
+
+        return new LoadedTemplate
+        {
+            Engine = this,
+            Component = component,
+            SourceAssembly = Assembly.GetCallingAssembly(),
+            ResourceKey = templateName
+        };
+    }
+
+    /// <summary>
+    /// Used to add components for ManiaTemplates. These components may not be rendered individually.
+    /// </summary>
     public IManiaTemplate LoadTemplateFromEmbeddedResource(string resourcePath)
     {
         var templateContent = Helper.GetEmbeddedResourceContent(resourcePath, Assembly.GetCallingAssembly()).Result;
