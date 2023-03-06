@@ -12,9 +12,11 @@ public class ManiaTemplateEngine
 {
     private readonly IManiaTemplateLanguage _maniaTemplateLanguage = new MtLanguageT4();
     private readonly Dictionary<string, MtComponent> _components = new();
+    private readonly Dictionary<string, string> _templates = new();
+    private readonly Dictionary<string, ManiaLink> _preProcessed = new();
     protected internal MtComponentMap BaseMtComponents { get; }
 
-    private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplate \{((?:.|\n)+)\}");
+    private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplates \{((?:.|\n)+)\}");
 
     public ManiaTemplateEngine()
     {
@@ -26,67 +28,115 @@ public class ManiaTemplateEngine
     /// </summary>
     private MtComponentMap LoadCoreComponents()
     {
-        return new MtComponentMap
+        var coreComponents = new MtComponentMap
         {
-            { "Pagination", LoadTemplateFromEmbeddedResource("ManiaTemplates.Templates.Components.Pagination.mt").GetComponent() },
-            { "Graph", LoadTemplateFromEmbeddedResource("ManiaTemplates.Templates.ManiaLink.Graph.mt").GetComponent() },
-            { "Label", LoadTemplateFromEmbeddedResource("ManiaTemplates.Templates.ManiaLink.Label.mt").GetComponent() },
-            { "Quad", LoadTemplateFromEmbeddedResource("ManiaTemplates.Templates.ManiaLink.Quad.mt").GetComponent() },
-            { "RoundedQuad", LoadTemplateFromEmbeddedResource("ManiaTemplates.Templates.ManiaLink.RoundedQuad.mt").GetComponent() },
-            { "Frame", LoadTemplateFromEmbeddedResource("ManiaTemplates.Templates.Wrapper.Frame.mt").GetComponent() },
-            { "Widget", LoadTemplateFromEmbeddedResource("ManiaTemplates.Templates.Wrapper.Widget.mt").GetComponent() },
-            { "WindowTitleBar", LoadTemplateFromEmbeddedResource("ManiaTemplates.Templates.Wrapper.Includes.WindowTitleBar.mt").GetComponent() },
-            { "Window", LoadTemplateFromEmbeddedResource("ManiaTemplates.Templates.Wrapper.Window.mt").GetComponent() },
+            {
+                "Pagination",
+                new MtComponentImport
+                    { TemplateKey = "ManiaTemplates.Templates.Components.Pagination.mt", Tag = "Pagination" }
+            },
+            {
+                "Graph",
+                new MtComponentImport { TemplateKey = "ManiaTemplates.Templates.ManiaLink.Graph.mt", Tag = "Graph" }
+            },
+            {
+                "Label",
+                new MtComponentImport { TemplateKey = "ManiaTemplates.Templates.ManiaLink.Label.mt", Tag = "Label" }
+            },
+            {
+                "Quad",
+                new MtComponentImport { TemplateKey = "ManiaTemplates.Templates.ManiaLink.Quad.mt", Tag = "Quad" }
+            },
+            {
+                "RoundedQuad",
+                new MtComponentImport
+                    { TemplateKey = "ManiaTemplates.Templates.ManiaLink.RoundedQuad.mt", Tag = "RoundedQuad" }
+            },
+            {
+                "Frame",
+                new MtComponentImport { TemplateKey = "ManiaTemplates.Templates.Wrapper.Frame.mt", Tag = "Frame" }
+            },
+            {
+                "Widget",
+                new MtComponentImport { TemplateKey = "ManiaTemplates.Templates.Wrapper.Widget.mt", Tag = "Widget" }
+            },
+            {
+                "WindowTitleBar",
+                new MtComponentImport
+                {
+                    TemplateKey = "ManiaTemplates.Templates.Wrapper.Includes.WindowTitleBar.mt", Tag = "WindowTitleBar"
+                }
+            },
+            {
+                "Window",
+                new MtComponentImport { TemplateKey = "ManiaTemplates.Templates.Wrapper.Window.mt", Tag = "Window" }
+            }
         };
+
+        foreach (var coreComponent in coreComponents.Values)
+        {
+            LoadTemplateFromEmbeddedResource(coreComponent.TemplateKey);
+        }
+
+        return coreComponents;
     }
 
-    /// <summary>
-    /// Used to add components for ManiaTemplates. These components may not be rendered individually.
-    /// </summary>
-    public IManiaTemplate LoadTemplateFromString(string templateContent, string templateName)
+    public MtComponent GetComponent(string key)
     {
-        var component = MtComponent.FromTemplate(this, templateContent);
-        _components.Add(templateName, component);
-
-        return new LoadedTemplate
+        if (_components.ContainsKey(key))
         {
-            Engine = this,
-            Component = component,
-            SourceAssembly = Assembly.GetCallingAssembly(),
-            ResourceKey = templateName
-        };
+            return _components[key];
+        }
+
+        var component = MtComponent.FromTemplate(this, _templates[key]);
+        _components.Add(key, component);
+
+        return component;
+    }
+
+    public void PreProcess(string key, Assembly assembly)
+    {
+        _preProcessed[key] = PreProcessComponent(GetComponent(key), assembly, KeyToClassName(key), $"../../../{key}");
+        // _preProcessed[key] = PreProcessComponent(GetComponent(key), assembly, KeyToClassName(key));
+    }
+
+    public string Render(string key, dynamic data, Assembly assembly)
+    {
+        if (!_preProcessed.ContainsKey(key))
+        {
+            PreProcess(key, assembly);
+        }
+
+        return _preProcessed[key].Render(data, assembly);
+    }
+
+    private string KeyToClassName(string key)
+    {
+        return key.Replace(".", "");
     }
 
     /// <summary>
     /// Used to add components for ManiaTemplates. These components may not be rendered individually.
     /// </summary>
-    public IManiaTemplate LoadTemplateFromEmbeddedResource(string resourcePath)
+    public void LoadTemplateFromEmbeddedResource(string resourcePath)
     {
         var templateContent = Helper.GetEmbeddedResourceContent(resourcePath, Assembly.GetCallingAssembly()).Result;
-        var component = MtComponent.FromTemplate(this, templateContent);
-        _components.Add(resourcePath, component);
-
-        return new LoadedTemplate
-        {
-            Engine = this,
-            Component = component,
-            SourceAssembly = Assembly.GetCallingAssembly(),
-            ResourceKey = resourcePath
-        };
+        AddTemplateFromString(resourcePath, templateContent);
     }
 
     /// <summary>
-    /// Gets a component from the engine.
+    /// Used to add components for ManiaTemplates. These components may not be rendered individually.
     /// </summary>
-    public MtComponent GetComponent(string path)
+    public void AddTemplateFromString(string templateKey, string templateContent)
     {
-        return _components[path];
+        _templates.Add(templateKey, templateContent);
     }
 
     /// <summary>
     /// Takes a MtComponent instance and prepares it for rendering.
     /// </summary>
-    internal ManiaLink PreProcess(MtComponent mtComponent, Assembly assembly, string className, string? writeTo = null)
+    private ManiaLink PreProcessComponent(MtComponent mtComponent, Assembly assembly, string className,
+        string? writeTo = null)
     {
         var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
@@ -97,19 +147,25 @@ public class ManiaTemplateEngine
 
         templateSettings.CompilerOptions = "-nullable:enable";
         templateSettings.Name = className;
-        templateSettings.Namespace = "ManiaTemplate";
-
-        if (writeTo != null)
-        {
-            File.WriteAllText(writeTo, t4Template);
-        }
+        templateSettings.Namespace = "ManiaTemplates";
 
         var preCompiledTemplate =
             generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings,
                 out string[] loadedAssemblies);
 
+        // foreach (var ass in loadedAssemblies)
+        // {
+        //     Console.WriteLine("Loaded assembly:" + ass);
+        // }
+
         //Remove namespace wrapper
         preCompiledTemplate = NamespaceWrapperMatcher.Replace(preCompiledTemplate, "$1");
+
+        if (writeTo != null)
+        {
+            File.WriteAllText(writeTo + ".tt", t4Template);
+            File.WriteAllText(writeTo + ".cs", preCompiledTemplate);
+        }
 
         return new ManiaLink(className, preCompiledTemplate, assembly);
     }

@@ -14,7 +14,7 @@ public class MtComponent
     public required List<MtComponentScript> Scripts { get; init; }
 
     /// <summary>
-    /// Creates a manialink-template instance from an TemplateFile instance.
+    /// Creates a MtComponent instance from template contents.
     /// </summary>
     public static MtComponent FromTemplate(ManiaTemplateEngine engine, string templateContent)
     {
@@ -39,8 +39,8 @@ public class MtComponent
                     break;
 
                 case "import":
-                    var component = ImportComponent(engine, node);
-                    foundComponents.Add(component.Tag, component.Component);
+                    var componentImport = ParseImportNode(engine, node);
+                    foundComponents.Add(componentImport.Tag, componentImport);
                     break;
 
                 case "using":
@@ -84,7 +84,7 @@ public class MtComponent
     /// <summary>
     /// Parse an import-node and load the referenced component from the given directory.
     /// </summary>
-    private static dynamic ImportComponent(ManiaTemplateEngine engine, XmlNode node)
+    private static MtComponentImport ParseImportNode(ManiaTemplateEngine engine, XmlNode node)
     {
         string? tag = null, resource = null;
 
@@ -109,10 +109,10 @@ public class MtComponent
 
         tag ??= resource.Split('.')[^2];
 
-        return new
+        return new MtComponentImport
         {
+            TemplateKey = resource,
             Tag = tag,
-            Component = engine.GetComponent(resource)
         };
     }
 

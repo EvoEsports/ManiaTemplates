@@ -2,7 +2,6 @@
 using System.Xml;
 using ManiaTemplates.Components;
 using ManiaTemplates.Interfaces;
-using ManiaTemplates.Languages;
 
 namespace ManiaTemplates.Lib;
 
@@ -183,7 +182,7 @@ public class Transformer
 
             if (availableMtComponents.ContainsKey(tag))
             {
-                var component = availableMtComponents[tag];
+                var component = _engine.GetComponent(availableMtComponents[tag].TemplateKey);
                 foreach (var ns in component.Namespaces)
                 {
                     _namespaces.Add(ns);

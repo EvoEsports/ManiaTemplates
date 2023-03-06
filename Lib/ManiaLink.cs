@@ -7,9 +7,8 @@ namespace ManiaTemplates.Lib;
 
 public class ManiaLink
 {
-    private readonly Type _type;
-    private readonly MethodInfo _renderMethod;
     private readonly string _className;
+    private readonly string _preCompiledTemplate;
 
     private static readonly Regex ReplaceDefaultAttr =
         new(
@@ -21,22 +20,8 @@ public class ManiaLink
     /// </summary>
     public ManiaLink(string className, string preCompiledTemplate, Assembly context)
     {
-        var script = CSharpScript.Create(
-            $@"{preCompiledTemplate} return typeof({className});",
-            ScriptOptions.Default.WithReferences(context)
-        );
-
-        script.Compile();
-
-        _type = (Type)script.RunAsync().Result.ReturnValue;
-        var method = _type.GetMethod("TransformText");
-        if (method == null)
-        {
-            throw new Exception("Missing method 'TransformText' in pre-compiled script.");
-        }
-
+        _preCompiledTemplate = preCompiledTemplate;
         _className = className;
-        _renderMethod = method;
     }
 
     /// <summary>
@@ -45,17 +30,31 @@ public class ManiaLink
     /// <returns>
     /// A string containing the rendered manialink, ready to be displayed.
     /// </returns>
-    public string? Render(dynamic data)
+    public string? Render(dynamic data, Assembly context)
     {
-        var runnable = Activator.CreateInstance(_type);
+        var script = CSharpScript.Create(
+            $"{_preCompiledTemplate} return typeof({_className});",
+            ScriptOptions.Default.WithReferences(context)
+        );
+
+        script.Compile();
+
+        var type = (Type)script.RunAsync().Result.ReturnValue;
+        var method = type.GetMethod("TransformText");
+        if (method == null)
+        {
+            throw new Exception("Missing method 'TransformText' in pre-compiled script.");
+        }
+        
+        var runnable = Activator.CreateInstance(type);
 
         Type dataType = data.GetType();
         foreach (var dt in dataType.GetProperties())
         {
-            _type.GetProperty(dt.Name)?.SetValue(runnable, dt.GetValue(data));
+            type.GetProperty(dt.Name)?.SetValue(runnable, dt.GetValue(data));
         }
 
-        var output = (string?)_renderMethod.Invoke(runnable, null);
+        var output = (string?)method.Invoke(runnable, null);
 
         return output == null ? null : ReplaceDefaultAttr.Replace(output, "");
     }
