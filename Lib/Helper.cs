@@ -1,5 +1,4 @@
 ﻿using System.Reflection;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -11,17 +10,9 @@ namespace ManiaTemplates.Lib;
 public abstract partial class Helper
 {
     /// <summary>
-    /// Gets the embedded resources contents of the current assembly.
-    /// </summary>
-    public static async Task<string> GetEmbeddedResourceContent(string path)
-    {
-        return await GetEmbeddedResourceContent(path, Assembly.GetCallingAssembly());
-    }
-
-    /// <summary>
     /// Gets the embedded resources contents of the given assembly.
     /// </summary>
-    public static async Task<string> GetEmbeddedResourceContent(string path, Assembly assembly)
+    public static async Task<string> GetEmbeddedResourceContentAsync(string path, Assembly assembly)
     {
         await using var stream = assembly.GetManifestResourceStream(path) ??
                                  throw new InvalidOperationException("Could not load contents of: " + path);

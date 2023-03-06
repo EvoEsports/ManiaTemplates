@@ -17,6 +17,7 @@ public class ManiaTemplateEngine
     protected internal MtComponentMap BaseMtComponents { get; }
 
     private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplates \{((?:.|\n)+)\}");
+    private static readonly Regex ClassNameSlugifier = new(@"(?:[^a-zA-Z0-9]|mt$|xml$)");
 
     public ManiaTemplateEngine()
     {
@@ -81,6 +82,9 @@ public class ManiaTemplateEngine
         return coreComponents;
     }
 
+    /// <summary>
+    /// Gets a MtComponent-instance for the given key.
+    /// </summary>
     public MtComponent GetComponent(string key)
     {
         if (_components.ContainsKey(key))
@@ -94,25 +98,33 @@ public class ManiaTemplateEngine
         return component;
     }
 
+    /// <summary>
+    /// PreProcesses a template-key for faster rendering.
+    /// </summary>
     public void PreProcess(string key, Assembly assembly)
     {
-        _preProcessed[key] = PreProcessComponent(GetComponent(key), assembly, KeyToClassName(key), $"../../../{key}");
-        // _preProcessed[key] = PreProcessComponent(GetComponent(key), assembly, KeyToClassName(key));
+        _preProcessed[key] = PreProcessComponent(GetComponent(key), assembly, KeyToClassName(key));
     }
 
-    public string Render(string key, dynamic data, Assembly assembly)
+    /// <summary>
+    /// Renders a template in the given context.
+    /// </summary>
+    public string Render(string key, dynamic data, Assembly executionContext)
     {
         if (!_preProcessed.ContainsKey(key))
         {
-            PreProcess(key, assembly);
+            PreProcess(key, executionContext);
         }
 
-        return _preProcessed[key].Render(data, assembly);
+        return _preProcessed[key].Render(data, executionContext);
     }
 
+    /// <summary>
+    /// Converts the template-key to a safe c#-class name.
+    /// </summary>
     private string KeyToClassName(string key)
     {
-        return key.Replace(".", "");
+        return "Mt" + ClassNameSlugifier.Replace(key, "");
     }
 
     /// <summary>
@@ -120,7 +132,7 @@ public class ManiaTemplateEngine
     /// </summary>
     public void LoadTemplateFromEmbeddedResource(string resourcePath)
     {
-        var templateContent = Helper.GetEmbeddedResourceContent(resourcePath, Assembly.GetCallingAssembly()).Result;
+        var templateContent = Helper.GetEmbeddedResourceContentAsync(resourcePath, Assembly.GetCallingAssembly()).Result;
         AddTemplateFromString(resourcePath, templateContent);
     }
 
