@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Text.RegularExpressions;
+using ManiaTemplates.Components;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 
@@ -9,6 +10,7 @@ public class ManiaLink
 {
     private readonly string _className;
     private readonly string _preCompiledTemplate;
+    private readonly MtComponent _component;
 
     private static readonly Regex ReplaceDefaultAttr =
         new(
@@ -18,9 +20,10 @@ public class ManiaLink
     /// <summary>
     /// Creates an ManiaLink-instance from tag & pre-compiled template with given context.
     /// </summary>
-    public ManiaLink(string className, string preCompiledTemplate, Assembly context)
+    public ManiaLink(string className, string preCompiledTemplate, MtComponent component)
     {
         _preCompiledTemplate = preCompiledTemplate;
+        _component = component;
         _className = className;
     }
 
@@ -30,13 +33,22 @@ public class ManiaLink
     /// <returns>
     /// A string containing the rendered manialink, ready to be displayed.
     /// </returns>
-    public string? Render(dynamic data, Assembly context)
+    public string? Render(dynamic data)
     {
-        var script = CSharpScript.Create(
-            $"{_preCompiledTemplate} return typeof({_className});",
-            ScriptOptions.Default.WithReferences(context)
-        );
+        var options = ScriptOptions.Default.WithReferences(Assembly.GetExecutingAssembly());
 
+        foreach (var nameSpace in _component.Namespaces)
+        {
+            var assembly = GetAssemblyByName(nameSpace);
+            if (assembly == null)
+            {
+                throw new Exception($"Could not resolve assembly for '${nameSpace}'.");
+            }
+
+            options = options.AddReferences(GetAssemblyByName(nameSpace));
+        }
+
+        var script = CSharpScript.Create($"{_preCompiledTemplate} return typeof({_className});", options);
         script.Compile();
 
         var type = (Type)script.RunAsync().Result.ReturnValue;
@@ -45,7 +57,7 @@ public class ManiaLink
         {
             throw new Exception("Missing method 'TransformText' in pre-compiled script.");
         }
-        
+
         var runnable = Activator.CreateInstance(type);
 
         Type dataType = data.GetType();
@@ -57,6 +69,11 @@ public class ManiaLink
         var output = (string?)method.Invoke(runnable, null);
 
         return output == null ? null : ReplaceDefaultAttr.Replace(output, "");
+    }
+
+    private Assembly? GetAssemblyByName(string name)
+    {
+        return AppDomain.CurrentDomain.GetAssemblies().SingleOrDefault(assembly => assembly.GetName().Name == name);
     }
 
     /// <summary>

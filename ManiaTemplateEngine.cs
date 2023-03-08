@@ -101,22 +101,22 @@ public class ManiaTemplateEngine
     /// <summary>
     /// PreProcesses a template-key for faster rendering.
     /// </summary>
-    public void PreProcess(string key, Assembly assembly)
+    public void PreProcess(string key)
     {
-        _preProcessed[key] = PreProcessComponent(GetComponent(key), assembly, KeyToClassName(key));
+        _preProcessed[key] = PreProcessComponent(GetComponent(key), KeyToClassName(key));
     }
 
     /// <summary>
     /// Renders a template in the given context.
     /// </summary>
-    public string Render(string key, dynamic data, Assembly executionContext)
+    public string Render(string key, dynamic data)
     {
         if (!_preProcessed.ContainsKey(key))
         {
-            PreProcess(key, executionContext);
+            PreProcess(key);
         }
 
-        return _preProcessed[key].Render(data, executionContext);
+        return _preProcessed[key].Render(data);
     }
 
     /// <summary>
@@ -132,7 +132,8 @@ public class ManiaTemplateEngine
     /// </summary>
     public void LoadTemplateFromEmbeddedResource(string resourcePath)
     {
-        var templateContent = Helper.GetEmbeddedResourceContentAsync(resourcePath, Assembly.GetCallingAssembly()).Result;
+        var templateContent =
+            Helper.GetEmbeddedResourceContentAsync(resourcePath, Assembly.GetCallingAssembly()).Result;
         AddTemplateFromString(resourcePath, templateContent);
     }
 
@@ -147,8 +148,7 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Takes a MtComponent instance and prepares it for rendering.
     /// </summary>
-    private ManiaLink PreProcessComponent(MtComponent mtComponent, Assembly assembly, string className,
-        string? writeTo = null)
+    private ManiaLink PreProcessComponent(MtComponent mtComponent, string className, string? writeTo = null)
     {
         var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
@@ -165,11 +165,6 @@ public class ManiaTemplateEngine
             generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings,
                 out string[] loadedAssemblies);
 
-        // foreach (var ass in loadedAssemblies)
-        // {
-        //     Console.WriteLine("Loaded assembly:" + ass);
-        // }
-
         //Remove namespace wrapper
         preCompiledTemplate = NamespaceWrapperMatcher.Replace(preCompiledTemplate, "$1");
 
@@ -179,7 +174,7 @@ public class ManiaTemplateEngine
             File.WriteAllText(writeTo + ".cs", preCompiledTemplate);
         }
 
-        return new ManiaLink(className, preCompiledTemplate, assembly);
+        return new ManiaLink(className, preCompiledTemplate, mtComponent);
     }
 
     /// <summary>
