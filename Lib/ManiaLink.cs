@@ -1,4 +1,5 @@
 ﻿using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using ManiaTemplates.Components;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
@@ -33,11 +34,13 @@ public class ManiaLink
     /// <returns>
     /// A string containing the rendered manialink, ready to be displayed.
     /// </returns>
-    public string? Render(dynamic data)
+    public string? Render(dynamic data, IEnumerable<Assembly> assemblies)
     {
-        var options = ScriptOptions.Default.WithReferences(Assembly.GetExecutingAssembly());
+        var options = ScriptOptions.Default
+            .WithReferences(typeof(ManiaLink).Assembly)
+            .WithReferences(assemblies);
 
-        foreach (var nameSpace in _component.Namespaces)
+        /* foreach (var nameSpace in _component.Namespaces)
         {
             var assembly = GetAssemblyByName(nameSpace);
             if (assembly == null)
@@ -46,9 +49,19 @@ public class ManiaLink
             }
 
             options = options.AddReferences(GetAssemblyByName(nameSpace));
+        } */
+
+        var extraUsings = new StringBuilder();
+        foreach (var ns in _component.Namespaces)
+        {
+            extraUsings.Append("using ");
+            extraUsings.Append(ns);
+            extraUsings.Append(';');
+            extraUsings.AppendLine();
         }
 
-        var script = CSharpScript.Create($"{_preCompiledTemplate} return typeof({_className});", options);
+        var code = $"{extraUsings}\n{_preCompiledTemplate} return typeof({_className});";
+        var script = CSharpScript.Create(code, options);
         script.Compile();
 
         var type = (Type)script.RunAsync().Result.ReturnValue;

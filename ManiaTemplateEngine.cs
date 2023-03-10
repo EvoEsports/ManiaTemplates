@@ -109,14 +109,14 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Renders a template in the given context.
     /// </summary>
-    public string Render(string key, dynamic data)
+    public string Render(string key, dynamic data, IEnumerable<Assembly> assemblies)
     {
         if (!_preProcessed.ContainsKey(key))
         {
             PreProcess(key);
         }
 
-        return _preProcessed[key].Render(data);
+        return _preProcessed[key].Render(data, assemblies);
     }
 
     /// <summary>
