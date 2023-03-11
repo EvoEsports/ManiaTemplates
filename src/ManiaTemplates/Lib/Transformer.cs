@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using System.Xml;
 using ManiaTemplates.Components;
 using ManiaTemplates.Interfaces;
@@ -15,7 +14,6 @@ public class Transformer
 
     private static readonly Regex TemplateControlRegex = new(@"#>\s*<#\+");
     private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
-    private static readonly Regex TemplateReplacerRegex = new(@"(^("""")?\s*[+\-*/%]\s*|\s*[+\-*/%]\s*("""")?$)");
 
     public Transformer(ManiaTemplateEngine engine, IManiaTemplateLanguage maniaTemplateLanguage)
     {
@@ -23,6 +21,9 @@ public class Transformer
         _maniaTemplateLanguage = maniaTemplateLanguage;
     }
 
+    /// <summary>
+    /// Creates the target language template, which can be pre-processed for faster rendering.
+    /// </summary>
     public string BuildManialink(MtComponent mtComponent, string className, int version = 3)
     {
         var loadedComponents = _engine.BaseMtComponents.Overload(mtComponent.ImportedComponents);
@@ -47,6 +48,9 @@ public class Transformer
         return JoinFeatureBlocks(template.ToString());
     }
 
+    /// <summary>
+    /// Takes all loaded namespaces and creates the import statements for the target language.
+    /// </summary>
     private string CreateImportStatements()
     {
         var snippet = new Snippet();
@@ -59,6 +63,9 @@ public class Transformer
         return snippet.ToString();
     }
 
+    /// <summary>
+    /// Joins consecutive feature blocks to reduce generated code.
+    /// </summary>
     private static string JoinFeatureBlocks(string manialink)
     {
         var match = TemplateControlRegex.Match(manialink);
@@ -81,6 +88,9 @@ public class Transformer
         return output.ToString();
     }
 
+    /// <summary>
+    /// Creates a block containing the properties of the template for the target language, which are filled when rendering.
+    /// </summary>
     private string CreateTemplateParametersPreCompiled(MtComponent mtComponent)
     {
         var snippet = new Snippet();
@@ -94,6 +104,9 @@ public class Transformer
         return snippet.ToString();
     }
 
+    /// <summary>
+    /// Creates a block containing all render methods used in the template.
+    /// </summary>
     private string CreateRenderAndDataMethods()
     {
         Snippet snippet = new();
@@ -106,6 +119,9 @@ public class Transformer
         return snippet.ToString();
     }
 
+    /// <summary>
+    /// Creates the render method for the given component node, which contains all markup/component-calls for that specific node.
+    /// </summary>
     private Snippet CreateRenderMethod(MtComponentNode mtComponentNode)
     {
         var methodBody = new Snippet()
@@ -118,6 +134,9 @@ public class Transformer
             methodBody);
     }
 
+    /// <summary>
+    /// Creates a method block for the target language.
+    /// </summary>
     private Snippet CreateMethodBlock(string returnType, string methodName, string arguments, Snippet body)
     {
         var methodBlock = new Snippet(1)
@@ -130,6 +149,9 @@ public class Transformer
         return _maniaTemplateLanguage.FeatureBlock(methodBlock);
     }
 
+    /// <summary>
+    /// Takes all set arguments of a component node and converts them to a string, which contains the arguments for the render method.
+    /// </summary>
     private string ComponentNodeToMethodArguments(MtComponentNode mtComponentNode)
     {
         Snippet propertyAssignments = new();
@@ -140,14 +162,15 @@ public class Transformer
                 ? mtComponentNode.Attributes.Get(property.Name)
                 : GetPropertyDefaultValue(property);
 
-            var assignment = ConvertPropertyAssignment(property, value);
-
-            propertyAssignments.AppendLine(@$"{property.Name}: {assignment}");
+            propertyAssignments.AppendLine(@$"{property.Name}: {ConvertPropertyAssignment(property, value)}");
         }
 
         return propertyAssignments.ToString(", ");
     }
 
+    /// <summary>
+    /// Process a template node.
+    /// </summary>
     private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents,
         Dictionary<int, MtComponentScript> maniaScripts, string? slotContent = null,
         bool rootContext = false)
@@ -255,6 +278,9 @@ public class Transformer
         return snippet.ToString();
     }
 
+    /// <summary>
+    /// Parses the attributes of a XmlNode to an MtComponentAttributes-instance.
+    /// </summary>
     private static MtComponentAttributes GetNodeAttributes(XmlNode node)
     {
         var attributeList = new MtComponentAttributes();
@@ -268,6 +294,9 @@ public class Transformer
         return attributeList;
     }
 
+    /// <summary>
+    /// Takes parsed information and creates a new MtComponentNode-instance.
+    /// </summary>
     private MtComponentNode CreateComponentNode(XmlNode currentNode, MtComponent mtComponent,
         MtComponentMap availableMtComponents, MtComponentAttributes attributeList, string? slotContent,
         Dictionary<int, MtComponentScript> maniaScripts)
@@ -297,6 +326,9 @@ public class Transformer
         );
     }
 
+    /// <summary>
+    /// Takes the parsed &lt;property&gt; nodes from the ManiaTemplate and converts them to method arguments.
+    /// </summary>
     private string DataToArguments(MtComponent mtComponent)
     {
         var snippet = new Snippet();
@@ -317,48 +349,22 @@ public class Transformer
         return snippet.ToString(", ");
     }
 
+    /// <summary>
+    /// Used to convert component arguments into expressions, that can be assigned to C# method calls.
+    /// </summary>
     private static string ConvertPropertyAssignment(MtComponentProperty property, string parameterValue)
     {
-        var output = WrapIfString(property, parameterValue);
-        var matches = TemplateInterpolationRegex.Match(output);
-        var isStringType = IsStringType(property);
-        var offset = 0;
-
-        while (matches.Success)
+        if (IsStringType(property))
         {
-            var group0 = matches.Groups[0];
-            var body = matches.Groups[1].Value;
-
-            var matchStart = group0.Index - offset;
-            var matchLength = group0.Length - offset;
-            var newBody = body;
-
-            if (isStringType)
-            {
-                newBody = $" + {newBody} + ";
-            }
-
-            if (matchLength == parameterValue.Length)
-            {
-                output = newBody;
-                break;
-            }
-
-            //Update output string
-            output = output[..matchStart] + Quotes(newBody) + output[(matchStart + matchLength)..];
-
-            //Update offset for next match and proceed
-            offset += matchLength - newBody.Length;
-
-            //Look for next match
-            matches = TemplateInterpolationRegex.Match(output);
+            return "$" + WrapIfString(property, ReplaceCurlyBraces(parameterValue, s => "{" + s + "}"));
         }
 
-        output = TemplateReplacerRegex.Replace(output, ""); //Hotfix
-
-        return output;
+        return ReplaceCurlyBraces(parameterValue, s => s);
     }
 
+    /// <summary>
+    /// Creates a method which renders all loaded ManiaScripts into a block, which is usually placed at the end of the ManiaLink.
+    /// </summary>
     private string BuildManiaScripts(Dictionary<int, MtComponentScript> scripts)
     {
         var scriptMethod = new Snippet
@@ -381,6 +387,9 @@ public class Transformer
         return _maniaTemplateLanguage.FeatureBlock(scriptMethod.ToString()).ToString();
     }
 
+    /// <summary>
+    /// Creates a method call in the target language, which renders a component.
+    /// </summary>
     private string CreateComponentMethodCall(MtComponentNode mtComponentNode, bool rootContext = false)
     {
         var args = ComponentNodeToMethodArguments(mtComponentNode);
@@ -394,44 +403,65 @@ public class Transformer
             .ToString(" ");
     }
 
-    private string CreateMethodCall(string methodName, string methodArguments = "__componentData",
-        string lineSuffix = ";")
+    /// <summary>
+    /// Creates a method call in the target language.
+    /// </summary>
+    private static string CreateMethodCall(string methodName, string methodArguments = "__componentData")
     {
-        return $"{methodName}({methodArguments})" + lineSuffix;
+        return $"{methodName}({methodArguments});";
     }
 
+    /// <summary>
+    /// Wrap the second argument in quotes, if the given property is a string type.
+    /// </summary>
     private static string WrapIfString(MtComponentProperty property, string value)
     {
-        return IsStringType(property) ? @$"""{value}""" : value;
+        return IsStringType(property) ? WrapStringInQuotes(value) : value;
     }
 
+    /// <summary>
+    /// Determines whether a component property is a string type.
+    /// </summary>
     private static bool IsStringType(MtComponentProperty property)
     {
         return property.Type.ToLower().Contains("string"); //TODO: find better way to determine string
     }
 
+    /// <summary>
+    /// Returns the default value for a component property.
+    /// </summary>
     private static string GetPropertyDefaultValue(MtComponentProperty property)
     {
         return property.Default ?? $"new {property.Type}()";
     }
 
+    /// <summary>
+    /// Returns the name of the render method for a component node.
+    /// </summary>
     private static string GetRenderMethodName(MtComponentNode mtComponentNode)
     {
         return $"Render{mtComponentNode.Tag}_{mtComponentNode.RenderId}";
     }
 
-    private static string Quotes(string str)
+    /// <summary>
+    /// Wraps a string in quotes.
+    /// </summary>
+    private static string WrapStringInQuotes(string str)
     {
         return $@"""{str}""";
     }
 
+    /// <summary>
+    /// Creates a xml opening tag for the given string and attribute list.
+    /// </summary>
     private string CreateXmlOpeningTag(string tag, MtComponentAttributes attributeList, bool hasChildren)
     {
         var output = $"<{tag}";
 
         foreach (var (attributeName, attributeValue) in attributeList.All())
         {
-            output += @$" {attributeName}=""{ReplaceCurlyBraces(attributeValue)}""";
+            output +=
+                @$" {attributeName}=""{ReplaceCurlyBraces(attributeValue, _maniaTemplateLanguage.InsertResult)}""";
         }
 
         if (!hasChildren)
@@ -442,12 +472,18 @@ public class Transformer
         return output + ">";
     }
 
+    /// <summary>
+    /// Creates a xml closing tag for the given string.
+    /// </summary>
     private static string CreateXmlClosingTag(string tag)
     {
         return $"</{tag}>";
     }
 
-    private XmlNode XmlStringToNode(string content)
+    /// <summary>
+    /// Converts any valid XML-string into an XmlNode-element.
+    /// </summary>
+    private static XmlNode XmlStringToNode(string content)
     {
         var doc = new XmlDocument();
         doc.LoadXml($"<doc>{content}</doc>");
@@ -456,9 +492,9 @@ public class Transformer
     }
 
     /// <summary>
-    /// Replaces curly braces with template engine statement.
+    /// Takes the contents of double curly braces in a string and wraps them into something else. The second Argument takes a string-argument and returns the newly wrapped string.
     /// </summary>
-    private string ReplaceCurlyBraces(string value)
+    private static string ReplaceCurlyBraces(string value, Func<string, string> curlyContentWrapper)
     {
         var matches = TemplateInterpolationRegex.Match(value);
         var output = value;
@@ -468,7 +504,7 @@ public class Transformer
             var match = matches.Groups[0].Value.Trim();
             var content = matches.Groups[1].Value.Trim();
 
-            output = output.Replace(match, _maniaTemplateLanguage.InsertResult(content));
+            output = output.Replace(match, curlyContentWrapper(content));
 
             matches = matches.NextMatch();
         }

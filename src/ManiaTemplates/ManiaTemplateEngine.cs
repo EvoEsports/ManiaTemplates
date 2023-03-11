@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.RegularExpressions;
 using ManiaTemplates.Components;
 using ManiaTemplates.Interfaces;
@@ -176,7 +174,7 @@ public class ManiaTemplateEngine
             File.WriteAllText(writeTo + ".cs", preCompiledTemplate);
         }
 
-        return new ManiaLink(className, preCompiledTemplate, mtComponent);
+        return new ManiaLink(className, preCompiledTemplate);
     }
 
     /// <summary>

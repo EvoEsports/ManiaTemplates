@@ -30,10 +30,10 @@
             <frame if="{{ tr }}" pos="{{ w }} 0" size="10 10" rot="90" scale="{{ radius }}">
                 <frameinstance modelid="EvoSC_RQC_{{ color + opacity }}"/>
             </frame>
-            <frame if="{{ br }}" pos="{{ w }} {{ h * -1.0 }}" size="10 10" rot="180" scale="{{ radius }}">
+            <frame if="{{ br }}" pos="{{ w }} {{ -h }}" size="10 10" rot="180" scale="{{ radius }}">
                 <frameinstance modelid="EvoSC_RQC_{{ color + opacity }}"/>
             </frame>
-            <frame if="{{ bl }}" pos="0 {{ h * -1.0 }}" size="10 10" rot="-90" scale="{{ radius }}">
+            <frame if="{{ bl }}" pos="0 {{ -h }}" size="10 10" rot="-90" scale="{{ radius }}">
                 <frameinstance modelid="EvoSC_RQC_{{ color + opacity }}"/>
             </frame>
             <frame if="{{ tl }}" pos="0 0" size="10 10" rot="0" scale="{{ radius }}">
@@ -41,7 +41,7 @@
             </frame>
 
             <frameinstance modelid="EvoSC_RQTB_{{ color + opacity + w + radius }}" pos="{{ radius * 10.0 }} 0"/>
-            <frameinstance modelid="EvoSC_RQTB_{{ color + opacity + w + radius }}" pos="{{ radius * 10.0 }} {{ h * -1.0 + radius * 10.0 }}"/>
+            <frameinstance modelid="EvoSC_RQTB_{{ color + opacity + w + radius }}" pos="{{ radius * 10.0 }} {{ -h + radius * 10.0 }}"/>
             <quad pos="0 {{ radius * -10.0 }}" size="{{ w }} {{ h - radius * 20.0 }}" bgcolor="{{ color }}" opacity="{{ opacity }}"/>
         </frame>
     </template>

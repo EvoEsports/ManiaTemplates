@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.RegularExpressions;
-using ManiaTemplates.Components;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 
@@ -13,7 +9,6 @@ public class ManiaLink
 {
     private readonly string _className;
     private readonly string _preCompiledTemplate;
-    private readonly MtComponent _component;
 
     private static readonly Regex ReplaceDefaultAttr =
         new(
@@ -23,10 +18,9 @@ public class ManiaLink
     /// <summary>
     /// Creates an ManiaLink-instance from tag & pre-compiled template with given context.
     /// </summary>
-    public ManiaLink(string className, string preCompiledTemplate, MtComponent component)
+    public ManiaLink(string className, string preCompiledTemplate)
     {
         _preCompiledTemplate = preCompiledTemplate;
-        _component = component;
         _className = className;
     }
 
@@ -64,11 +58,6 @@ public class ManiaLink
         var output = (string?)method.Invoke(runnable, null);
 
         return output == null ? null : ReplaceDefaultAttr.Replace(output, "");
-    }
-
-    private Assembly? GetAssemblyByName(string name)
-    {
-        return AppDomain.CurrentDomain.GetAssemblies().SingleOrDefault(assembly => assembly.GetName().Name == name);
     }
 
     /// <summary>
