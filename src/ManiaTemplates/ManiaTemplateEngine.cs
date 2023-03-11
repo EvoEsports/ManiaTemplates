@@ -117,7 +117,21 @@ public class ManiaTemplateEngine
             PreProcess(key, assemblyList);
         }
 
-        return _preProcessed[key].Render(data, assemblyList);
+        return _preProcessed[key].Render(data);
+    }
+
+    /// <summary>
+    /// Renders a template in the given context.
+    /// </summary>
+    public async Task<string> RenderAsync(string key, dynamic data, IEnumerable<Assembly> assemblies)
+    {
+        var assemblyList = assemblies.ToList();
+        if (!_preProcessed.ContainsKey(key))
+        {
+            PreProcess(key, assemblyList);
+        }
+
+        return await _preProcessed[key].RenderAsync(data);
     }
 
     /// <summary>

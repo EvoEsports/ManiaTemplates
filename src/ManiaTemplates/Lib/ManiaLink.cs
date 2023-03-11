@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
@@ -36,12 +35,6 @@ public class ManiaLink
     /// A string containing the rendered manialink, ready to be displayed.
     /// </returns>
     public string? Render(dynamic data)
-    {
-        return RenderAsync(data).Result;
-    }
-
-    [Obsolete("Render(data, assemblies) is deprecated, please use RenderAsync(data) instead.")]
-    public string? Render(dynamic data, IEnumerable<Assembly> assemblies)
     {
         return RenderAsync(data).Result;
     }
