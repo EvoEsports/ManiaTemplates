@@ -161,7 +161,7 @@ public class ManiaTemplateEngine
         templateSettings.Name = className;
         templateSettings.Namespace = "ManiaTemplates";
 
-        var preCompiledTemplate =
+       var preCompiledTemplate =
             generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings,
                 out string[] loadedAssemblies);
 

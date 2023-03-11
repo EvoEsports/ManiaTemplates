@@ -26,6 +26,7 @@ public class Transformer
     {
         var loadedComponents = _engine.BaseMtComponents.Overload(mtComponent.ImportedComponents);
         var maniaScripts = new Dictionary<int, MtComponentScript>();
+        _namespaces.AddRange(mtComponent.Namespaces);
         var body = ProcessNode(XmlStringToNode(mtComponent.TemplateContent), loadedComponents, maniaScripts, null,
             true);
         var template = new Snippet

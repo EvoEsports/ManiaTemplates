@@ -39,28 +39,8 @@ public class ManiaLink
         var options = ScriptOptions.Default
             .WithReferences(typeof(ManiaLink).Assembly)
             .WithReferences(assemblies);
-
-        /* foreach (var nameSpace in _component.Namespaces)
-        {
-            var assembly = GetAssemblyByName(nameSpace);
-            if (assembly == null)
-            {
-                throw new Exception($"Could not resolve assembly for '${nameSpace}'.");
-            }
-
-            options = options.AddReferences(GetAssemblyByName(nameSpace));
-        } */
-
-        var extraUsings = new StringBuilder();
-        foreach (var ns in _component.Namespaces)
-        {
-            extraUsings.Append("using ");
-            extraUsings.Append(ns);
-            extraUsings.Append(';');
-            extraUsings.AppendLine();
-        }
-
-        var code = $"{extraUsings}\n{_preCompiledTemplate} return typeof({_className});";
+        
+        var code = $"{_preCompiledTemplate} return typeof({_className});";
         var script = CSharpScript.Create(code, options);
         script.Compile();
 
