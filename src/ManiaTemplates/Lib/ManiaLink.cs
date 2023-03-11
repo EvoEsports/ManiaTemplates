@@ -37,24 +37,38 @@ public class ManiaLink
     /// </returns>
     public string? Render(dynamic data)
     {
-        var runnable = Activator.CreateInstance(_textTransformer);
-
-        Type dataType = data.GetType();
-        foreach (var dt in dataType.GetProperties())
-        {
-            _textTransformer.GetProperty(dt.Name)?.SetValue(runnable, dt.GetValue(data));
-        }
-
-        var method = _textTransformer.GetMethod("TransformText");
-        var output = (string?)method?.Invoke(runnable, null);
-
-        return output == null ? null : ReplaceDefaultAttr.Replace(output, "");
+        return RenderAsync(data).Result;
     }
 
-    [Obsolete("Render(data, assemblies) is deprecated, please use Render(data) instead.")]
+    [Obsolete("Render(data, assemblies) is deprecated, please use RenderAsync(data) instead.")]
     public string? Render(dynamic data, IEnumerable<Assembly> assemblies)
     {
-        return Render(data);
+        return RenderAsync(data).Result;
+    }
+
+    /// <summary>
+    /// Render the manialink instance with the given data.
+    /// </summary>
+    /// <returns>
+    /// A string containing the rendered manialink, ready to be displayed.
+    /// </returns>
+    public async Task<string> RenderAsync(dynamic data)
+    {
+        return await Task.Run(delegate
+        {
+            var runnable = Activator.CreateInstance(_textTransformer);
+
+            Type dataType = data.GetType();
+            foreach (var dt in dataType.GetProperties())
+            {
+                _textTransformer.GetProperty(dt.Name)?.SetValue(runnable, dt.GetValue(data));
+            }
+
+            var method = _textTransformer.GetMethod("TransformText");
+            var output = (string?)method?.Invoke(runnable, null);
+
+            return output == null ? "" : ReplaceDefaultAttr.Replace(output, "");
+        });
     }
 
     /// <summary>
