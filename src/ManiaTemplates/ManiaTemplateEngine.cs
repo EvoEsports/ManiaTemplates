@@ -101,9 +101,9 @@ public class ManiaTemplateEngine
     /// <summary>
     /// PreProcesses a template-key for faster rendering.
     /// </summary>
-    public void PreProcess(string key)
+    public void PreProcess(string key, IEnumerable<Assembly> assemblies)
     {
-        _preProcessed[key] = PreProcessComponent(GetComponent(key), KeyToClassName(key));
+        _preProcessed[key] = PreProcessComponent(GetComponent(key), KeyToClassName(key), assemblies);
     }
 
     /// <summary>
@@ -111,12 +111,13 @@ public class ManiaTemplateEngine
     /// </summary>
     public string Render(string key, dynamic data, IEnumerable<Assembly> assemblies)
     {
+        var assemblyList = assemblies.ToList();
         if (!_preProcessed.ContainsKey(key))
         {
-            PreProcess(key);
+            PreProcess(key, assemblyList);
         }
 
-        return _preProcessed[key].Render(data, assemblies);
+        return _preProcessed[key].Render(data, assemblyList);
     }
 
     /// <summary>
@@ -148,7 +149,7 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Takes a MtComponent instance and prepares it for rendering.
     /// </summary>
-    private ManiaLink PreProcessComponent(MtComponent mtComponent, string className, string? writeTo = null)
+    private ManiaLink PreProcessComponent(MtComponent mtComponent, string className, IEnumerable<Assembly> assemblies, string? writeTo = null)
     {
         var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
@@ -174,7 +175,7 @@ public class ManiaTemplateEngine
             File.WriteAllText(writeTo + ".cs", preCompiledTemplate);
         }
 
-        return new ManiaLink(className, preCompiledTemplate);
+        return new ManiaLink(className, preCompiledTemplate, assemblies);
     }
 
     /// <summary>

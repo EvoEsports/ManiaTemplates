@@ -33,13 +33,13 @@ public class Transformer
             true);
         var template = new Snippet
         {
-            _maniaTemplateLanguage.Context(@"template language=""C#"""),
+            _maniaTemplateLanguage.Context(@"template language=""C#"""), //Might not be needed
             _maniaTemplateLanguage.Context(@"import namespace=""System.Collections.Generic"""),
             CreateImportStatements(),
-            $@"<manialink version=""{version}"" id=""{className}"">",
+            ManiaLinkStart(className, version),
             body,
-            "<# RenderManiaScripts(); #>",
-            "</manialink>",
+            _maniaTemplateLanguage.Code("RenderManiaScripts();"),
+            ManiaLinkEnd(),
             CreateTemplateParametersPreCompiled(mtComponent),
             CreateRenderAndDataMethods(),
             BuildManiaScripts(maniaScripts)
@@ -169,7 +169,7 @@ public class Transformer
     }
 
     /// <summary>
-    /// Process a template node.
+    /// Process a ManiaTemplate node.
     /// </summary>
     private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents,
         Dictionary<int, MtComponentScript> maniaScripts, string? slotContent = null,
@@ -449,6 +449,26 @@ public class Transformer
     private static string WrapStringInQuotes(string str)
     {
         return $@"""{str}""";
+    }
+
+    /// <summary>
+    /// Creates ManiaLink opening tag with version, name and id.
+    /// 
+    /// id = Identifies the ManiaLink for overwrite/delete.
+    /// name = Shown in in-game debugger.
+    /// version = Version for the markup language of Trackmania.
+    /// </summary>
+    private static string ManiaLinkStart(string name, int version = 3)
+    {
+        return $@"<manialink version=""{version}"" id=""{name}"" name=""EvoSC#-{name}"">";
+    }
+
+    /// <summary>
+    /// Creates ManiaLink closing tag.
+    /// </summary>
+    private static string ManiaLinkEnd()
+    {
+        return "</manialink>";
     }
 
     /// <summary>
