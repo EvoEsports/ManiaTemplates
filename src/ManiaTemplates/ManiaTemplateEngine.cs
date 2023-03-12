@@ -201,6 +201,11 @@ public class ManiaTemplateEngine
         var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
 
+        if (writeTo != null)
+        {
+            File.WriteAllText(writeTo + ".tt", t4Template);
+        }
+
         var generator = new TemplateGenerator();
         var parsedTemplate = generator.ParseTemplate(ttFilename, t4Template);
         var templateSettings = TemplatingEngine.GetSettings(generator, parsedTemplate);
@@ -213,13 +218,17 @@ public class ManiaTemplateEngine
             generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings,
                 out string[] loadedAssemblies);
 
+        if (preCompiledTemplate == null)
+        {
+            throw new ManiaTemplatePreProcessingFailedException(
+                $"Failed to pre-process '{mtComponent.TemplateContent}'.");
+        }
+
         //Remove namespace wrapper
         preCompiledTemplate = NamespaceWrapperMatcher.Replace(preCompiledTemplate, "$1");
 
-        writeTo = "../../../test";
         if (writeTo != null)
         {
-            File.WriteAllText(writeTo + ".tt", t4Template);
             File.WriteAllText(writeTo + ".cs", preCompiledTemplate);
         }
 

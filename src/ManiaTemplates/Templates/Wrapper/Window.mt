@@ -1,7 +1,6 @@
 ﻿<component>
     <import component="ManiaTemplates.Templates.Wrapper.Includes.WindowTitleBar.mt"/>
     <script resource="ManiaTemplates.ManiaScripts.Wrapper.Window.ms" />
-    <script resource="ManiaTemplates.ManiaScripts.Wrapper.Window.ms" />
 
     <property type="int" name="zIndex"/>
     <property type="double" name="x"/>

@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 using ManiaTemplates.Components;
 using ManiaTemplates.Interfaces;
@@ -26,26 +27,43 @@ public class Transformer
     /// </summary>
     public string BuildManialink(MtComponent mtComponent, string className, int version = 3)
     {
+        _namespaces.AddRange(mtComponent.Namespaces);
+
         var loadedComponents = _engine.BaseMtComponents.Overload(mtComponent.ImportedComponents);
         var maniaScripts = new Dictionary<int, MtComponentScript>();
-        _namespaces.AddRange(mtComponent.Namespaces);
-        var body = ProcessNode(XmlStringToNode(mtComponent.TemplateContent), loadedComponents, maniaScripts, null,
-            true);
+        var body = ProcessNode(XmlStringToNode(mtComponent.TemplateContent), loadedComponents, maniaScripts);
+
         var template = new Snippet
         {
             _maniaTemplateLanguage.Context(@"template language=""C#"""), //Might not be needed
             _maniaTemplateLanguage.Context(@"import namespace=""System.Collections.Generic"""),
             CreateImportStatements(),
             ManiaLinkStart(className, version),
-            body,
+            _maniaTemplateLanguage.Code("RenderBody();"),
             _maniaTemplateLanguage.Code("RenderManiaScripts();"),
             ManiaLinkEnd(),
             CreateTemplateParametersPreCompiled(mtComponent),
+            CreateBodyRenderMethod(body),
             CreateRenderAndDataMethods(),
             BuildManiaScripts(maniaScripts)
         };
 
         return JoinFeatureBlocks(template.ToString());
+    }
+
+    /// <summary>
+    /// Creates the method that renders the body of the ManiaLink.
+    /// </summary>
+    private string CreateBodyRenderMethod(string body)
+    {
+        var bodyRenderMethod = new StringBuilder()
+            .AppendLine("void RenderBody(){")
+            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
+            .AppendLine(body)
+            .AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+            .AppendLine("}");
+
+        return _maniaTemplateLanguage.FeatureBlock(bodyRenderMethod.ToString()).ToString();
     }
 
     /// <summary>
@@ -172,8 +190,7 @@ public class Transformer
     /// Process a ManiaTemplate node.
     /// </summary>
     private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents,
-        Dictionary<int, MtComponentScript> maniaScripts, string? slotContent = null,
-        bool rootContext = false)
+        Dictionary<int, MtComponentScript> maniaScripts, string? slotContent = null)
     {
         //TODO: slim down method/outsource code from method
         Snippet snippet = new();
@@ -222,7 +239,7 @@ public class Transformer
                     maniaScripts
                 );
 
-                snippet.AppendLine(CreateComponentMethodCall(componentNode, rootContext));
+                snippet.AppendLine(CreateComponentMethodCall(componentNode));
 
                 var renderMethodName = GetRenderMethodName(componentNode);
                 if (!_renderMethods.ContainsKey(renderMethodName))
@@ -390,16 +407,12 @@ public class Transformer
     /// <summary>
     /// Creates a method call in the target language, which renders a component.
     /// </summary>
-    private string CreateComponentMethodCall(MtComponentNode mtComponentNode, bool rootContext = false)
+    private string CreateComponentMethodCall(MtComponentNode mtComponentNode)
     {
-        var args = ComponentNodeToMethodArguments(mtComponentNode);
+        var methodName = GetRenderMethodName(mtComponentNode);
+        var methodArguments = ComponentNodeToMethodArguments(mtComponentNode);
 
-        if (rootContext)
-        {
-            return _maniaTemplateLanguage.Code(CreateMethodCall(GetRenderMethodName(mtComponentNode), args));
-        }
-
-        return _maniaTemplateLanguage.FeatureBlock(CreateMethodCall(GetRenderMethodName(mtComponentNode), args))
+        return _maniaTemplateLanguage.FeatureBlock(CreateMethodCall(methodName, methodArguments))
             .ToString(" ");
     }
 
