@@ -1,0 +1,48 @@
+<#@ template language="C#" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="namespace" #>
+<#@ import namespace="GraphNamespace" #>
+<manialink version="3" id="expected" name="EvoSC#-expected">
+<# RenderBody(); #>
+<# RenderManiaScripts(); #>
+</manialink>
+<#+
+public List<int> numbers { get; init; }
+public boolean enabled { get; init; }
+void RenderBody(){
+ int __index = 0;
+ foreach(var i in numbers)
+ {
+ if(enabled)
+ {
+ RenderLabel(x: 20 * __index, y: 0.0, w: 0.0, h: 0.0, halign: $"left", valign: $"center", opacity: 1.0, zIndex: 0, events: 0, action: $"", url: $"", manialink: $"", style: $"", textfont: $"GameFont", textsize: 1.0, textcolor: $"", focusareacolor1: $"", focusareacolor2: $"", text: $"{i} at index {__index}", textprefix: $"", bold: 0, autonewline: 0, maxline: 0, translate: 0, textid: $"", id: $""); 
+ }
+ __index++;
+ }
+#>
+Text
+<!-- Comment -->
+<test>
+<#+ RenderGraph(arg1: $"", arg2: 0, arg3: new test()); #>
+</test>
+<!-- ERROR:slot -->
+<#+
+}
+void RenderLabel(double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = "left", string valign = "center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = "", string url = "", string manialink = "", string style = "", string textfont = "GameFont", double textsize = 1.0, string textcolor = "", string focusareacolor1 = "", string focusareacolor2 = "", string text = "", string textprefix = "", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = "", string id = "")
+{
+#>
+<label pos="<#= x #> <#= y #>" size="<#= w #> <#= h #>" halign="<#= halign #>" valign="<#= valign #>" opacity="<#= opacity #>" z-index="<#= zIndex #>" ScriptEvents="<#= events #>" action="<#= action #>" url="<#= url #>" manialink="<#= manialink #>" style="<#= style #>" textfont="<#= textfont #>" textsize="<#= textsize #>" textcolor="<#= textcolor #>" focusareacolor1="<#= focusareacolor1 #>" focusareacolor2="<#= focusareacolor2 #>" text="<#= text #>" textprefix="<#= textprefix #>" textemboss="<#= bold #>" autonewline="<#= autonewline #>" maxline="<#= maxline #>" translate="<#= translate #>" textid="<#= textid #>" id="<#= id #>" />
+<#+
+}
+void RenderGraph(string arg1 = "", int arg2 = 0, test arg3)
+{
+}
+void RenderManiaScripts()
+{
+#>
+<script><!--
+GraphScript
+--></script>
+<#+
+}
+#>
