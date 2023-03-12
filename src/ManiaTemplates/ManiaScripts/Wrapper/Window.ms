@@ -1,19 +1,14 @@
-﻿<script><![CDATA[
-#Include "TextLib" as TextLib
+﻿#Include "TextLib" as TextLib
 #Include "MathLib" as MathLib
 #Include "AnimLib" as AnimLib
 #Include "ColorLib" as ColorLib
 
-//import "global" methods here
-]]></script>
+//import "global" methods below
 
-//place component methods here
+//place component methods below
 
-<script><![CDATA[
 Void _nothing() {
 }
-
-/* --------------------- Main Script ------------------------ */
 
 main() {
   +++OnInit+++
@@ -46,6 +41,4 @@ main() {
 
 		+++Loop+++
   }
-
 }
-]]></script>

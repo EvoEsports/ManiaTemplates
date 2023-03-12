@@ -1,5 +1,7 @@
 ﻿<component>
     <import component="ManiaTemplates.Templates.Wrapper.Includes.WindowTitleBar.mt"/>
+    <script resource="ManiaTemplates.ManiaScripts.Wrapper.Window.ms" />
+    <script resource="ManiaTemplates.ManiaScripts.Wrapper.Window.ms" />
 
     <property type="int" name="zIndex"/>
     <property type="double" name="x"/>
@@ -19,48 +21,4 @@
             </Frame>
         </frame>
     </template>
-
-    <script component="ManiaTemplates.ManiaScripts.WindowBase.ms"><![CDATA[
-#Include "TextLib" as TextLib
-#Include "MathLib" as MathLib
-#Include "AnimLib" as AnimLib
-#Include "ColorLib" as ColorLib
-
-Void _nothing() {
-}
-
-main() {
-  +++OnInit+++
-
-  while(True) {
-    yield;
-    if (!PageIsVisible || InputPlayer == Null) {
-  			continue;
-  	}
-
-    foreach (Event in PendingEvents) {
-			switch (Event.Type) {
-				case CMlScriptEvent::Type::EntrySubmit: {
-					+++EntrySubmit+++
-				}
-				case CMlScriptEvent::Type::KeyPress: {
-					+++OnKeyPress+++
-				}
-				case CMlScriptEvent::Type::MouseClick: {
-					+++OnMouseClick+++
-				}
-				case CMlScriptEvent::Type::MouseOut: {
-					+++OnMouseOut+++
-				}
-				case CMlScriptEvent::Type::MouseOver: {
-					+++OnMouseOver+++
-				}
-			}
-		}
-
-		+++Loop+++
-  }
-
-}
-]]></script>
 </component>

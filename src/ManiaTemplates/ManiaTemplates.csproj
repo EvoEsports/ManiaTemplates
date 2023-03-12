@@ -6,30 +6,14 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <!--    <ItemGroup>-->
-    <!--        <Content Include="Templates\**\*">-->
-    <!--            <CopyToOutputDirectory>Always</CopyToOutputDirectory>-->
-    <!--        </Content>-->
-    <!--    </ItemGroup>-->
-
     <ItemGroup>
-        <Compile Remove="Tester\**" />
-        <Compile Remove="Models\**" />
-        <Compile Remove="DocGenerator\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <EmbeddedResource Remove="Tester\**" />
-        <EmbeddedResource Remove="Models\**" />
-        <EmbeddedResource Remove="DocGenerator\**" />
         <EmbeddedResource Include="Templates\**\*" />
+        <EmbeddedResource Include="ManiaScripts\**" />
     </ItemGroup>
 
     <ItemGroup>
-        <None Remove="Tester\**" />
-        <None Remove="Models\**" />
-        <None Remove="DocGenerator\**" />
         <None Remove="Templates\**\*" />
+        <None Remove="ManiaScripts\**\*" />
     </ItemGroup>
 
     <ItemGroup>

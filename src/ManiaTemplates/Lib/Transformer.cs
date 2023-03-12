@@ -309,7 +309,7 @@ public class Transformer
         foreach (var script in mtComponent.Scripts)
         {
             var scriptHash = script.ContentHash();
-            if (script.Once && maniaScripts.ContainsKey(scriptHash))
+            if (maniaScripts.ContainsKey(scriptHash))
             {
                 continue;
             }

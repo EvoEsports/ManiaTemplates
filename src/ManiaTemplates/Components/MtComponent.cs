@@ -24,7 +24,7 @@ public class MtComponent
         var foundComponents = new MtComponentMap();
         var namespaces = new List<string>();
         var foundProperties = new Dictionary<string, MtComponentProperty>();
-        var maniaScripts = new Dictionary<int, MtComponentScript>();
+        var maniaScripts = new List<MtComponentScript>();
         var componentTemplate = "";
         var hasSlot = false;
 
@@ -61,14 +61,8 @@ public class MtComponent
                     break;
 
                 case "script":
-                    var script = MtComponentScript.FromNode(node);
-                    var scriptContentHash = script.ContentHash();
-                    if (script.Once && maniaScripts.ContainsKey(scriptContentHash))
-                    {
-                        break;
-                    }
-
-                    maniaScripts.Add(scriptContentHash, script);
+                    var script = MtComponentScript.FromNode(engine, node);
+                    maniaScripts.Add(script);
                     break;
             }
         }
@@ -80,7 +74,7 @@ public class MtComponent
             ImportedComponents = foundComponents,
             Properties = foundProperties,
             Namespaces = namespaces,
-            Scripts = maniaScripts.Values.ToList()
+            Scripts = maniaScripts
         };
     }
 

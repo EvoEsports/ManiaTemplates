@@ -1,5 +1,4 @@
-﻿using System;
-using System.Xml;
+﻿using System.Xml;
 
 namespace ManiaTemplates.Components;
 
@@ -12,9 +11,9 @@ public class MtComponentScript
     /// <summary>
     /// Creates a MtComponentScript instance from a components script-node.
     /// </summary>
-    public static MtComponentScript FromNode(XmlNode node)
+    public static MtComponentScript FromNode(ManiaTemplateEngine engine, XmlNode node)
     {
-        string? resource = null, content = null;
+        string? content = null;
         bool main = false, once = false;
 
         if (node.InnerText.Length > 0)
@@ -29,8 +28,7 @@ public class MtComponentScript
                 switch (attribute.Name)
                 {
                     case "resource":
-                        resource = attribute.Value;
-                        //TODO: load contents from resource
+                        content = engine.GetManiaScript(attribute.Value);
                         break;
 
                     case "main":

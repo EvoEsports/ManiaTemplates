@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Text.RegularExpressions;
 using ManiaTemplates.Components;
+using ManiaTemplates.Exceptions;
 using ManiaTemplates.Interfaces;
 using ManiaTemplates.Languages;
 using ManiaTemplates.Lib;
@@ -13,6 +14,7 @@ public class ManiaTemplateEngine
     private readonly IManiaTemplateLanguage _maniaTemplateLanguage = new MtLanguageT4();
     private readonly Dictionary<string, MtComponent> _components = new();
     private readonly Dictionary<string, string> _templates = new();
+    private readonly Dictionary<string, string> _maniaScripts = new();
     private readonly Dictionary<string, ManiaLink> _preProcessed = new();
     protected internal MtComponentMap BaseMtComponents { get; }
 
@@ -78,6 +80,10 @@ public class ManiaTemplateEngine
         {
             LoadTemplateFromEmbeddedResource(coreComponent.TemplateKey);
         }
+
+        AddManiaScriptFromString("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
+            Helper.GetEmbeddedResourceContentAsync("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
+                Assembly.GetExecutingAssembly()).Result);
 
         return coreComponents;
     }
@@ -161,9 +167,36 @@ public class ManiaTemplateEngine
     }
 
     /// <summary>
+    /// Adds a ManiaScript to be used in components, defined by a key.
+    /// </summary>
+    public void AddManiaScriptFromString(string scriptKey, string maniaScript)
+    {
+        if (_maniaScripts.ContainsKey(scriptKey))
+        {
+            throw new ManiaScriptAlreadyExistsException($"ManiaScript '{scriptKey}' already exists.");
+        }
+
+        _maniaScripts.Add(scriptKey, maniaScript);
+    }
+
+    /// <summary>
+    /// Gets the contents of a ManiaScript for the given key.
+    /// </summary>
+    public string GetManiaScript(string scriptKey)
+    {
+        if (!_maniaScripts.ContainsKey(scriptKey))
+        {
+            throw new ManiaScriptNotFoundException($"ManiaScript '{scriptKey}' not found.");
+        }
+
+        return _maniaScripts[scriptKey];
+    }
+
+    /// <summary>
     /// Takes a MtComponent instance and prepares it for rendering.
     /// </summary>
-    private ManiaLink PreProcessComponent(MtComponent mtComponent, string className, IEnumerable<Assembly> assemblies, string? writeTo = null)
+    private ManiaLink PreProcessComponent(MtComponent mtComponent, string className, IEnumerable<Assembly> assemblies,
+        string? writeTo = null)
     {
         var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
@@ -176,13 +209,14 @@ public class ManiaTemplateEngine
         templateSettings.Name = className;
         templateSettings.Namespace = "ManiaTemplates";
 
-       var preCompiledTemplate =
+        var preCompiledTemplate =
             generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings,
                 out string[] loadedAssemblies);
 
         //Remove namespace wrapper
         preCompiledTemplate = NamespaceWrapperMatcher.Replace(preCompiledTemplate, "$1");
 
+        writeTo = "../../../test";
         if (writeTo != null)
         {
             File.WriteAllText(writeTo + ".tt", t4Template);
