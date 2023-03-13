@@ -19,7 +19,6 @@ public class ManiaTemplateEngine
     protected internal MtComponentMap BaseMtComponents { get; }
 
     private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplates \{((?:.|\n)+)\}");
-    private static readonly Regex ClassNameSlugifier = new(@"(?:[^a-zA-Z0-9]|mt$|xml$)");
 
     public ManiaTemplateEngine()
     {
@@ -109,7 +108,7 @@ public class ManiaTemplateEngine
     /// </summary>
     public void PreProcess(string key, IEnumerable<Assembly> assemblies)
     {
-        _preProcessed[key] = PreProcessComponent(GetComponent(key), KeyToClassName(key), assemblies);
+        _preProcessed[key] = PreProcessComponent(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies);
     }
 
     /// <summary>
@@ -117,7 +116,7 @@ public class ManiaTemplateEngine
     /// </summary>
     public async Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies)
     {
-        _preProcessed[key] = await PreProcessComponentAsync(GetComponent(key), KeyToClassName(key), assemblies);
+        _preProcessed[key] = await PreProcessComponentAsync(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies);
     }
 
     /// <summary>
@@ -146,14 +145,6 @@ public class ManiaTemplateEngine
         }
 
         return await _preProcessed[key].RenderAsync(data);
-    }
-
-    /// <summary>
-    /// Converts the template-key to a safe c#-class name.
-    /// </summary>
-    private string KeyToClassName(string key)
-    {
-        return "Mt" + ClassNameSlugifier.Replace(key, "");
     }
 
     /// <summary>
