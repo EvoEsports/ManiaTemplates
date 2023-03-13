@@ -10,7 +10,7 @@ public class ManiaLink
     private readonly string _className;
     private readonly string _preCompiledTemplate;
     private readonly IEnumerable<Assembly> _assemblies;
-    private readonly Type _textTransformer;
+    private Type _textTransformer;
 
     private static readonly Regex ReplaceDefaultAttr =
         new(
@@ -25,8 +25,9 @@ public class ManiaLink
         _preCompiledTemplate = preCompiledTemplate;
         _assemblies = assemblies;
         _className = className;
-        _textTransformer = CompileRenderScript();
     }
+
+    internal async Task CompileAsync() => _textTransformer = await CompileRenderScriptAsync();
 
     /// <summary>
     /// Render the manialink instance with the given data.
@@ -47,6 +48,11 @@ public class ManiaLink
     /// </returns>
     public async Task<string> RenderAsync(dynamic data)
     {
+        if (_textTransformer == null)
+        {
+            throw new InvalidOperationException("Text transformer not initialized, call CompileAsync first.");
+        }
+        
         return await Task.Run(delegate
         {
             var runnable = Activator.CreateInstance(_textTransformer);
@@ -78,7 +84,7 @@ public class ManiaLink
     /// <summary>
     /// Compiles the template script that generates the output for given data.
     /// </summary>
-    private Type CompileRenderScript()
+    private async Task<Type> CompileRenderScriptAsync()
     {
         var options = ScriptOptions.Default
             .WithReferences(typeof(ManiaLink).Assembly)
@@ -88,11 +94,13 @@ public class ManiaLink
         var script = CSharpScript.Create(code, options);
         script.Compile();
 
-        var type = (Type)script.RunAsync().Result.ReturnValue;
-        var method = type.GetMethod("TransformText");
-        if (method == null)
+        var result = await script.RunAsync();
+        var type = result.ReturnValue as Type;
+        var method = type?.GetMethod("TransformText");
+        
+        if (type == null || method == null)
         {
-            throw new Exception("Missing method 'TransformText' in compiled render script.");
+            throw new InvalidOperationException("Missing method 'TransformText' in compiled render script.");
         }
 
         return type;

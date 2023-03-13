@@ -142,7 +142,7 @@ public class ManiaTemplateEngine
         var assemblyList = assemblies.ToList();
         if (!_preProcessed.ContainsKey(key))
         {
-            PreProcess(key, assemblyList);
+            await PreProcessAsync(key, assemblyList);
         }
 
         return await _preProcessed[key].RenderAsync(data);
@@ -212,47 +212,48 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Takes a MtComponent instance and prepares it for rendering.
     /// </summary>
-    private async Task<ManiaLink> PreProcessComponentAsync(MtComponent mtComponent, string className, IEnumerable<Assembly> assemblies,
+    private async Task<ManiaLink> PreProcessComponentAsync(MtComponent mtComponent, string className,
+        IEnumerable<Assembly> assemblies,
         string? writeTo = null)
     {
-        return await Task.Run(delegate
+        var t4Template = ConvertComponentToT4Template(mtComponent, className);
+        var ttFilename = $"{className}.tt";
+
+        if (writeTo != null)
         {
-            var t4Template = ConvertComponentToT4Template(mtComponent, className);
-            var ttFilename = $"{className}.tt";
+            await File.WriteAllTextAsync(writeTo + ".tt", t4Template);
+        }
 
-            if (writeTo != null)
-            {
-                File.WriteAllText(writeTo + ".tt", t4Template);
-            }
+        var generator = new TemplateGenerator();
+        var parsedTemplate = generator.ParseTemplate(ttFilename, t4Template);
+        var templateSettings = TemplatingEngine.GetSettings(generator, parsedTemplate);
 
-            var generator = new TemplateGenerator();
-            var parsedTemplate = generator.ParseTemplate(ttFilename, t4Template);
-            var templateSettings = TemplatingEngine.GetSettings(generator, parsedTemplate);
+        templateSettings.CompilerOptions = "-nullable:enable";
+        templateSettings.Name = className;
+        templateSettings.Namespace = "ManiaTemplates";
 
-            templateSettings.CompilerOptions = "-nullable:enable";
-            templateSettings.Name = className;
-            templateSettings.Namespace = "ManiaTemplates";
+        var preCompiledTemplate =
+            generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings,
+                out string[] loadedAssemblies);
 
-            var preCompiledTemplate =
-                generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings,
-                    out string[] loadedAssemblies);
+        if (preCompiledTemplate == null)
+        {
+            throw new ManiaTemplatePreProcessingFailedException(
+                $"Failed to pre-process '{mtComponent.TemplateContent}'.");
+        }
 
-            if (preCompiledTemplate == null)
-            {
-                throw new ManiaTemplatePreProcessingFailedException(
-                    $"Failed to pre-process '{mtComponent.TemplateContent}'.");
-            }
+        //Remove namespace wrapper
+        preCompiledTemplate = NamespaceWrapperMatcher.Replace(preCompiledTemplate, "$1");
 
-            //Remove namespace wrapper
-            preCompiledTemplate = NamespaceWrapperMatcher.Replace(preCompiledTemplate, "$1");
+        if (writeTo != null)
+        {
+            await File.WriteAllTextAsync(writeTo + ".cs", preCompiledTemplate);
+        }
 
-            if (writeTo != null)
-            {
-                File.WriteAllText(writeTo + ".cs", preCompiledTemplate);
-            }
-
-            return new ManiaLink(className, preCompiledTemplate, assemblies);
-        });
+        var manialink = new ManiaLink(className, preCompiledTemplate, assemblies);
+        await manialink.CompileAsync();
+        
+        return manialink;
     }
 
     /// <summary>
