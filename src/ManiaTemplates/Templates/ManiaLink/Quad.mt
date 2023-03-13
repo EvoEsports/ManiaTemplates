@@ -14,6 +14,7 @@
     
     <property type="string" name="image" default="" />
     <property type="string" name="imagefocus" default="" />
+    <property type="string" name="color" default=""/>
     <property type="string" name="style" default=""/>
     <property type="string" name="substyle" default=""/>
     <property type="string" name="styleselected" default=""/>
@@ -35,6 +36,7 @@
               manialink="{{ manialink }}"
               image="{{ image }}"
               imagefocus="{{ imagefocus }}"
+              bgcolor="{{ color }}"
               style="{{ style }}"
               substyle="{{ substyle }}"
               styleselected="{{ styleselected }}"
