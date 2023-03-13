@@ -267,4 +267,25 @@ public class ManiaTemplateEngine
     /// </summary>
     public string GenerateComponentsMarkdown() =>
         new MtComponentMarkdownGenerator { Components = BaseMtComponents }.Generate();
+
+    public void RemoveTemplate(string name)
+    {
+        if (!_templates.ContainsKey(name))
+        {
+            throw new InvalidOperationException($"Template with name '{name}' does not exist.");
+        }
+
+        _templates.Remove(name);
+        _components.Remove(name);
+    }
+
+    public void RemoveManiaScript(string name)
+    {
+        if (!_maniaScripts.ContainsKey(name))
+        {
+            throw new InvalidOperationException($"ManiaScript with name '{name}' does not exist.");
+        }
+
+        _maniaScripts.Remove(name);
+    }
 }
