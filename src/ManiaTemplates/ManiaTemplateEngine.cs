@@ -115,7 +115,7 @@ public class ManiaTemplateEngine
     /// <summary>
     /// PreProcesses a template-key for faster rendering.
     /// </summary>
-    public async void PreProcessAsync(string key, IEnumerable<Assembly> assemblies)
+    public async Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies)
     {
         _preProcessed[key] = await PreProcessComponentAsync(GetComponent(key), KeyToClassName(key), assemblies);
     }
