@@ -237,7 +237,6 @@ public class Transformer
                     _namespaces.Add(ns);
                 }
 
-                Console.WriteLine(component.Scripts.Count + " scripts __");
                 foreach (var script in component.Scripts)
                 {
                     var scriptHash = script.ContentHash();
