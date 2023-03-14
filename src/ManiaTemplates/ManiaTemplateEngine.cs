@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using ManiaTemplates.Components;
 using ManiaTemplates.Exceptions;
@@ -15,7 +16,7 @@ public class ManiaTemplateEngine
     private readonly Dictionary<string, MtComponent> _components = new();
     private readonly Dictionary<string, string> _templates = new();
     private readonly Dictionary<string, string> _maniaScripts = new();
-    private readonly Dictionary<string, ManiaLink> _preProcessed = new();
+    private readonly ConcurrentDictionary<string, ManiaLink> _preProcessed = new();
     protected internal MtComponentMap BaseMtComponents { get; }
 
     private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplates \{((?:.|\n)+)\}");
