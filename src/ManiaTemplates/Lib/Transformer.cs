@@ -31,8 +31,15 @@ public class Transformer
 
         var loadedComponents = _engine.BaseMtComponents.Overload(mtComponent.ImportedComponents);
         var maniaScripts = new Dictionary<int, MtComponentScript>();
+        
+        //quick fix
+        foreach (var script in mtComponent.Scripts)
+        {
+            maniaScripts.Add(script.ContentHash(), script);
+        }
+        
         var body = ProcessNode(XmlStringToNode(mtComponent.TemplateContent), loadedComponents, maniaScripts);
-
+        
         var template = new Snippet
         {
             _maniaTemplateLanguage.Context(@"template language=""C#"""), //Might not be needed
@@ -230,6 +237,18 @@ public class Transformer
                     _namespaces.Add(ns);
                 }
 
+                Console.WriteLine(component.Scripts.Count + " scripts __");
+                foreach (var script in component.Scripts)
+                {
+                    var scriptHash = script.ContentHash();
+                    if (maniaScripts.ContainsKey(scriptHash))
+                    {
+                        continue;
+                    }
+
+                    maniaScripts.Add(scriptHash, script);
+                }
+
                 var componentNode = CreateComponentNode(
                     child,
                     component,
@@ -322,17 +341,6 @@ public class Transformer
         var subSlotContent = ProcessNode(currentNode, subComponents, maniaScripts, slotContent);
         var componentTemplate =
             ProcessNode(XmlStringToNode(mtComponent.TemplateContent), subComponents, maniaScripts, subSlotContent);
-
-        foreach (var script in mtComponent.Scripts)
-        {
-            var scriptHash = script.ContentHash();
-            if (maniaScripts.ContainsKey(scriptHash))
-            {
-                continue;
-            }
-
-            maniaScripts.Add(scriptHash, script);
-        }
 
         return new MtComponentNode(
             currentNode.Name,
