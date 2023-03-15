@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Dynamic;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
@@ -37,37 +38,62 @@ public class ManiaLink
     /// </returns>
     public string? Render(dynamic data)
     {
-        return RenderAsync(data).Result;
+        return RenderInternalAsync(data).Result;
     }
 
-    /// <summary>
-    /// Render the manialink instance with the given data.
-    /// </summary>
-    /// <returns>
-    /// A string containing the rendered manialink, ready to be displayed.
-    /// </returns>
-    public async Task<string> RenderAsync(dynamic data)
+    public Task<string> RenderAsync(object data)
+    {
+        var runnable = GetTransformerinstance();
+        Type dataType = data.GetType();
+        foreach (var dt in dataType.GetProperties())
+        {
+            _textTransformer.GetProperty(dt.Name)?.SetValue(runnable, dt.GetValue(data));
+        }
+
+        return RenderInternalAsync(runnable);
+    }
+    
+    public Task<string> RenderAsync(IDictionary<string, object?> data)
+    {
+        var runnable = GetTransformerinstance();
+        foreach (var (key, value) in data)
+        {
+            _textTransformer.GetProperty(key)?.SetValue(runnable, value);
+        }
+
+        return RenderInternalAsync(runnable);
+    }
+
+    public Task<string> RenderAsync(ExpandoObject data) => RenderAsync((IDictionary<string, object?>)data);
+
+    private object? GetTransformerinstance()
     {
         if (_textTransformer == null)
         {
             throw new InvalidOperationException("Text transformer not initialized, call CompileAsync first.");
         }
         
-        return await Task.Run(delegate
+        return Activator.CreateInstance(_textTransformer);
+    }
+    
+    /// <summary>
+    /// Render the manialink instance with the given data.
+    /// </summary>
+    /// <returns>
+    /// A string containing the rendered manialink, ready to be displayed.
+    /// </returns>
+    private Task<string> RenderInternalAsync(object? runnable)
+    {
+        if (_textTransformer == null)
         {
-            var runnable = Activator.CreateInstance(_textTransformer);
+            throw new InvalidOperationException("Text transformer not initialized, call CompileAsync first.");
+        }
 
-            Type dataType = data.GetType();
-            foreach (var dt in dataType.GetProperties())
-            {
-                _textTransformer.GetProperty(dt.Name)?.SetValue(runnable, dt.GetValue(data));
-            }
+        var method = _textTransformer.GetMethod("TransformText");
+        var output = (string?)method?.Invoke(runnable, null);
 
-            var method = _textTransformer.GetMethod("TransformText");
-            var output = (string?)method?.Invoke(runnable, null);
-
-            return output == null ? "" : ReplaceDefaultAttr.Replace(output, "");
-        });
+        var result = output == null ? "" : ReplaceDefaultAttr.Replace(output, "");
+        return Task.FromResult(result);
     }
 
     /// <summary>

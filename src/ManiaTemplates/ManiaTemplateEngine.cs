@@ -139,13 +139,24 @@ public class ManiaTemplateEngine
     /// </summary>
     public async Task<string> RenderAsync(string key, dynamic data, IEnumerable<Assembly> assemblies)
     {
+        await CheckPreprocessingAsync(key, assemblies);
+        return await _preProcessed[key].RenderAsync(data);
+    }
+
+    public async Task<string> RenderAsync(string key, IDictionary<string, object?> data,
+        IEnumerable<Assembly> assemblies)
+    {
+        await CheckPreprocessingAsync(key, assemblies);
+        return await _preProcessed[key].RenderAsync(data);
+    }
+
+    private async Task CheckPreprocessingAsync(string key, IEnumerable<Assembly> assemblies)
+    {
         var assemblyList = assemblies.ToList();
         if (!_preProcessed.ContainsKey(key))
         {
             await PreProcessAsync(key, assemblyList);
         }
-
-        return await _preProcessed[key].RenderAsync(data);
     }
 
     /// <summary>
