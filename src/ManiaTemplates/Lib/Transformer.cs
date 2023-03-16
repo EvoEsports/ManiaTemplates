@@ -452,7 +452,12 @@ public class Transformer
     /// </summary>
     private static string GetPropertyDefaultValue(MtComponentProperty property)
     {
-        return property.Default ?? $"new {property.Type}()";
+        if (property.Default != null)
+        {
+            return property.Default;
+        }
+
+        return property.Type.EndsWith('?') ? "null" : $"new {property.Type}()";
     }
 
     /// <summary>
