@@ -2,7 +2,7 @@
 
 public class MtComponentContext : Dictionary<string, string>
 {
-    public MtComponentContext? ParentContext { get; init; }
+    public MtComponentContext? ParentContext { get; private init; }
 
     public MtComponentContext NewContext(MtComponentContext otherContext)
     {

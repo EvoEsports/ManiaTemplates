@@ -261,7 +261,7 @@ public class ManiaTemplateEngine
     /// Converts a component instance into a renderable instance.
     /// </summary>
     private string ConvertComponentToT4Template(MtComponent mtComponent, string className) =>
-        new Transformer(this, _maniaTemplateLanguage).BuildManialink(mtComponent, className);
+        new MtTransformer(this, _maniaTemplateLanguage).BuildManialink(mtComponent, className);
 
     /// <summary>
     /// Generates the contents for a markdown file describing all base components shipped with the template engine.
