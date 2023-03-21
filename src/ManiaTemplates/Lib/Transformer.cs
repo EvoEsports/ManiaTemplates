@@ -297,12 +297,12 @@ public class Transformer
 
         foreach (var property in mtComponentNode.MtComponent.Properties.Values)
         {
-            if (!mtComponentNode.Attributes.Has(property.Name))
+            if (!mtComponentNode.Attributes.ContainsKey(property.Name))
             {
                 continue;
             }
 
-            var value = mtComponentNode.Attributes.Get(property.Name);
+            var value = mtComponentNode.Attributes[property.Name];
             propertyAssignments.AppendLine(@$"{property.Name} = {ConvertPropertyAssignment(property, value)}");
         }
 
@@ -325,7 +325,7 @@ public class Transformer
             var attributeList = GetNodeAttributes(child);
 
             string? forEachLoop = null;
-            if (attributeList.Has("foreach"))
+            if (attributeList.ContainsKey("foreach"))
             {
                 forEachLoop = attributeList.Pull("foreach");
                 snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
@@ -336,7 +336,7 @@ public class Transformer
             }
 
             string? ifStatement = null;
-            if (attributeList.Has("if"))
+            if (attributeList.ContainsKey("if"))
             {
                 ifStatement = attributeList.Pull("if");
                 string ifContent = TemplateInterpolationRegex.Replace(ifStatement, "$1");
@@ -744,7 +744,7 @@ public class Transformer
     {
         var output = $"<{tag}";
 
-        foreach (var (attributeName, attributeValue) in attributeList.All())
+        foreach (var (attributeName, attributeValue) in attributeList)
         {
             output +=
                 @$" {attributeName}=""{ReplaceCurlyBraces(attributeValue, _maniaTemplateLanguage.InsertResult)}""";
