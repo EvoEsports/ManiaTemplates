@@ -567,8 +567,6 @@ public class Transformer
             component,
             attributeList,
             componentTemplate,
-            Helper.UsesComponents(currentNode, availableMtComponents),
-            parentComponent,
             context
         );
     }
