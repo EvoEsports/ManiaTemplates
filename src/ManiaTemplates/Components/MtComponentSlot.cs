@@ -3,9 +3,7 @@
 public class MtComponentSlot
 {
     public required string Content;
-    public required MtComponent Component;
-    public required MtComponent ParentComponent;
-    public required MtComponentContext Context;
+    public required MtDataContext Context;
 
     public string RenderMethodName(string renderContextId)
     {

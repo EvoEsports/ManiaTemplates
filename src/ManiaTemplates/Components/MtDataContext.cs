@@ -1,12 +1,12 @@
 ﻿namespace ManiaTemplates.Components;
 
-public class MtComponentContext : Dictionary<string, string>
+public class MtDataContext : Dictionary<string, string>
 {
-    public MtComponentContext? ParentContext { get; private init; }
+    public MtDataContext? ParentContext { get; private init; }
 
-    public MtComponentContext NewContext(MtComponentContext otherContext)
+    public MtDataContext NewContext(MtDataContext otherContext)
     {
-        var clone = new MtComponentContext { ParentContext = this };
+        var clone = new MtDataContext { ParentContext = this };
 
         foreach (var (name, type) in otherContext)
         {

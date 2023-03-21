@@ -27,26 +27,19 @@ public class MtTransformer
     /// <summary>
     /// Creates the target language template, which can be pre-processed for faster rendering.
     /// </summary>
-    public string BuildManialink(MtComponent component, string className, int version = 3)
+    public string BuildManialink(MtComponent rootComponent, string className, int version = 3)
     {
-        _namespaces.AddRange(component.Namespaces);
+        _namespaces.AddRange(rootComponent.Namespaces);
 
-        var loadedComponents = _engine.BaseMtComponents.Overload(component.ImportedComponents);
-        var maniaScripts = new Dictionary<int, MtComponentScript>();
-
-        //quick fix
-        foreach (var script in component.Scripts)
-        {
-            maniaScripts.Add(script.ContentHash(), script);
-        }
-
-        var rootContext = GetContextFromComponent(component);
+        var loadedComponents = _engine.BaseMtComponents.Overload(rootComponent.ImportedComponents);
+        var maniaScripts = rootComponent.Scripts.ToDictionary(script => script.ContentHash());
+        var rootContext = GetContextFromComponent(rootComponent);
 
         var body = ProcessNode(
-            XmlStringToNode(component.TemplateContent),
+            XmlStringToNode(rootComponent.TemplateContent),
             loadedComponents,
             maniaScripts,
-            component,
+            rootComponent,
             rootContext
         );
 
@@ -62,7 +55,7 @@ public class MtTransformer
             _maniaTemplateLanguage.Code($"RenderBody({renderBodyArguments});"),
             _maniaTemplateLanguage.Code($"RenderManiaScripts({renderBodyArguments});"),
             ManiaLinkEnd(),
-            CreateTemplatePropertiesBlock(component),
+            CreateTemplatePropertiesBlock(rootComponent),
             CreateDataClassesBlock(rootContext),
             CreateBodyRenderMethod(body, rootContext),
             CreateRenderMethodsBlock(),
@@ -72,22 +65,10 @@ public class MtTransformer
         return JoinFeatureBlocks(template.ToString());
     }
 
-    private MtComponentContext GetContextFromComponent(MtComponent component)
-    {
-        var context = new MtComponentContext();
-
-        foreach (var property in component.Properties.Values)
-        {
-            context.Add(property.Name, property.Type);
-        }
-
-        return context;
-    }
-
     /// <summary>
     /// Creates the method that renders the body of the ManiaLink.
     /// </summary>
-    private string CreateBodyRenderMethod(string body, MtComponentContext context)
+    private string CreateBodyRenderMethod(string body, MtDataContext context)
     {
         var bodyRenderMethod = new StringBuilder()
             .AppendLine($"void RenderBody({context.ToString()} __data){{")
@@ -112,31 +93,6 @@ public class MtTransformer
         }
 
         return snippet.ToString();
-    }
-
-    /// <summary>
-    /// Joins consecutive feature blocks to reduce generated code.
-    /// </summary>
-    private static string JoinFeatureBlocks(string manialink)
-    {
-        var match = TemplateControlRegex.Match(manialink);
-        var output = new Snippet();
-
-        while (match.Success)
-        {
-            manialink = manialink.Replace(match.ToString(), "\n");
-            match = match.NextMatch();
-        }
-
-        foreach (var line in manialink.Split('\n'))
-        {
-            if (line.Trim().Length > 0)
-            {
-                output.AppendLine(line);
-            }
-        }
-
-        return output.ToString();
     }
 
     /// <summary>
@@ -193,7 +149,7 @@ public class MtTransformer
     /// <summary>
     /// Creates the slot-render method for a given data context.
     /// </summary>
-    private string CreateSlotRenderMethod(MtComponentSlot slot, MtComponentContext context)
+    private string CreateSlotRenderMethod(MtComponentSlot slot, MtDataContext context)
     {
         var output = new StringBuilder();
         var arguments = $"{context} __data";
@@ -263,7 +219,7 @@ public class MtTransformer
     /// <summary>
     /// Creates a list of variables from a given context, used in render methods.
     /// </summary>
-    private static Snippet CreateLocalVariablesFromContext(MtComponentContext context)
+    private static Snippet CreateLocalVariablesFromContext(MtDataContext context)
     {
         var localVariables = new Snippet();
         foreach (var dataName in context.Keys)
@@ -299,7 +255,7 @@ public class MtTransformer
     /// Process a ManiaTemplate node.
     /// </summary>
     private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents,
-        Dictionary<int, MtComponentScript> maniaScripts, MtComponent parentComponent, MtComponentContext context,
+        Dictionary<int, MtComponentScript> maniaScripts, MtComponent parentComponent, MtDataContext context,
         MtComponentSlot? slot = null)
     {
         //TODO: slim down method/outsource code from method
@@ -310,50 +266,17 @@ public class MtTransformer
             var tag = child.Name;
             var attributeList = GetNodeAttributes(child);
 
-            string? forEachLoop = null;
-            if (attributeList.ContainsKey("foreach"))
-            {
-                forEachLoop = attributeList.Pull("foreach");
-                snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-                snippet.AppendLine(null, " int __index = 0;");
-                snippet.AppendLine(null, $" foreach({forEachLoop})");
-                snippet.AppendLine(null, " {");
-                snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
-            }
-
-            string? ifStatement = null;
-            if (attributeList.ContainsKey("if"))
-            {
-                ifStatement = attributeList.Pull("if");
-                string ifContent = TemplateInterpolationRegex.Replace(ifStatement, "$1");
-                snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-                snippet.AppendLine(null, $" if({ifContent})");
-                snippet.AppendLine(null, " {");
-                snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
-            }
+            var forEachCondition = GetForeachConditionFromNodeAttributes(attributeList);
+            var ifCondition = GetIfConditionFromNodeAttributes(attributeList);
 
             if (availableMtComponents.ContainsKey(tag))
             {
+                //Node is a component
                 var component = _engine.GetComponent(availableMtComponents[tag].TemplateKey);
-                foreach (var ns in component.Namespaces)
-                {
-                    _namespaces.Add(ns);
-                }
 
                 if (!_usedComponents.Contains(component))
                 {
                     _usedComponents.Add(component);
-                }
-
-                foreach (var script in component.Scripts)
-                {
-                    var scriptHash = script.ContentHash();
-                    if (maniaScripts.ContainsKey(scriptHash))
-                    {
-                        continue;
-                    }
-
-                    maniaScripts.Add(scriptHash, script);
                 }
 
                 var componentNode = CreateComponentNode(
@@ -367,12 +290,25 @@ public class MtTransformer
                     context: context.NewContext(GetContextFromComponent(component))
                 );
 
+                _namespaces.AddRange(component.Namespaces);
                 _componentNodes.Add(componentNode);
+
+                foreach (var script in component.Scripts)
+                {
+                    var scriptHash = script.ContentHash();
+                    if (maniaScripts.ContainsKey(scriptHash))
+                    {
+                        continue;
+                    }
+
+                    maniaScripts.Add(scriptHash, script);
+                }
 
                 snippet.AppendLine(CreateComponentRenderMethodCall(componentNode));
             }
             else
             {
+                //Node is regular xml-node
                 switch (tag)
                 {
                     case "#text":
@@ -414,19 +350,14 @@ public class MtTransformer
                 }
             }
 
-            if (ifStatement != null)
+            if (ifCondition != null)
             {
-                snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-                snippet.AppendLine(null, " }");
-                snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
+                snippet = WrapInIfStatement(snippet, ifCondition);
             }
 
-            if (forEachLoop != null)
+            if (forEachCondition != null)
             {
-                snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-                snippet.AppendLine(null, " __index++;");
-                snippet.AppendLine(null, " }");
-                snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
+                snippet = WrapInForeachLoop(snippet, forEachCondition, context);
             }
         }
 
@@ -434,9 +365,67 @@ public class MtTransformer
     }
 
     /// <summary>
+    /// Returns the if condition, when a if attribute is found in the given list, else null.
+    /// </summary>
+    private string? GetIfConditionFromNodeAttributes(MtComponentAttributes attributeList)
+    {
+        return attributeList.ContainsKey("if") ? attributeList.Pull("if") : null;
+    }
+
+    /// <summary>
+    /// Returns the foreach condition, if a loop attribute is found in the given list, else null.
+    /// </summary>
+    private string? GetForeachConditionFromNodeAttributes(MtComponentAttributes attributeList)
+    {
+        return attributeList.ContainsKey("foreach") ? attributeList.Pull("foreach") : null;
+    }
+
+    /// <summary>
+    /// Wraps the snippet in a if-condition.
+    /// </summary>
+    private Snippet WrapInIfStatement(Snippet input, string ifCondition)
+    {
+        var snippet = new Snippet();
+        var ifContent = TemplateInterpolationRegex.Replace(ifCondition, "$1");
+
+        snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
+        snippet.AppendLine(null, $" if({ifContent})");
+        snippet.AppendLine(null, " {");
+        snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
+        snippet.AppendSnippet(input);
+        snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
+        snippet.AppendLine(null, " }");
+        snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
+
+        return snippet;
+    }
+
+    /// <summary>
+    /// Wraps the snippet in a foreach-loop.
+    /// </summary>
+    private Snippet WrapInForeachLoop(Snippet input, string loopCondition, MtDataContext context)
+    {
+        var snippet = new Snippet();
+        snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
+        snippet.AppendLine(null, " var __index = 0;");
+        snippet.AppendLine(null, $" foreach({loopCondition})");
+        snippet.AppendLine(null, " {");
+        snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
+        snippet.AppendSnippet(input);
+        snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
+        snippet.AppendLine(null, " __index++;");
+        snippet.AppendLine(null, " }");
+        snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
+
+        context["__index"] = "int";
+
+        return snippet;
+    }
+
+    /// <summary>
     /// Creates a list of class definitions for all data contexts.
     /// </summary>
-    private string CreateDataClassesBlock(MtComponentContext rootContext)
+    private string CreateDataClassesBlock(MtDataContext rootContext)
     {
         var dataClasses = new List<string>
         {
@@ -452,7 +441,7 @@ public class MtTransformer
     /// <summary>
     /// Creates a single class definition for the given data context and optional parent component.
     /// </summary>
-    private static string CreateContextClass(MtComponentContext context, MtComponent? component = null)
+    private static string CreateContextClass(MtDataContext context, MtComponent? component = null)
     {
         var dataClass = new Snippet();
         var className = context.ToString();
@@ -507,13 +496,11 @@ public class MtTransformer
     /// </summary>
     private MtComponentNode CreateComponentNode(XmlNode currentNode, MtComponent component,
         MtComponentMap availableMtComponents, MtComponentAttributes attributeList, MtComponentSlot? slot,
-        Dictionary<int, MtComponentScript> maniaScripts, MtComponent parentComponent, MtComponentContext context)
+        Dictionary<int, MtComponentScript> maniaScripts, MtComponent parentComponent, MtDataContext context)
     {
         var subComponents = availableMtComponents.Overload(component.ImportedComponents);
         var subSlot = new MtComponentSlot
         {
-            Component = component,
-            ParentComponent = parentComponent,
             Context = context,
             Content = ProcessNode(
                 currentNode,
@@ -561,7 +548,7 @@ public class MtTransformer
     /// <summary>
     /// Creates a method which renders all loaded ManiaScripts into a block, which is usually placed at the end of the ManiaLink.
     /// </summary>
-    private string BuildManiaScripts(Dictionary<int, MtComponentScript> scripts, MtComponentContext context)
+    private string BuildManiaScripts(Dictionary<int, MtComponentScript> scripts, MtDataContext context)
     {
         var scriptMethod = new Snippet
         {
@@ -609,6 +596,21 @@ public class MtTransformer
 
         return _maniaTemplateLanguage.FeatureBlock(CreateMethodCall(methodName, methodArguments.ToString()))
             .ToString(" ");
+    }
+
+    /// <summary>
+    /// Creates a fresh data context from a component instance.
+    /// </summary>
+    private static MtDataContext GetContextFromComponent(MtComponent component)
+    {
+        var context = new MtDataContext();
+
+        foreach (var property in component.Properties.Values)
+        {
+            context.Add(property.Name, property.Type);
+        }
+
+        return context;
     }
 
     /// <summary>
@@ -732,5 +734,30 @@ public class MtTransformer
         }
 
         return output;
+    }
+
+    /// <summary>
+    /// Joins consecutive feature blocks to reduce generated code.
+    /// </summary>
+    private static string JoinFeatureBlocks(string manialink)
+    {
+        var match = TemplateControlRegex.Match(manialink);
+        var output = new Snippet();
+
+        while (match.Success)
+        {
+            manialink = manialink.Replace(match.ToString(), "\n");
+            match = match.NextMatch();
+        }
+
+        foreach (var line in manialink.Split('\n'))
+        {
+            if (line.Trim().Length > 0)
+            {
+                output.AppendLine(line);
+            }
+        }
+
+        return output.ToString();
     }
 }
