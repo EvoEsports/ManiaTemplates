@@ -16,8 +16,8 @@ public class MtComponentContext : Dictionary<string, string>
         return clone;
     }
 
-    public string ToString()
+    public override string ToString()
     {
-        return "Context" + GetHashCode().ToString().Replace("-", "N");
+        return "MtContext" + GetHashCode().ToString().Replace("-", "N");
     }
 }

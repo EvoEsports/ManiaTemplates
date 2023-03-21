@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using ManiaTemplates.Lib;
+﻿using ManiaTemplates.Lib;
 
 namespace ManiaTemplates.Components;
 

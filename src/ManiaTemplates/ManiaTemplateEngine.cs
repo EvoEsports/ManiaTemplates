@@ -222,7 +222,7 @@ public class ManiaTemplateEngine
         var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
 
-        writeTo = "../../../Test";
+        // writeTo = "../../../Test";
         if (writeTo != null)
         {
             await File.WriteAllTextAsync(writeTo + ".tt", t4Template);
@@ -254,10 +254,7 @@ public class ManiaTemplateEngine
             await File.WriteAllTextAsync(writeTo + ".cs", preCompiledTemplate);
         }
 
-        var manialink = new ManiaLink(className, preCompiledTemplate, assemblies);
-        await manialink.CompileAsync();
-        
-        return manialink;
+        return new ManiaLink(className, preCompiledTemplate, assemblies);
     }
 
     /// <summary>

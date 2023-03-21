@@ -12,16 +12,12 @@ public class Transformer
     private readonly IManiaTemplateLanguage _maniaTemplateLanguage;
     private readonly Dictionary<string, Snippet> _renderMethods = new();
     private readonly List<string> _namespaces = new();
-    private readonly List<string> _partialRenderMethods = new();
-    private readonly List<MtComponentContext> _dataContexts = new();
     private readonly List<MtComponent> _usedComponents = new();
     private readonly List<MtComponentSlot> _slots = new();
     private readonly List<MtComponentNode> _componentNodes = new();
 
     private static readonly Regex TemplateControlRegex = new(@"#>\s*<#\+");
-    private static readonly Regex NullableMatcher = new(@"\?\s*$");
     private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
-    private static readonly Regex SlotMatcher = new(@"<slot(?:.+name=[""'](.+)[""'])?\s*\/>", RegexOptions.IgnoreCase);
 
     public Transformer(ManiaTemplateEngine engine, IManiaTemplateLanguage maniaTemplateLanguage)
     {
@@ -46,7 +42,6 @@ public class Transformer
         }
 
         var rootContext = GetContextFromComponent(component);
-        _dataContexts.Add(rootContext);
 
         var body = ProcessNode(
             XmlStringToNode(component.TemplateContent),
@@ -177,11 +172,6 @@ public class Transformer
             snippet.AppendSnippet(renderMethod);
         }
 
-        foreach (var renderMethod in _partialRenderMethods)
-        {
-            snippet.AppendLine(renderMethod);
-        }
-
         var createdMethods = new List<string>();
         foreach (var slot in _slots)
         {
@@ -237,13 +227,13 @@ public class Transformer
         var arguments = $"{renderContextId} __data";
         if (componentNode.HasSlot && componentNode.Context.ParentContext != null)
         {
-            arguments += $", {componentNode.Context.ParentContext.ToString()} __parentData";
+            arguments += $", {componentNode.Context.ParentContext} __parentData";
         }
 
         var localVariables = new Snippet();
         var localVariablesCreated = new List<string>();
 
-        foreach (var (dataName, dataType) in componentNode.Context)
+        foreach (var dataName in componentNode.Context.Keys)
         {
             localVariables.AppendLine($"var {dataName} = __data.{dataName};");
             localVariablesCreated.Add(dataName);
@@ -251,13 +241,11 @@ public class Transformer
 
         if (componentNode.Context.ParentContext != null)
         {
-            foreach (var (dataName, dataType) in componentNode.Context.ParentContext)
-            {
-                if (localVariablesCreated.Contains(dataName))
-                {
-                    continue;
-                }
+            var inheritedVariables = componentNode.Context.ParentContext.Keys
+                .Where(dataName => !localVariablesCreated.Contains(dataName));
 
+            foreach (var dataName in inheritedVariables)
+            {
                 localVariables.AppendLine($"var {dataName} = __data.{dataName};");
             }
         }
@@ -277,7 +265,7 @@ public class Transformer
     private Snippet CreateLocalVariables(MtComponentContext context)
     {
         var localVariables = new Snippet();
-        foreach (var (dataName, dataType) in context)
+        foreach (var dataName in context.Keys)
         {
             localVariables.AppendLine($"var {dataName} = __data.{dataName};");
         }
@@ -382,9 +370,6 @@ public class Transformer
                     maniaScripts.Add(scriptHash, script);
                 }
 
-                var newContext = context.NewContext(GetContextFromComponent(component));
-                _dataContexts.Add(newContext);
-
                 var componentNode = CreateComponentNode(
                     currentNode: child,
                     component: component,
@@ -393,7 +378,7 @@ public class Transformer
                     slot: slot,
                     maniaScripts: maniaScripts,
                     parentComponent: parentComponent,
-                    context: newContext
+                    context: context.NewContext(GetContextFromComponent(component))
                 );
                 _componentNodes.Add(componentNode);
 
