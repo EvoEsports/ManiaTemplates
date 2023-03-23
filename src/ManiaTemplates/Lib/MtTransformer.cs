@@ -263,6 +263,7 @@ public class MtTransformer
 
         foreach (XmlNode child in node.ChildNodes)
         {
+            var subSnippet = new Snippet();
             var tag = child.Name;
             var attributeList = GetNodeAttributes(child);
 
@@ -304,7 +305,7 @@ public class MtTransformer
                     maniaScripts.Add(scriptHash, script);
                 }
 
-                snippet.AppendLine(CreateComponentRenderMethodCall(componentNode));
+                subSnippet.AppendLine(CreateComponentRenderMethodCall(componentNode));
             }
             else
             {
@@ -312,10 +313,10 @@ public class MtTransformer
                 switch (tag)
                 {
                     case "#text":
-                        snippet.AppendLine(child.InnerText);
+                        subSnippet.AppendLine(child.InnerText);
                         break;
                     case "#comment":
-                        snippet.AppendLine($"<!-- {child.InnerText} -->");
+                        subSnippet.AppendLine($"<!-- {child.InnerText} -->");
                         break;
                     case "slot":
                         if (slot != null)
@@ -323,7 +324,7 @@ public class MtTransformer
                             var renderContextId = context.ParentContext != null
                                 ? context.ParentContext.ToString()
                                 : context.ToString();
-                            snippet.AppendLine(
+                            subSnippet.AppendLine(
                                 $"<#+ {CreateMethodCall(slot.RenderMethodName(renderContextId), "__parentData")} #>");
                         }
                         else
@@ -335,14 +336,14 @@ public class MtTransformer
                     default:
                     {
                         var hasChildren = child.HasChildNodes;
-                        snippet.AppendLine(CreateXmlOpeningTag(tag, attributeList, hasChildren));
+                        subSnippet.AppendLine(CreateXmlOpeningTag(tag, attributeList, hasChildren));
 
                         if (hasChildren)
                         {
-                            snippet.AppendLine(1,
+                            subSnippet.AppendLine(1,
                                 ProcessNode(child, availableMtComponents, maniaScripts, parentComponent, context,
                                     slot));
-                            snippet.AppendLine(CreateXmlClosingTag(tag));
+                            subSnippet.AppendLine(CreateXmlClosingTag(tag));
                         }
 
                         break;
@@ -352,13 +353,15 @@ public class MtTransformer
 
             if (ifCondition != null)
             {
-                snippet = WrapInIfStatement(snippet, ifCondition);
+                subSnippet = WrapInIfStatement(subSnippet, ifCondition);
             }
 
             if (forEachCondition != null)
             {
-                snippet = WrapInForeachLoop(snippet, forEachCondition, context);
+                subSnippet = WrapInForeachLoop(subSnippet, forEachCondition, context);
             }
+
+            snippet.AppendSnippet(subSnippet);
         }
 
         return snippet.ToString();
