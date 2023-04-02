@@ -280,6 +280,12 @@ public class MtTransformer
                     _usedComponents.Add(component);
                 }
 
+                var newDataContext = context.NewContext(GetContextFromComponent(component));
+                if (forEachCondition != null)
+                {
+                    newDataContext["__index"] = "int";
+                }
+
                 var componentNode = CreateComponentNode(
                     currentNode: child,
                     component: component,
@@ -288,7 +294,7 @@ public class MtTransformer
                     slot: slot,
                     maniaScripts: maniaScripts,
                     parentComponent: parentComponent,
-                    context: context.NewContext(GetContextFromComponent(component))
+                    context: newDataContext
                 );
 
                 _namespaces.AddRange(component.Namespaces);
@@ -404,7 +410,7 @@ public class MtTransformer
     }
 
     /// <summary>
-    /// Wraps the snippet in a foreach-loop.
+    /// Wraps the snippet in a foreach-loop.-
     /// </summary>
     private Snippet WrapInForeachLoop(Snippet input, string loopCondition, MtDataContext context)
     {
@@ -419,8 +425,6 @@ public class MtTransformer
         snippet.AppendLine(null, " __index++;");
         snippet.AppendLine(null, " }");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
-
-        context["__index"] = "int";
 
         return snippet;
     }
