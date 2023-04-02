@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using ManiaTemplates.Components;
 using ManiaTemplates.Exceptions;
 
 namespace ManiaTemplates.ControlElements;
@@ -7,6 +8,7 @@ public class MtForeach
 {
     public required string Condition { get; init; }
     public required Dictionary<string, string> Variables { get; init; }
+    public required MtDataContext Context { get; init; }
 
     private static readonly Regex ForeachConditionRegex =
         new(@"^(?:ref\s+)?(?:readonly\s+)?(?:(T|V|var|[a-zA-Z].*?)\s+)?(.+?)\s+in\s(.+)$");
@@ -14,7 +16,7 @@ public class MtForeach
     private static readonly Regex ForeachVariablesRegex = new(@"^\(?(.+?)(?:$|,\s*(.+)\))");
     private static readonly Regex ForeachVariablesTypeSplitterRegex = new(@"^(.+?)(?:$|\s+(.+)$)");
 
-    public static MtForeach FromString(string foreachAttributeValue)
+    public static MtForeach FromString(string foreachAttributeValue, MtDataContext context)
     {
         //Match the value of the foreach-attribute of the XmlNode.
         //Split it into type, variables (var x, var (x,y), ...) and the source.
@@ -69,9 +71,10 @@ public class MtForeach
             {
                 if (typeOrVariable.Value == "var")
                 {
-                    throw new ParsingForeachLoopFailedException("You may not use var in foreach loops, please specify type.");
+                    throw new ParsingForeachLoopFailedException(
+                        "You may not use var in foreach loops, please specify type.");
                 }
-                
+
                 // Console.WriteLine($"add: {variableOrEmpty.Value} -> {typeOrVariable.Value}");
                 foundVariables.Add(variableOrEmpty.Value, typeOrVariable.Value);
             }
@@ -83,13 +86,21 @@ public class MtForeach
             throw new ParsingForeachLoopFailedException("User defined variables must not start with __.");
         }
 
-        //Add __index now
-        foundVariables.Add("__index", "int");
+        var newContext = new MtDataContext
+        {
+            { "__index", "int" }
+        };
+
+        foreach (var (varName, varType) in foundVariables)
+        {
+            newContext[varName] = varType;
+        }
 
         return new MtForeach
         {
             Condition = foreachAttributeValue,
-            Variables = foundVariables
+            Variables = foundVariables,
+            Context = context.NewContext(newContext)
         };
     }
 }

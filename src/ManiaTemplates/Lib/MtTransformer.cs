@@ -15,6 +15,7 @@ public class MtTransformer
     private readonly List<MtComponent> _usedComponents = new();
     private readonly List<MtComponentSlot> _slots = new();
     private readonly List<MtComponentNode> _componentNodes = new();
+    private readonly List<MtDataContext> _dataContexts = new();
 
     private static readonly Regex TemplateControlRegex = new(@"#>\s*<#\+");
     private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
@@ -267,9 +268,16 @@ public class MtTransformer
             var subSnippet = new Snippet();
             var tag = child.Name;
             var attributeList = GetNodeAttributes(child);
+            var currentContext = context;
 
-            var forEachCondition = GetForeachConditionFromNodeAttributes(attributeList);
+            var forEachCondition = GetForeachConditionFromNodeAttributes(attributeList, context);
             var ifCondition = GetIfConditionFromNodeAttributes(attributeList);
+
+            if (forEachCondition != null)
+            {
+                currentContext = forEachCondition.Context;
+                _dataContexts.Add(forEachCondition.Context);
+            }
 
             if (availableMtComponents.ContainsKey(tag))
             {
@@ -281,7 +289,7 @@ public class MtTransformer
                     _usedComponents.Add(component);
                 }
 
-                var newDataContext = context.NewContext(GetContextFromComponent(component));
+                var newDataContext = currentContext.NewContext(GetContextFromComponent(component));
                 if (forEachCondition != null)
                 {
                     // newDataContext["__index"] = "int";
@@ -332,9 +340,9 @@ public class MtTransformer
                     case "slot":
                         if (slot != null)
                         {
-                            var renderContextId = context.ParentContext != null
-                                ? context.ParentContext.ToString()
-                                : context.ToString();
+                            var renderContextId = currentContext.ParentContext != null
+                                ? currentContext.ParentContext.ToString()
+                                : currentContext.ToString();
 
                             if (forEachCondition != null)
                             {
@@ -357,7 +365,7 @@ public class MtTransformer
                         if (hasChildren)
                         {
                             subSnippet.AppendLine(1,
-                                ProcessNode(child, availableMtComponents, maniaScripts, parentComponent, context,
+                                ProcessNode(child, availableMtComponents, maniaScripts, parentComponent, currentContext,
                                     slot));
                             subSnippet.AppendLine(CreateXmlClosingTag(tag));
                         }
@@ -374,7 +382,7 @@ public class MtTransformer
 
             if (forEachCondition != null)
             {
-                subSnippet = WrapInForeachLoop(subSnippet, forEachCondition, context);
+                subSnippet = WrapInForeachLoop(subSnippet, forEachCondition, currentContext);
             }
 
             snippet.AppendSnippet(subSnippet);
@@ -394,10 +402,10 @@ public class MtTransformer
     /// <summary>
     /// Returns the foreach condition, if a loop attribute is found in the given list, else null.
     /// </summary>
-    private MtForeach? GetForeachConditionFromNodeAttributes(MtComponentAttributes attributeList)
+    private MtForeach? GetForeachConditionFromNodeAttributes(MtComponentAttributes attributeList, MtDataContext context)
     {
         return attributeList.ContainsKey("foreach")
-            ? MtForeach.FromString(attributeList.Pull("foreach"))
+            ? MtForeach.FromString(attributeList.Pull("foreach"), context)
             : null;
     }
 
@@ -426,11 +434,22 @@ public class MtTransformer
     /// </summary>
     private Snippet WrapInForeachLoop(Snippet input, MtForeach foreachLoop, MtDataContext context)
     {
+        var loopDataAssignments = new List<string>
+        {
+            { "__index = __index" }
+        };
+        foreach (var (varName, varType) in foreachLoop.Variables)
+        {
+            loopDataAssignments.Add($"{varName} = {varName}");
+        }
+
         var snippet = new Snippet();
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
         snippet.AppendLine(null, " var __index = 0;");
         snippet.AppendLine(null, $" foreach({foreachLoop.Condition})");
         snippet.AppendLine(null, " {");
+        snippet.AppendLine(null,
+            $" {foreachLoop.Context} __loopData = new {foreachLoop.Context}{{{string.Join(",", loopDataAssignments)}}};");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
@@ -450,6 +469,8 @@ public class MtTransformer
         {
             CreateContextClass(rootContext)
         };
+
+        dataClasses.AddRange(_dataContexts.Select(dataContext => CreateContextClass(dataContext)));
 
         dataClasses.AddRange(_componentNodes.Select(componentNode =>
             CreateContextClass(componentNode.Context, componentNode.MtComponent)));
