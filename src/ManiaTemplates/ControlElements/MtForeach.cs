@@ -7,7 +7,7 @@ namespace ManiaTemplates.ControlElements;
 public class MtForeach
 {
     public required string Condition { get; init; }
-    public required Dictionary<string, string> Variables { get; init; }
+    public required List<MtForeachVariable> Variables { get; init; }
     public required MtDataContext Context { get; init; }
 
     private static readonly Regex ForeachConditionRegex =
@@ -46,7 +46,7 @@ public class MtForeach
             throw new ParsingForeachLoopFailedException("Failed to parse variables of foreach condition.");
         }
 
-        var foundVariables = new Dictionary<string, string>();
+        var foundVariables = new List<MtForeachVariable>();
         foreach (var group in variablesMatch.Groups.Values.Skip(1))
         {
             if (group.Length == 0) continue;
@@ -59,29 +59,37 @@ public class MtForeach
                     "Failed to split variables and types of foreach condition.");
             }
 
-            var typeOrVariable = variableAndType.Groups[1];
-            var variableOrEmpty = variableAndType.Groups[2];
+            var typeOrName = variableAndType.Groups[1];
+            var nameOrEmpty = variableAndType.Groups[2];
 
-            if (variableOrEmpty.Length == 0)
+            if (nameOrEmpty.Length == 0)
             {
                 // Console.WriteLine($"add: {typeOrVariable.Value} -> {type}");
-                foundVariables.Add(typeOrVariable.Value, type);
+                foundVariables.Add(new MtForeachVariable
+                {
+                    Type = type,
+                    Name = typeOrName.Value
+                });
             }
             else
             {
-                if (typeOrVariable.Value == "var")
+                if (typeOrName.Value == "var")
                 {
                     throw new ParsingForeachLoopFailedException(
                         "You may not use var in foreach loops, please specify type.");
                 }
 
                 // Console.WriteLine($"add: {variableOrEmpty.Value} -> {typeOrVariable.Value}");
-                foundVariables.Add(variableOrEmpty.Value, typeOrVariable.Value);
+                foundVariables.Add(new MtForeachVariable
+                {
+                    Type = typeOrName.Value,
+                    Name = nameOrEmpty.Value
+                });
             }
         }
 
         //Prevent user defining __index variable
-        if (foundVariables.Keys.Any(variableName => variableName.StartsWith("__")))
+        if (foundVariables.Any(variable => variable.Name.StartsWith("__")))
         {
             throw new ParsingForeachLoopFailedException("User defined variables must not start with __.");
         }
@@ -91,9 +99,9 @@ public class MtForeach
             { "__index", "int" }
         };
 
-        foreach (var (varName, varType) in foundVariables)
+        foreach (var variable in foundVariables)
         {
-            newContext[varName] = varType;
+            newContext[variable.Name] = variable.Type;
         }
 
         return new MtForeach

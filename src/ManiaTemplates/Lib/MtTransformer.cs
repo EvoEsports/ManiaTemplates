@@ -73,8 +73,14 @@ public class MtTransformer
     private string CreateBodyRenderMethod(string body, MtDataContext context)
     {
         var bodyRenderMethod = new StringBuilder()
-            .AppendLine($"void RenderBody({context.ToString()} __data){{")
-            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
+            .AppendLine($"void RenderBody({context.ToString()} __data){{");
+
+        foreach (var dataName in context.Keys)
+        {
+            bodyRenderMethod.AppendLine($"var {dataName} = __data.{dataName};");
+        }
+
+        bodyRenderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
             .AppendLine(body)
             .AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
             .AppendLine("}");
@@ -293,9 +299,9 @@ public class MtTransformer
                 if (forEachCondition != null)
                 {
                     // newDataContext["__index"] = "int";
-                    foreach (var (varName, varType) in forEachCondition.Variables)
+                    foreach (var variable in forEachCondition.Variables)
                     {
-                        newDataContext[varName] = varType;
+                        newDataContext[variable.Name] = variable.Type;
                     }
                 }
 
@@ -324,7 +330,7 @@ public class MtTransformer
                     maniaScripts.Add(scriptHash, script);
                 }
 
-                subSnippet.AppendLine(CreateComponentRenderMethodCall(componentNode));
+                subSnippet.AppendLine(CreateComponentRenderMethodCall(componentNode, forEachCondition));
             }
             else
             {
@@ -382,7 +388,7 @@ public class MtTransformer
 
             if (forEachCondition != null)
             {
-                subSnippet = WrapInForeachLoop(subSnippet, forEachCondition, currentContext);
+                subSnippet = WrapInForeachLoop(subSnippet, forEachCondition);
             }
 
             snippet.AppendSnippet(subSnippet);
@@ -432,15 +438,23 @@ public class MtTransformer
     /// <summary>
     /// Wraps the snippet in a foreach-loop.-
     /// </summary>
-    private Snippet WrapInForeachLoop(Snippet input, MtForeach foreachLoop, MtDataContext context)
+    private Snippet WrapInForeachLoop(Snippet input, MtForeach foreachLoop)
     {
         var loopDataAssignments = new List<string>
         {
             { "__index = __index" }
         };
-        foreach (var (varName, varType) in foreachLoop.Variables)
+        foreach (var loopVariable in foreachLoop.Variables)
         {
-            loopDataAssignments.Add($"{varName} = {varName}");
+            loopDataAssignments.Add($"{loopVariable.Name} = {loopVariable.Name}");
+        }
+
+        if (foreachLoop.Context.ParentContext != null)
+        {
+            foreach (var varName in foreachLoop.Context.ParentContext.Keys)
+            {
+                loopDataAssignments.Add($"{varName} = __data.{varName}");
+            }
         }
 
         var snippet = new Snippet();
@@ -507,7 +521,7 @@ public class MtTransformer
                 }
             }
 
-            dataClass.AppendLine(1, $"public {dataType} {dataName} {{ get; init; }}{suffix}");
+            dataClass.AppendLine(1, $"public {dataType} {dataName} {{ get; set; }}{suffix}");
         }
 
         dataClass.AppendLine("}");
@@ -619,7 +633,7 @@ public class MtTransformer
     /// <summary>
     /// Creates a method call in the target language, which renders a component.
     /// </summary>
-    private string CreateComponentRenderMethodCall(MtComponentNode componentNode)
+    private string CreateComponentRenderMethodCall(MtComponentNode componentNode, MtForeach? foreachLoop)
     {
         var methodName = GetRenderMethodName(componentNode);
         var renderContextId = componentNode.Context.ToString();
@@ -631,7 +645,14 @@ public class MtTransformer
 
         if (componentNode.MtComponent.HasSlot)
         {
-            methodArguments.Append(", __data");
+            if (foreachLoop != null)
+            {
+                methodArguments.Append(", __loopData");
+            }
+            else
+            {
+                methodArguments.Append(", __data");
+            }
         }
 
         return _maniaTemplateLanguage.FeatureBlock(CreateMethodCall(methodName, methodArguments.ToString()))
