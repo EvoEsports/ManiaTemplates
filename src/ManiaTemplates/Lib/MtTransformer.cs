@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using System.Xml;
 using ManiaTemplates.Components;
+using ManiaTemplates.ControlElements;
 using ManiaTemplates.Interfaces;
 
 namespace ManiaTemplates.Lib;
@@ -283,7 +284,11 @@ public class MtTransformer
                 var newDataContext = context.NewContext(GetContextFromComponent(component));
                 if (forEachCondition != null)
                 {
-                    newDataContext["__index"] = "int";
+                    // newDataContext["__index"] = "int";
+                    foreach (var (varName, varType) in forEachCondition.Variables)
+                    {
+                        newDataContext[varName] = varType;
+                    }
                 }
 
                 var componentNode = CreateComponentNode(
@@ -330,6 +335,11 @@ public class MtTransformer
                             var renderContextId = context.ParentContext != null
                                 ? context.ParentContext.ToString()
                                 : context.ToString();
+
+                            if (forEachCondition != null)
+                            {
+                            }
+
                             subSnippet.AppendLine(
                                 $"<#+ {CreateMethodCall(slot.RenderMethodName(renderContextId), "__parentData")} #>");
                         }
@@ -384,9 +394,11 @@ public class MtTransformer
     /// <summary>
     /// Returns the foreach condition, if a loop attribute is found in the given list, else null.
     /// </summary>
-    private string? GetForeachConditionFromNodeAttributes(MtComponentAttributes attributeList)
+    private MtForeach? GetForeachConditionFromNodeAttributes(MtComponentAttributes attributeList)
     {
-        return attributeList.ContainsKey("foreach") ? attributeList.Pull("foreach") : null;
+        return attributeList.ContainsKey("foreach")
+            ? MtForeach.FromString(attributeList.Pull("foreach"))
+            : null;
     }
 
     /// <summary>
@@ -412,12 +424,12 @@ public class MtTransformer
     /// <summary>
     /// Wraps the snippet in a foreach-loop.-
     /// </summary>
-    private Snippet WrapInForeachLoop(Snippet input, string loopCondition, MtDataContext context)
+    private Snippet WrapInForeachLoop(Snippet input, MtForeach foreachLoop, MtDataContext context)
     {
         var snippet = new Snippet();
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
         snippet.AppendLine(null, " var __index = 0;");
-        snippet.AppendLine(null, $" foreach({loopCondition})");
+        snippet.AppendLine(null, $" foreach({foreachLoop.Condition})");
         snippet.AppendLine(null, " {");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
