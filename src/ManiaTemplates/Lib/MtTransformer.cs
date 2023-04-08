@@ -336,16 +336,22 @@ public class MtTransformer
 
         //create render call
         var renderComponentCall = new StringBuilder(renderMethodName).Append('(');
+        var renderArguments = new List<string>();
         foreach (var (attributeName, attributeValue) in attributeList)
         {
-            renderComponentCall.Append(
-                $"\n{attributeName}: {ReplaceCurlyBraces(attributeValue, s => s)},");
+            renderArguments.Add($"\n{attributeName}: {ReplaceCurlyBraces(attributeValue, s => s)}");
         }
+
+        renderComponentCall.Append(string.Join(", ", renderArguments));
 
         if (slot != null)
         {
-            renderComponentCall.AppendLine()
-                .Append("__slotRenderer: ")
+            if (renderArguments.Count > 0)
+            {
+                renderComponentCall.Append(", ");
+            }
+
+            renderComponentCall.Append("__slotRenderer: ")
                 .Append("() => ")
                 .Append(GetSlotRenderMethodName(slot));
 
@@ -359,12 +365,13 @@ public class MtTransformer
 
                 renderComponentCall.Append($"(new {currentContext}{dataVariableSuffix}{{");
 
+                var variables = new List<string>();
                 foreach (var variableName in currentContext.Keys)
                 {
-                    renderComponentCall.Append($"{variableName} = {variableName},");
+                    variables.Add($"{variableName} = {variableName}");
                 }
 
-                renderComponentCall.Append("})");
+                renderComponentCall.Append(string.Join(", ", variables)).Append("})");
             }
             else
             {
