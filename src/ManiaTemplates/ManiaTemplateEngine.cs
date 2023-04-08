@@ -117,7 +117,8 @@ public class ManiaTemplateEngine
     /// </summary>
     public async Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies)
     {
-        _preProcessed[key] = await PreProcessComponentAsync(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies);
+        _preProcessed[key] =
+            await PreProcessComponentAsync(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies);
     }
 
     /// <summary>
@@ -222,7 +223,7 @@ public class ManiaTemplateEngine
         var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
 
-        // writeTo = "../../../Test";
+        writeTo = "../../../Test";
         if (writeTo != null)
         {
             await File.WriteAllTextAsync(writeTo + ".tt", t4Template);
@@ -249,9 +250,14 @@ public class ManiaTemplateEngine
         //Remove namespace wrapper
         preCompiledTemplate = NamespaceWrapperMatcher.Replace(preCompiledTemplate, "$1");
 
+        //Parse null to empty strings
+        preCompiledTemplate =
+            preCompiledTemplate.Replace(@"throw new global::System.ArgumentNullException(""objectToConvert"");",
+                @"return """";");
+
         if (writeTo != null)
         {
-            await File.WriteAllTextAsync(writeTo + ".cs", preCompiledTemplate);
+            // await File.WriteAllTextAsync(writeTo + ".cs", preCompiledTemplate);
         }
 
         return new ManiaLink(className, preCompiledTemplate, assemblies);

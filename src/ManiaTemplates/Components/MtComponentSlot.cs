@@ -2,11 +2,12 @@
 
 public class MtComponentSlot
 {
-    public required string Content;
-    public required MtDataContext Context;
+    public required int Scope { get; init; }
+    public required string RenderMethod { get; init; }
+    public required MtDataContext Context { get; init; }
 
-    public string RenderMethodName(string renderContextId)
+    public string RenderMethodName()
     {
-        return "RenderSlot_" + renderContextId;
+        return "Render_Slot_" + Scope.GetHashCode();
     }
 }
