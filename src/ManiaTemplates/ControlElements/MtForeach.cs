@@ -35,10 +35,6 @@ public class MtForeach
             throw new ParsingForeachLoopFailedException("You may not use var in foreach loops, please specify type.");
         }
 
-        // Console.WriteLine($"type -> {type}");
-        // Console.WriteLine($"variables -> {variables}");
-        // Console.WriteLine($"sourceEnumerable -> {sourceEnumerable}\n");
-
         //Split the variables if more than one is defined
         var variablesMatch = ForeachVariablesRegex.Match(variables);
         if (!variablesMatch.Success || variablesMatch.Groups.Count < 3)

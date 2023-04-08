@@ -70,7 +70,7 @@ public class MtTransformer
     private string CreateBodyRenderMethod(string body, MtDataContext context)
     {
         var bodyRenderMethod = new StringBuilder()
-            .AppendLine($"void RenderBody(){{");
+            .AppendLine("void RenderBody(){");
 
         var renderBodyArguments =
             $"new {context}{{ {string.Join(",", context.ToList().Select(contextProperty => $"{contextProperty.Key} = {contextProperty.Key}"))} }}";
@@ -198,7 +198,6 @@ public class MtTransformer
     /// </summary>
     private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents, MtDataContext context)
     {
-        //TODO: slim down method/outsource code from method
         Snippet snippet = new();
 
         var nodeId = 1;
@@ -300,6 +299,9 @@ public class MtTransformer
         return snippet.ToString();
     }
 
+    /// <summary>
+    /// Process a node that has been identified as an component.
+    /// </summary>
     private string ProcessComponentNode(
         bool newScopeCreated,
         int scope,
@@ -345,7 +347,7 @@ public class MtTransformer
             renderComponentCall.AppendLine()
                 .Append("__slotRenderer: ")
                 .Append("() => ")
-                .Append(slot.RenderMethodName());
+                .Append(GetSlotRenderMethodName(slot));
 
             if (newScopeCreated)
             {
@@ -388,6 +390,9 @@ public class MtTransformer
         return renderComponentCall.ToString();
     }
 
+    /// <summary>
+    /// Creates the method which renders the contents of a component.
+    /// </summary>
     private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody)
     {
         var renderMethod = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
@@ -622,6 +627,14 @@ public class MtTransformer
     private string GetComponentRenderMethodName(MtComponent component)
     {
         return $"Render_Component_{component.Id()}";
+    }
+
+    /// <summary>
+    /// Returns the name of the method that renders the slot contents.
+    /// </summary>
+    private string GetSlotRenderMethodName(MtComponentSlot slot)
+    {
+        return "Render_Slot_" + slot.Scope.GetHashCode();
     }
 
     /// <summary>
