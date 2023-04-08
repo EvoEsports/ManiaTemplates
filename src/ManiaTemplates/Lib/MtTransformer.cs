@@ -339,7 +339,10 @@ public class MtTransformer
         var renderArguments = new List<string>();
         foreach (var (attributeName, attributeValue) in attributeList)
         {
-            renderArguments.Add($"\n{attributeName}: {ReplaceCurlyBraces(attributeValue, s => s)}");
+            if (component.Properties.TryGetValue(attributeName, out var value))
+            {
+                renderArguments.Add($"\n{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s => IsStringType(value) ?  $@"{{{s}}}": s))}");
+            }
         }
 
         renderComponentCall.Append(string.Join(", ", renderArguments));
@@ -417,9 +420,9 @@ public class MtTransformer
         }
 
         //add method arguments with defaults
-        arguments.AddRange(component.Properties.Values.Select(property => property.Default == null
-            ? $"{property.Type}? {property.Name} = null"
-            : $"{property.Type} {property.Name} = {property.Default}"));
+        arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null).Select(property => property.Default == null
+            ? $"{property.Type} {property.Name}"
+            : $"{property.Type} {property.Name} = {WrapIfString(property, property.Default)}"));
 
         //close method arguments
         renderMethod.Append(string.Join(", ", arguments))
@@ -665,7 +668,7 @@ public class MtTransformer
     /// </summary>
     private static string WrapStringInQuotes(string str)
     {
-        return $@"""{str}""";
+        return $@"$""{str}""";
     }
 
     /// <summary>
