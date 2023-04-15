@@ -16,6 +16,7 @@ public class MtTransformer
     private readonly Dictionary<int, MtComponentScript> _maniaScripts = new();
     private readonly Dictionary<string, string> _renderMethods = new();
     private readonly List<MtComponentSlot> _slots = new();
+    private int _loopDepth = 0;
 
     private static readonly Regex TemplateFeatureControlRegex = new(@"#>\s*<#\+");
     private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
@@ -215,6 +216,7 @@ public class MtTransformer
             {
                 currentContext = forEachCondition.Context;
                 _dataContexts.Add(forEachCondition.Context);
+                _loopDepth++;
             }
 
             if (availableMtComponents.ContainsKey(tag))
@@ -290,6 +292,7 @@ public class MtTransformer
             if (forEachCondition != null)
             {
                 subSnippet = WrapInForeachLoop(subSnippet, forEachCondition);
+                _loopDepth--;
             }
 
             snippet.AppendSnippet(subSnippet);
@@ -341,7 +344,8 @@ public class MtTransformer
         {
             if (component.Properties.TryGetValue(attributeName, out var value))
             {
-                renderArguments.Add($"\n{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s => IsStringType(value) ?  $@"{{{s}}}": s))}");
+                renderArguments.Add(
+                    $"\n{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s => IsStringType(value) ? $@"{{{s}}}" : s))}");
             }
         }
 
@@ -420,9 +424,10 @@ public class MtTransformer
         }
 
         //add method arguments with defaults
-        arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null).Select(property => property.Default == null
-            ? $"{property.Type} {property.Name}"
-            : $"{property.Type} {property.Name} = {WrapIfString(property, property.Default)}"));
+        arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null).Select(property =>
+            property.Default == null
+                ? $"{property.Type} {property.Name}"
+                : $"{property.Type} {property.Name} = {WrapIfString(property, property.Default)}"));
 
         //close method arguments
         renderMethod.Append(string.Join(", ", arguments))
@@ -483,13 +488,19 @@ public class MtTransformer
     private Snippet WrapInForeachLoop(Snippet input, MtForeach foreachLoop)
     {
         var outerIndexVariableName = "__outerIndex" + (new Random()).Next();
+        var innerIndexVariableName = "__index";
+
+        if (_loopDepth > 1)
+        {
+            innerIndexVariableName += _loopDepth;
+        }
 
         var snippet = new Snippet();
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
         snippet.AppendLine(null, $" var {outerIndexVariableName} = 0;");
         snippet.AppendLine(null, $" foreach({foreachLoop.Condition})");
         snippet.AppendLine(null, " {");
-        snippet.AppendLine(null, $" var __index = {outerIndexVariableName};");
+        snippet.AppendLine(null, $" var {innerIndexVariableName} = {outerIndexVariableName};");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
@@ -510,7 +521,7 @@ public class MtTransformer
             CreateContextClass(rootContext)
         };
 
-        dataClasses.AddRange(_dataContexts.Select(dataContext => CreateContextClass(dataContext)));
+        dataClasses.AddRange(_dataContexts.Select(dataContext => CreateContextClass(dataContext, rootContext)));
 
         // dataClasses.AddRange(_componentNodes.Select(componentNode =>
         //     CreateContextClass(componentNode.Context, componentNode.MtComponent)));
@@ -521,7 +532,7 @@ public class MtTransformer
     /// <summary>
     /// Creates a single class definition for the given data context and optional parent component.
     /// </summary>
-    private static string CreateContextClass(MtDataContext context, MtComponent? component = null)
+    private static string CreateContextClass(MtDataContext context, MtDataContext? rootContext = null, MtComponent? component = null)
     {
         var dataClass = new Snippet();
         var className = context.ToString();
@@ -552,7 +563,14 @@ public class MtTransformer
 
         if (context.ParentContext is { Count: > 0 })
         {
-            dataClass.AppendLine($"internal {context}({context.ParentContext} data) {{");
+            if (rootContext == context.ParentContext)
+            {
+                dataClass.AppendLine($"internal {context}({context.ParentContext} data) {{");
+            }
+            else
+            {
+                dataClass.AppendLine($"internal {context}({context.ParentContext} data) : base(data) {{");
+            }
 
             foreach (var propertyName in context.ParentContext.Keys)
             {
