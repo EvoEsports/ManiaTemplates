@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net7.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Templates\**\*" />
+        <EmbeddedResource Include="ManiaScripts\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="Templates\**\*" />
+        <None Remove="ManiaScripts\**\*" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.4.0" />
+        <PackageReference Include="Mono.TextTemplating" Version="2.3.1" />
+    </ItemGroup>
+
+</Project>
