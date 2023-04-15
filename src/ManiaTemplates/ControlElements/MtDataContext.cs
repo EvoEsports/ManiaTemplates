@@ -1,4 +1,4 @@
-﻿namespace ManiaTemplates.Components;
+﻿namespace ManiaTemplates.ControlElements;
 
 public class MtDataContext : Dictionary<string, string>
 {

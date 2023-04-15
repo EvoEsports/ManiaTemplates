@@ -1,4 +1,6 @@
-﻿namespace ManiaTemplates.Components;
+﻿using ManiaTemplates.ControlElements;
+
+namespace ManiaTemplates.Components;
 
 public class MtComponentSlot
 {
