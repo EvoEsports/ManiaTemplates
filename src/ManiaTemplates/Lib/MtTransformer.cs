@@ -479,16 +479,18 @@ public class MtTransformer
     /// </summary>
     private Snippet WrapInForeachLoop(Snippet input, MtForeach foreachLoop)
     {
+        var outerIndexVariableName = "__outerIndex" + (new Random()).Next();
+
         var snippet = new Snippet();
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, " var __outerIndex = 0;");
+        snippet.AppendLine(null, $" var {outerIndexVariableName} = 0;");
         snippet.AppendLine(null, $" foreach({foreachLoop.Condition})");
         snippet.AppendLine(null, " {");
-        snippet.AppendLine(null, " var __index = __outerIndex;");
+        snippet.AppendLine(null, $" var __index = {outerIndexVariableName};");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, " __outerIndex++;");
+        snippet.AppendLine(null, $" {outerIndexVariableName}++;");
         snippet.AppendLine(null, " }");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
 
