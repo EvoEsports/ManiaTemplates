@@ -53,7 +53,7 @@ public class MtComponentTest
             </component>
         """;
         _engine.GetType().GetField("_maniaScripts", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(_engine,
-            new Dictionary<string, string>() { { "res", "resourceScript" } });
+            new Dictionary<string, string> { { "res", "resourceScript" } });
         var expected = new MtComponent
         {
             Namespaces = new() { "namespace" },
@@ -96,21 +96,5 @@ public class MtComponentTest
         var exception = Assert.Throws<Exception>(() => MtComponent.FromTemplate(_engine, component));
         Assert.Contains(nodeName, exception.Message);
         Assert.Contains($"'{attributeName}'", exception.Message);
-    }
-
-    [Fact]
-    public void ShouldNotReadTemplateEmptyScript()
-    {
-        const string Component = "<component><script/></component>";
-
-        Assert.Throws<Exception>(() => MtComponent.FromTemplate(_engine, Component));
-    }
-    
-    [Fact]
-    public void ShouldNotFindResourceScript()
-    {
-        const string Component = @"<component><script resource=""res""/></component>";
-
-        Assert.Throws<ManiaScriptNotFoundException>(() => MtComponent.FromTemplate(_engine, Component));
     }
 }

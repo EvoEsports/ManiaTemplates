@@ -3,44 +3,98 @@
 <#@ import namespace="namespace" #>
 <#@ import namespace="GraphNamespace" #>
 <manialink version="3" id="expected" name="EvoSC#-expected">
-<# RenderBody(); #>
-<# RenderManiaScripts(); #>
+<#
+RenderBody();
+RenderManiaScripts();
+#>
 </manialink>
 <#+
 public List<int> numbers { get; init; }
 public boolean enabled { get; init; }
-void RenderBody(){
- int __index = 0;
- foreach(var i in numbers)
- {
- if(enabled)
- {
- RenderLabel(x: 20 * __index, y: 0.0, w: 0.0, h: 0.0, halign: $"left", valign: $"center", opacity: 1.0, zIndex: 0, events: 0, action: $"", url: $"", manialink: $"", style: $"", textfont: $"GameFont", textsize: 1.0, textcolor: $"", focusareacolor1: $"", focusareacolor2: $"", text: $"{i} at index {__index}", textprefix: $"", bold: 0, autonewline: 0, maxline: 0, translate: 0, textid: $"", id: $""); 
- }
- __index++;
- }
-#>
-Text
-<!-- Comment -->
-<test>
-<#+ RenderGraph(arg1: $"", arg2: 0, arg3: new test()); #>
-</test>
-<!-- ERROR:slot -->
-<#+
+class CRoot {
+public List<int> numbers { get; set; }
+public boolean enabled { get; set; }
 }
-void RenderLabel(double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = "left", string valign = "center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = "", string url = "", string manialink = "", string style = "", string textfont = "GameFont", double textsize = 1.0, string textcolor = "", string focusareacolor1 = "", string focusareacolor2 = "", string text = "", string textprefix = "", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = "", string id = "")
-{
+class CRoot_ForEachLoop1: CRoot {
+public int __index { get; set; }
+public int i { get; set; }
+internal CRoot_ForEachLoop1(CRoot data) {
+numbers = data.numbers;
+enabled = data.enabled;
+}
+}
+class CRoot_ForEachLoop1_ForEachLoop1: CRoot_ForEachLoop1 {
+public int __index { get; set; }
+public int j { get; set; }
+internal CRoot_ForEachLoop1_ForEachLoop1(CRoot_ForEachLoop1 data) : base(data) {
+__index = data.__index;
+i = data.i;
+}
+}
+void RenderBody() {
+var __data = new CRoot { numbers = numbers,enabled = enabled };
+var __outerIndex1 = 0;
+foreach (int i in numbers) {
+var __index = __outerIndex1;
+if (enabled) {
+Render_Component_MtContext2(x: 20 * __index, __slotRenderer: () => Render_Slot_3(new CRoot_ForEachLoop1(__data){__index = __index, i = i}));
+}
+__outerIndex1++;
+}
+Render_Component_MtContext2(__slotRenderer: () => Render_Slot_4(__data));
+}
+void Render_Component_MtContext5(double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = $"left", string valign = $"center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = $"", string url = $"", string manialink = $"", string style = $"", string textfont = $"GameFont", double textsize = 1.0, string textcolor = $"", string focusareacolor1 = $"", string focusareacolor2 = $"", string text = $"", string textprefix = $"", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = $"", string id = $"") {
 #>
 <label pos="<#= x #> <#= y #>" size="<#= w #> <#= h #>" halign="<#= halign #>" valign="<#= valign #>" opacity="<#= opacity #>" z-index="<#= zIndex #>" ScriptEvents="<#= events #>" action="<#= action #>" url="<#= url #>" manialink="<#= manialink #>" style="<#= style #>" textfont="<#= textfont #>" textsize="<#= textsize #>" textcolor="<#= textcolor #>" focusareacolor1="<#= focusareacolor1 #>" focusareacolor2="<#= focusareacolor2 #>" text="<#= text #>" textprefix="<#= textprefix #>" textemboss="<#= bold #>" autonewline="<#= autonewline #>" maxline="<#= maxline #>" translate="<#= translate #>" textid="<#= textid #>" id="<#= id #>" />
 <#+
 }
-void RenderGraph(string arg1 = "", int arg2 = 0, test arg3)
-{
+void Render_Component_MtContext2(Action __slotRenderer, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
+#>
+<frame pos="<#= x #> <#= y #>" size="<#= w #> <#= h #>" z-index="<#= zIndex #>">
+<#+
+__slotRenderer();
+#>
+</frame>
+<#+
 }
-void RenderManiaScripts()
-{
+void Render_Component_MtContext6(test arg3, string arg1 = $"", int arg2 = 0) {
+}
+void Render_Slot_3(CRoot_ForEachLoop1 __data) {
+var numbers = __data.numbers;
+var enabled = __data.enabled;
+var __index = __data.__index;
+var i = __data.i;
+var __outerIndex7 = 0;
+foreach (int j in numbers.GetRange(0, i)) {
+var __index2 = __outerIndex7;
+if (i < numbers.Count) {
+Render_Component_MtContext5(text: $"{i}, {j} at index {__index}, {__index2}");
+}
+__outerIndex7++;
+}
+}
+void Render_Slot_8(CRoot __data) {
+var numbers = __data.numbers;
+var enabled = __data.enabled;
+#>
+<test>
+<#+
+Render_Component_MtContext6(arg3: new test());
+#>
+</test>
+<#+
+}
+void Render_Slot_4(CRoot __data) {
+var numbers = __data.numbers;
+var enabled = __data.enabled;
+Render_Component_MtContext2(__slotRenderer: () => Render_Slot_8(__data));
+}
+void RenderManiaScripts() {
 #>
 <script><!--
+scriptText1
+scriptText2
+scriptText3
 GraphScript
 --></script>
 <#+

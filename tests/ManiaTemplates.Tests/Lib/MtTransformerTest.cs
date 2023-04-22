@@ -6,10 +6,10 @@ using ManiaTemplates.Lib;
 
 namespace ManiaTemplates.Tests.Lib;
 
-public class TransformerTest
+public class MtTransformerTest
 {
     private readonly ManiaTemplateEngine _maniaTemplateEngine = new();
-    private readonly Regex _renderMethodSuffixPattern = new("_[A-Z0-9]+\\(");
+    private readonly Regex _hashCodePattern = new("[0-9]{6,10}");
 
     private readonly MtComponent _testComponent = new()
     {
@@ -33,15 +33,23 @@ public class TransformerTest
                 { "component", new() { TemplateKey = "component.mt", Tag = "component" } },
                 { "Graph", new() { TemplateKey = "newGraph.mt", Tag = "Graph" } }
             },
-        TemplateContent =
-            @"<Label if=""enabled"" foreach=""var i in numbers"" x=""{{ 20 * __index }}"" text=""{{ i }} at index {{ __index }}"" />Text<!--Comment--><test><Graph/></test><slot />"
+        TemplateContent = @"<Frame if=""enabled"" foreach=""int i in numbers"" x=""{{ 20 * __index }}"">
+                                <Label if=""i &lt; numbers.Count"" foreach=""int j in numbers.GetRange(0, i)"" text=""{{ i }}, {{ j }} at index {{ __index }}, {{ __index2 }}"" />
+                            </Frame>
+                            <Frame>
+                                <Frame>
+                                    <test>
+                                        <Graph arg3=""{{ new test() }}""/>
+                                    </test>
+                                </Frame>
+                            </Frame>"
     };
 
-    private readonly Transformer _transformer;
+    private readonly MtTransformer _transformer;
 
-    public TransformerTest()
+    public MtTransformerTest()
     {
-        _transformer = new Transformer(_maniaTemplateEngine, new MtLanguageT4());
+        _transformer = new MtTransformer(_maniaTemplateEngine, new MtLanguageT4());
     }
 
     [Fact]
@@ -79,6 +87,23 @@ public class TransformerTest
 
         var result = _transformer.BuildManialink(_testComponent, "expected");
 
-        Assert.Equal(_renderMethodSuffixPattern.Replace(result, "("), expected);
+        Assert.Equal(expected, TransformCodeToOrderNumber(result));
+    }
+
+    private string TransformCodeToOrderNumber(string input)
+    {
+        var count = 0;
+        var assignments = new Dictionary<string, string>();
+        return _hashCodePattern.Replace(input, delegate(Match match)
+        {
+            if (assignments.TryGetValue(match.Value, out var value))
+            {
+                return value;
+            }
+
+            count++;
+            assignments[match.Value] = count.ToString();
+            return count.ToString();
+        });
     }
 }
