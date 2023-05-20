@@ -85,7 +85,6 @@ public class TransformerTest
 
         result = GeneralizeGeneratedDocument(result);
 
-        File.WriteAllText("Test.tt", result);
         Assert.Equal(expected, result);
     }
 
