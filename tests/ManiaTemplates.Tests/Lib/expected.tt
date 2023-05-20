@@ -3,137 +3,63 @@
 <#@ import namespace="namespace" #>
 <#@ import namespace="GraphNamespace" #>
 <manialink version="3" id="expected" name="EvoSC#-expected">
-<# RenderBody(new MtContext{ numbers = numbers,enabled = enabled }); #>
-<# RenderManiaScripts(new MtContext{ numbers = numbers,enabled = enabled }); #>
+<#
+RenderBody();
+RenderManiaScripts();
+#>
 </manialink>
 <#+
 public List<int> numbers { get; init; }
 public boolean enabled { get; init; }
-class MtContext {
+class CRoot {
 public List<int> numbers { get; set; }
 public boolean enabled { get; set; }
 }
-class MtContext: MtContext {
+class CRoot_ForEachLoop1: CRoot {
 public int __index { get; set; }
 public int i { get; set; }
+internal CRoot_ForEachLoop1(CRoot data) {
+numbers = data.numbers;
+enabled = data.enabled;
 }
-class MtContext: MtContext {
-public double x { get; set; } = 0.0;
-public double y { get; set; } = 0.0;
-public double w { get; set; } = 0.0;
-public double h { get; set; } = 0.0;
-public string halign { get; set; } = "left";
-public string valign { get; set; } = "center";
-public double opacity { get; set; } = 1.0;
-public int zIndex { get; set; } = 0;
-public int events { get; set; } = 0;
-public string action { get; set; } = "";
-public string url { get; set; } = "";
-public string manialink { get; set; } = "";
-public string style { get; set; } = "";
-public string textfont { get; set; } = "GameFont";
-public double textsize { get; set; } = 1.0;
-public string textcolor { get; set; } = "";
-public string focusareacolor1 { get; set; } = "";
-public string focusareacolor2 { get; set; } = "";
-public string text { get; set; } = "";
-public string textprefix { get; set; } = "";
-public int bold { get; set; } = 0;
-public int autonewline { get; set; } = 0;
-public int maxline { get; set; } = 0;
-public int translate { get; set; } = 0;
-public string textid { get; set; } = "";
-public string id { get; set; } = "";
-public int i { get; set; }
 }
-class MtContext: MtContext {
-public string arg1 { get; set; } = "";
-public int arg2 { get; set; } = 0;
-public test arg3 { get; set; }
-}
-void RenderBody(MtContext __data){
-var numbers = __data.numbers;
-var enabled = __data.enabled;
- var __index = 0;
+void RenderBody() {var __data = new CRoot{ numbers = numbers,enabled = enabled };
+ var __outerIndex = 0;
  foreach(int i in numbers)
  {
- MtContext __loopData = new MtContext{__index = __index,i = i,numbers = __data.numbers,enabled = __data.enabled};
+ var __index = __outerIndex;
  if(enabled)
  {
- RenderLabel(new MtContext { x = 20 * __index, text = $"{i} at index {__index}" }); 
+Render_Component(
+x: 20 * __index, 
+text: $"{i} at index {__index}"
+);
  }
- __index++;
+ __outerIndex++;
  }
 #>
 Text
 <!-- Comment -->
 <test>
-<#+ RenderGraph(new MtContext {  }); #>
+<#+
+Render_Component(
+);
+#>
 </test>
 <#+
 }
-void RenderLabel(MtContext __data)
-{
-var x = __data.x;
-var y = __data.y;
-var w = __data.w;
-var h = __data.h;
-var halign = __data.halign;
-var valign = __data.valign;
-var opacity = __data.opacity;
-var zIndex = __data.zIndex;
-var events = __data.events;
-var action = __data.action;
-var url = __data.url;
-var manialink = __data.manialink;
-var style = __data.style;
-var textfont = __data.textfont;
-var textsize = __data.textsize;
-var textcolor = __data.textcolor;
-var focusareacolor1 = __data.focusareacolor1;
-var focusareacolor2 = __data.focusareacolor2;
-var text = __data.text;
-var textprefix = __data.textprefix;
-var bold = __data.bold;
-var autonewline = __data.autonewline;
-var maxline = __data.maxline;
-var translate = __data.translate;
-var textid = __data.textid;
-var id = __data.id;
-var i = __data.i;
-var __index = __data.__index;
-#>
+void Render_Component(double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = $"left", string valign = $"center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = $"", string url = $"", string manialink = $"", string style = $"", string textfont = $"GameFont", double textsize = 1.0, string textcolor = $"", string focusareacolor1 = $"", string focusareacolor2 = $"", string text = $"", string textprefix = $"", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = $"", string id = $""){#>
 <label pos="<#= x #> <#= y #>" size="<#= w #> <#= h #>" halign="<#= halign #>" valign="<#= valign #>" opacity="<#= opacity #>" z-index="<#= zIndex #>" ScriptEvents="<#= events #>" action="<#= action #>" url="<#= url #>" manialink="<#= manialink #>" style="<#= style #>" textfont="<#= textfont #>" textsize="<#= textsize #>" textcolor="<#= textcolor #>" focusareacolor1="<#= focusareacolor1 #>" focusareacolor2="<#= focusareacolor2 #>" text="<#= text #>" textprefix="<#= textprefix #>" textemboss="<#= bold #>" autonewline="<#= autonewline #>" maxline="<#= maxline #>" translate="<#= translate #>" textid="<#= textid #>" id="<#= id #>" />
 <#+
 }
-void RenderGraph(MtContext __data)
-{
-var arg1 = __data.arg1;
-var arg2 = __data.arg2;
-var arg3 = __data.arg3;
-var numbers = __data.numbers;
-var enabled = __data.enabled;
+void Render_Component(test arg3, string arg1 = $"", int arg2 = 0){
 }
-void RenderSlot(MtContext __data)
-{
-var __index = __data.__index;
-var i = __data.i;
-}
-void RenderSlot(MtContext __data)
-{
-var numbers = __data.numbers;
-var enabled = __data.enabled;
-}
-void RenderManiaScripts(MtContext __data)
-{
-var numbers = __data.numbers;
-var enabled = __data.enabled;
+void RenderManiaScripts() {
 #>
 <script><!--
 scriptText1
 scriptText2
 scriptText3
-GraphScript
 --></script>
 <#+
 }

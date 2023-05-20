@@ -12,6 +12,7 @@ public class TransformerTest
     private readonly ManiaTemplateEngine _maniaTemplateEngine = new();
     private readonly Regex _renderMethodSuffixPattern = new("_[A-Z0-9]+\\(");
     private readonly Regex _contextGeneralizerPattern = new("MtContext\\d+");
+    private readonly Regex _outerIndexGeneralizerPattern = new("__outerIndex\\d+");
     private readonly Regex _renderMethodGeneralizerPattern = new("(Render.+?)_MtContext");
 
     private readonly MtComponent _testComponent = new()
@@ -85,6 +86,7 @@ public class TransformerTest
 
         result = GeneralizeGeneratedDocument(result);
 
+        File.WriteAllText("Test.tt", result);
         Assert.Equal(expected, result);
     }
 
@@ -97,6 +99,14 @@ public class TransformerTest
         while (m.Success)
         {
             outDocument = outDocument.Replace(m.Value, "MtContext");
+            m = m.NextMatch();
+        }
+
+        //Replace __outerIndex123456789 with __outerIndex
+        m = _outerIndexGeneralizerPattern.Match(generatedDocument);
+        while (m.Success)
+        {
+            outDocument = outDocument.Replace(m.Value, "__outerIndex");
             m = m.NextMatch();
         }
 
