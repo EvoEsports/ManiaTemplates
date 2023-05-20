@@ -76,6 +76,7 @@ public class TransformerTest
                 }
             }
         };
+        
         _maniaTemplateEngine.GetType().GetField("_components", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(_maniaTemplateEngine, components);
 
@@ -86,7 +87,6 @@ public class TransformerTest
 
         result = GeneralizeGeneratedDocument(result);
 
-        File.WriteAllText("Test.tt", result);
         Assert.Equal(expected, result);
     }
 
