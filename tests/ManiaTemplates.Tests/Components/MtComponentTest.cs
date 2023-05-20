@@ -52,8 +52,10 @@ public class MtComponentTest
                 <script>scriptText3</script>
             </component>
         """;
+        
         _engine.GetType().GetField("_maniaScripts", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(_engine,
             new Dictionary<string, string>() { { "res", "resourceScript" } });
+        
         var expected = new MtComponent
         {
             Namespaces = new() { "namespace" },

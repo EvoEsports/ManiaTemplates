@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Globalization;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using ManiaTemplates.Components;
 using ManiaTemplates.Languages;
@@ -10,6 +11,8 @@ public class TransformerTest
 {
     private readonly ManiaTemplateEngine _maniaTemplateEngine = new();
     private readonly Regex _renderMethodSuffixPattern = new("_[A-Z0-9]+\\(");
+    private readonly Regex _contextGeneralizerPattern = new("MtContext\\d+");
+    private readonly Regex _renderMethodGeneralizerPattern = new("(Render.+?)_MtContext");
 
     private readonly MtComponent _testComponent = new()
     {
@@ -34,14 +37,14 @@ public class TransformerTest
                 { "Graph", new() { TemplateKey = "newGraph.mt", Tag = "Graph" } }
             },
         TemplateContent =
-            @"<Label if=""enabled"" foreach=""var i in numbers"" x=""{{ 20 * __index }}"" text=""{{ i }} at index {{ __index }}"" />Text<!--Comment--><test><Graph/></test><slot />"
+            @"<Label if=""enabled"" foreach=""int i in numbers"" x=""{{ 20 * __index }}"" text=""{{ i }} at index {{ __index }}"" />Text<!--Comment--><test><Graph/></test>"
     };
 
-    private readonly Transformer _transformer;
+    private readonly MtTransformer _transformer;
 
     public TransformerTest()
     {
-        _transformer = new Transformer(_maniaTemplateEngine, new MtLanguageT4());
+        _transformer = new MtTransformer(_maniaTemplateEngine, new MtLanguageT4());
     }
 
     [Fact]
@@ -77,8 +80,36 @@ public class TransformerTest
 
         var expected = File.ReadAllText("Lib/expected.tt");
 
-        var result = _transformer.BuildManialink(_testComponent, "expected");
+        var generated = _transformer.BuildManialink(_testComponent, "expected");
+        var result = _renderMethodSuffixPattern.Replace(generated, "(");
 
-        Assert.Equal(_renderMethodSuffixPattern.Replace(result, "("), expected);
+        result = GeneralizeGeneratedDocument(result);
+
+        File.WriteAllText("Test.tt", result);
+        Assert.Equal(expected, result);
+    }
+
+    private string GeneralizeGeneratedDocument(string generatedDocument)
+    {
+        var outDocument = generatedDocument;
+
+        //Replace MtContext123456 with MtContext
+        var m = _contextGeneralizerPattern.Match(generatedDocument);
+        while (m.Success)
+        {
+            outDocument = outDocument.Replace(m.Value, "MtContext");
+            m = m.NextMatch();
+        }
+
+        //Replace RenderComponent_MtContext with RenderComponent
+        m = _renderMethodGeneralizerPattern.Match(generatedDocument);
+        while (m.Success)
+        {
+            outDocument = outDocument.Replace(m.Value, m.Groups[1].Value);
+            m = m.NextMatch();
+        }
+
+        //Remove \r
+        return outDocument.Replace("\r", "");
     }
 }
