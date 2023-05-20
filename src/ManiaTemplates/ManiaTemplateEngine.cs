@@ -117,7 +117,8 @@ public class ManiaTemplateEngine
     /// </summary>
     public async Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies)
     {
-        _preProcessed[key] = await PreProcessComponentAsync(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies);
+        _preProcessed[key] =
+            await PreProcessComponentAsync(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies);
     }
 
     /// <summary>
@@ -249,9 +250,14 @@ public class ManiaTemplateEngine
         //Remove namespace wrapper
         preCompiledTemplate = NamespaceWrapperMatcher.Replace(preCompiledTemplate, "$1");
 
+        //Parse null to empty strings
+        preCompiledTemplate =
+            preCompiledTemplate.Replace(@"throw new global::System.ArgumentNullException(""objectToConvert"");",
+                @"return """";");
+
         if (writeTo != null)
         {
-            await File.WriteAllTextAsync(writeTo + ".cs", preCompiledTemplate);
+            // await File.WriteAllTextAsync(writeTo + ".cs", preCompiledTemplate);
         }
 
         return new ManiaLink(className, preCompiledTemplate, assemblies);

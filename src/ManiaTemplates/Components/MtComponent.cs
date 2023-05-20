@@ -192,4 +192,9 @@ public class MtComponent
         return node.ChildNodes.Cast<XmlNode>()
             .Any(NodeHasSlot);
     }
+
+    public string Id()
+    {
+        return "MtContext" + GetHashCode().ToString().Replace("-", "N");
+    }
 }

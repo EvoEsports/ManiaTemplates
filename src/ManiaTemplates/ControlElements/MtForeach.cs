@@ -16,7 +16,7 @@ public class MtForeach
     private static readonly Regex ForeachVariablesRegex = new(@"^\(?(.+?)(?:$|,\s*(.+)\))");
     private static readonly Regex ForeachVariablesTypeSplitterRegex = new(@"^(.+?)(?:$|\s+(.+)$)");
 
-    public static MtForeach FromString(string foreachAttributeValue, MtDataContext context)
+    public static MtForeach FromString(string foreachAttributeValue, MtDataContext context, int nodeId)
     {
         //Match the value of the foreach-attribute of the XmlNode.
         //Split it into type, variables (var x, var (x,y), ...) and the source.
@@ -34,10 +34,6 @@ public class MtForeach
         {
             throw new ParsingForeachLoopFailedException("You may not use var in foreach loops, please specify type.");
         }
-
-        // Console.WriteLine($"type -> {type}");
-        // Console.WriteLine($"variables -> {variables}");
-        // Console.WriteLine($"sourceEnumerable -> {sourceEnumerable}\n");
 
         //Split the variables if more than one is defined
         var variablesMatch = ForeachVariablesRegex.Match(variables);
@@ -94,7 +90,7 @@ public class MtForeach
             throw new ParsingForeachLoopFailedException("User defined variables must not start with __.");
         }
 
-        var newContext = new MtDataContext
+        var newContext = new MtDataContext($"ForEachLoop{nodeId}")
         {
             { "__index", "int" }
         };

@@ -1,12 +1,10 @@
-﻿namespace ManiaTemplates.Components;
+﻿using ManiaTemplates.ControlElements;
+
+namespace ManiaTemplates.Components;
 
 public class MtComponentSlot
 {
-    public required string Content;
-    public required MtDataContext Context;
-
-    public string RenderMethodName(string renderContextId)
-    {
-        return "RenderSlot_" + renderContextId;
-    }
+    public required int Scope { get; init; }
+    public required string RenderMethod { get; init; }
+    public required MtDataContext Context { get; init; }
 }
