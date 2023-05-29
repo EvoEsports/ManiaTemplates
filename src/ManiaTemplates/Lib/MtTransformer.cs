@@ -12,12 +12,13 @@ public class MtTransformer
     private readonly ManiaTemplateEngine _engine;
     private readonly IManiaTemplateLanguage _maniaTemplateLanguage;
     private readonly List<string> _namespaces = new();
-    private readonly List<MtComponent> _usedComponents = new();
-    private readonly List<MtComponentSlot> _slots = new();
-    private readonly List<MtComponentNode> _componentNodes = new();
     private readonly List<MtDataContext> _dataContexts = new();
+    private readonly Dictionary<int, MtComponentScript> _maniaScripts = new();
+    private readonly Dictionary<string, string> _renderMethods = new();
+    private readonly List<MtComponentSlot> _slots = new();
+    private int _loopDepth;
 
-    private static readonly Regex TemplateControlRegex = new(@"#>\s*<#\+");
+    private static readonly Regex TemplateFeatureControlRegex = new(@"#>\s*<#\+");
     private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
 
     public MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage maniaTemplateLanguage)
@@ -33,20 +34,12 @@ public class MtTransformer
     {
         _namespaces.AddRange(rootComponent.Namespaces);
 
-        var loadedComponents = _engine.BaseMtComponents.Overload(rootComponent.ImportedComponents);
-        var maniaScripts = rootComponent.Scripts.ToDictionary(script => script.ContentHash());
-        var rootContext = GetContextFromComponent(rootComponent);
-
+        var rootContext = GetContextFromComponent(rootComponent, "Root");
         var body = ProcessNode(
             XmlStringToNode(rootComponent.TemplateContent),
-            loadedComponents,
-            maniaScripts,
-            rootComponent,
+            _engine.BaseMtComponents.Overload(rootComponent.ImportedComponents),
             rootContext
         );
-
-        var renderBodyArguments =
-            $"new {rootContext}{{ {string.Join(",", rootContext.ToList().Select(contextProperty => $"{contextProperty.Key} = {contextProperty.Key}"))} }}";
 
         var template = new Snippet
         {
@@ -54,14 +47,16 @@ public class MtTransformer
             _maniaTemplateLanguage.Context(@"import namespace=""System.Collections.Generic"""),
             CreateImportStatements(),
             ManiaLinkStart(className, version),
-            _maniaTemplateLanguage.Code($"RenderBody({renderBodyArguments});"),
-            _maniaTemplateLanguage.Code($"RenderManiaScripts({renderBodyArguments});"),
+            "<#",
+            "RenderBody();",
+            "RenderManiaScripts();",
+            "#>",
             ManiaLinkEnd(),
             CreateTemplatePropertiesBlock(rootComponent),
             CreateDataClassesBlock(rootContext),
             CreateBodyRenderMethod(body, rootContext),
             CreateRenderMethodsBlock(),
-            BuildManiaScripts(maniaScripts, rootContext)
+            BuildManiaScripts(rootComponent)
         };
 
         return JoinFeatureBlocks(template.ToString());
@@ -72,14 +67,16 @@ public class MtTransformer
     /// </summary>
     private string CreateBodyRenderMethod(string body, MtDataContext context)
     {
-        var bodyRenderMethod = new StringBuilder()
-            .AppendLine($"void RenderBody({context.ToString()} __data){{");
+        var bodyRenderMethod = new StringBuilder("void RenderBody() {\n");
 
-        foreach (var dataName in context.Keys)
-        {
-            bodyRenderMethod.AppendLine($"var {dataName} = __data.{dataName};");
-        }
+        //Arguments for root data context
+        var renderBodyArguments =
+            $"new {context} {{ {string.Join(",", context.ToList().Select(contextProperty => $"{contextProperty.Key} = {contextProperty.Key}"))} }}";
 
+        //Initialize root data context
+        bodyRenderMethod.AppendLine($"var __data = {renderBodyArguments};");
+
+        //Render content
         bodyRenderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
             .AppendLine(body)
             .AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
@@ -93,14 +90,9 @@ public class MtTransformer
     /// </summary>
     private string CreateImportStatements()
     {
-        var snippet = new Snippet();
-
-        foreach (var ns in _namespaces)
-        {
-            snippet.AppendLine(_maniaTemplateLanguage.Context($@"import namespace=""{ns}"""));
-        }
-
-        return snippet.ToString();
+        return string.Join("\n",
+            _namespaces.Select(nameSpace => _maniaTemplateLanguage.Context($@"import namespace=""{nameSpace}"""))
+                .ToList());
     }
 
     /// <summary>
@@ -108,15 +100,10 @@ public class MtTransformer
     /// </summary>
     private string CreateTemplatePropertiesBlock(MtComponent mtComponent)
     {
-        var snippet = new Snippet();
-
-        foreach (var property in mtComponent.Properties.Values)
-        {
-            snippet.AppendSnippet(
-                _maniaTemplateLanguage.FeatureBlock($"public {property.Type} {property.Name} {{ get; init; }}"));
-        }
-
-        return snippet.ToString();
+        return string.Join("\n",
+            mtComponent.Properties.Values.Select(property =>
+                _maniaTemplateLanguage.FeatureBlock($"public {property.Type} {property.Name} {{ get; init; }}")
+                    .ToString()));
     }
 
     /// <summary>
@@ -124,50 +111,33 @@ public class MtTransformer
     /// </summary>
     private string CreateRenderMethodsBlock()
     {
-        Snippet snippet = new();
-
-        foreach (var componentNode in _componentNodes)
-        {
-            snippet.AppendSnippet(CreateComponentRenderMethod(componentNode));
-        }
-
-        var createdMethods = new List<string>();
-        foreach (var slot in _slots)
-        {
-            var context = slot.Context;
-            if (slot.Context.ParentContext != null)
-            {
-                context = slot.Context.ParentContext;
-            }
-
-            var renderContextId = context.ToString();
-            if (createdMethods.Contains(renderContextId))
-            {
-                //Prevent duplicate context
-                continue;
-            }
-
-            snippet.AppendLine(CreateSlotRenderMethod(slot, context));
-            createdMethods.Add(renderContextId);
-        }
-
-        return snippet.ToString();
+        return new StringBuilder()
+            .AppendJoin("\n", _renderMethods.Values)
+            .AppendJoin("\n", _slots.Select(slot => slot.RenderMethod))
+            .ToString();
     }
 
     /// <summary>
     /// Creates the slot-render method for a given data context.
     /// </summary>
-    private string CreateSlotRenderMethod(MtComponentSlot slot, MtDataContext context)
+    private string CreateSlotRenderMethod(int scope, MtDataContext context, string? slotContent = null)
     {
-        var output = new StringBuilder();
-        var arguments = $"{context} __data";
+        var variablesInherited = new List<string>();
+        var methodName = "Render_Slot_" + scope;
 
-        output.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
-            .AppendLine("void " + CreateMethodCall(slot.RenderMethodName(context.ToString()), arguments, ""))
-            .AppendLine("{")
-            .AppendLine(CreateLocalVariablesFromContext(context).ToString())
+        var output = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
+            .AppendLine("void " + CreateMethodCall(methodName, $"{context} __data", "") + " {");
+
+        if (context.ParentContext != null)
+        {
+            output.AppendLine(CreateLocalVariablesFromContext(context.ParentContext));
+            variablesInherited.AddRange(context.ParentContext.Keys);
+        }
+
+        output
+            .AppendLine(CreateLocalVariablesFromContext(context, variablesInherited))
             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
-            .AppendLine(slot.Content)
+            .AppendLine(slotContent)
             .AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
             .AppendLine("}")
             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
@@ -176,113 +146,43 @@ public class MtTransformer
     }
 
     /// <summary>
-    /// Creates the render method for the given component.
-    /// </summary>
-    private Snippet CreateComponentRenderMethod(MtComponentNode componentNode)
-    {
-        var methodBody = new Snippet()
-            .AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd())
-            .AppendLine(componentNode.TemplateContent)
-            .AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-
-        var renderContextId = componentNode.Context.ToString();
-        var arguments = $"{renderContextId} __data";
-        if (componentNode is { HasSlot: true, Context.ParentContext: { } })
-        {
-            arguments += $", {componentNode.Context.ParentContext} __parentData";
-        }
-
-        var localVariables = new Snippet();
-        var localVariablesCreated = new List<string>();
-
-        foreach (var dataName in componentNode.Context.Keys)
-        {
-            localVariables.AppendLine($"var {dataName} = __data.{dataName};");
-            localVariablesCreated.Add(dataName);
-        }
-
-        if (componentNode.Context.ParentContext != null)
-        {
-            var inheritedVariables = componentNode.Context.ParentContext.Keys
-                .Where(dataName => !localVariablesCreated.Contains(dataName));
-
-            foreach (var dataName in inheritedVariables)
-            {
-                localVariables.AppendLine($"var {dataName} = __data.{dataName};");
-            }
-        }
-
-        var renderMethod = new Snippet()
-            .AppendLine($"void {GetRenderMethodName(componentNode)}({arguments})")
-            .AppendLine("{")
-            .AppendSnippet(1, localVariables)
-            .AppendSnippet(1, methodBody)
-            .AppendLine("}")
-            .AppendLine("")
-            .ToString();
-
-        return _maniaTemplateLanguage.FeatureBlock(renderMethod);
-    }
-
-    /// <summary>
     /// Creates a list of variables from a given context, used in render methods.
     /// </summary>
-    private static Snippet CreateLocalVariablesFromContext(MtDataContext context)
+    private static string CreateLocalVariablesFromContext(MtDataContext context, ICollection<string>? variablesInherited = null)
     {
-        var localVariables = new Snippet();
-        foreach (var dataName in context.Keys)
+        var localVariables = new StringBuilder();
+        
+        foreach (var dataName in context.Keys.Where(dataName => variablesInherited == null || !variablesInherited.Contains(dataName)))
         {
             localVariables.AppendLine($"var {dataName} = __data.{dataName};");
         }
 
-        return localVariables;
-    }
-
-    /// <summary>
-    /// Takes all set arguments of a component node and converts them to a string, which contains the arguments for the render method.
-    /// </summary>
-    private static string ComponentNodeToMethodArguments(MtComponentNode mtComponentNode)
-    {
-        Snippet propertyAssignments = new();
-
-        foreach (var property in mtComponentNode.MtComponent.Properties.Values)
-        {
-            if (!mtComponentNode.Attributes.ContainsKey(property.Name))
-            {
-                continue;
-            }
-
-            var value = mtComponentNode.Attributes[property.Name];
-            propertyAssignments.AppendLine(@$"{property.Name} = {ConvertPropertyAssignment(property, value)}");
-        }
-
-        return propertyAssignments.ToString(", ");
+        return localVariables.ToString();
     }
 
     /// <summary>
     /// Process a ManiaTemplate node.
     /// </summary>
-    private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents,
-        Dictionary<int, MtComponentScript> maniaScripts, MtComponent parentComponent, MtDataContext context,
-        MtComponentSlot? slot = null)
+    private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents, MtDataContext context)
     {
-        //TODO: slim down method/outsource code from method
         Snippet snippet = new();
 
+        var nodeId = 1;
         foreach (XmlNode child in node.ChildNodes)
         {
             var subSnippet = new Snippet();
             var tag = child.Name;
-            var attributeList = GetNodeAttributes(child);
+            var attributeList = GetXmlNodeAttributes(child);
             var currentContext = context;
 
-            var forEachCondition = GetForeachConditionFromNodeAttributes(attributeList, context);
+            var forEachCondition = GetForeachConditionFromNodeAttributes(attributeList, context, nodeId);
             var ifCondition = GetIfConditionFromNodeAttributes(attributeList);
 
             if (forEachCondition != null)
             {
                 currentContext = forEachCondition.Context;
                 _dataContexts.Add(forEachCondition.Context);
+                _loopDepth++;
             }
 
             if (availableMtComponents.ContainsKey(tag))
@@ -290,47 +190,33 @@ public class MtTransformer
                 //Node is a component
                 var component = _engine.GetComponent(availableMtComponents[tag].TemplateKey);
 
-                if (!_usedComponents.Contains(component))
+                string? slotContent = null;
+                if (component.HasSlot)
                 {
-                    _usedComponents.Add(component);
+                    slotContent = ProcessNode(
+                        child,
+                        availableMtComponents,
+                        currentContext
+                    );
                 }
 
-                var newDataContext = currentContext.NewContext(GetContextFromComponent(component));
-                if (forEachCondition != null)
-                {
-                    // newDataContext["__index"] = "int";
-                    foreach (var variable in forEachCondition.Variables)
-                    {
-                        newDataContext[variable.Name] = variable.Type;
-                    }
-                }
-
-                var componentNode = CreateComponentNode(
-                    currentNode: child,
-                    component: component,
-                    availableMtComponents: availableMtComponents,
-                    attributeList: attributeList,
-                    slot: slot,
-                    maniaScripts: maniaScripts,
-                    parentComponent: parentComponent,
-                    context: newDataContext
+                var componentRenderMethodCall = ProcessComponentNode(
+                    context != currentContext,
+                    child.GetHashCode(),
+                    component,
+                    currentContext,
+                    attributeList,
+                    ProcessNode(
+                        XmlStringToNode(component.TemplateContent),
+                        availableMtComponents,
+                        currentContext
+                    ),
+                    slotContent
                 );
 
-                _namespaces.AddRange(component.Namespaces);
-                _componentNodes.Add(componentNode);
-
-                foreach (var script in component.Scripts)
-                {
-                    var scriptHash = script.ContentHash();
-                    if (maniaScripts.ContainsKey(scriptHash))
-                    {
-                        continue;
-                    }
-
-                    maniaScripts.Add(scriptHash, script);
-                }
-
-                subSnippet.AppendLine(CreateComponentRenderMethodCall(componentNode, forEachCondition));
+                subSnippet.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+                    .AppendLine(componentRenderMethodCall)
+                    .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
             }
             else
             {
@@ -344,25 +230,11 @@ public class MtTransformer
                         subSnippet.AppendLine($"<!-- {child.InnerText} -->");
                         break;
                     case "slot":
-                        if (slot != null)
-                        {
-                            var renderContextId = currentContext.ParentContext != null
-                                ? currentContext.ParentContext.ToString()
-                                : currentContext.ToString();
-
-                            if (forEachCondition != null)
-                            {
-                            }
-
-                            subSnippet.AppendLine(
-                                $"<#+ {CreateMethodCall(slot.RenderMethodName(renderContextId), "__parentData")} #>");
-                        }
-                        else
-                        {
-                            throw new Exception("No parent to provide content to slot.");
-                        }
-
+                        subSnippet.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+                            .AppendLine(CreateMethodCall("__slotRenderer", ""))
+                            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
                         break;
+
                     default:
                     {
                         var hasChildren = child.HasChildNodes;
@@ -371,8 +243,7 @@ public class MtTransformer
                         if (hasChildren)
                         {
                             subSnippet.AppendLine(1,
-                                ProcessNode(child, availableMtComponents, maniaScripts, parentComponent, currentContext,
-                                    slot));
+                                ProcessNode(child, availableMtComponents, currentContext));
                             subSnippet.AppendLine(CreateXmlClosingTag(tag));
                         }
 
@@ -389,16 +260,159 @@ public class MtTransformer
             if (forEachCondition != null)
             {
                 subSnippet = WrapInForeachLoop(subSnippet, forEachCondition);
+                _loopDepth--;
             }
 
             snippet.AppendSnippet(subSnippet);
+            nodeId++;
         }
 
         return snippet.ToString();
     }
 
     /// <summary>
-    /// Returns the if condition, when a if attribute is found in the given list, else null.
+    /// Process a node that has been identified as an component.
+    /// </summary>
+    private string ProcessComponentNode(
+        bool newScopeCreated,
+        int scope,
+        MtComponent component,
+        MtDataContext currentContext,
+        MtComponentAttributes attributeList,
+        string componentBody,
+        string? slotContent = null
+    )
+    {
+        MtComponentSlot? slot = null;
+        if (component.HasSlot)
+        {
+            slot = new MtComponentSlot
+            {
+                Scope = scope,
+                Context = currentContext,
+                RenderMethod = CreateSlotRenderMethod(scope, currentContext, slotContent)
+            };
+
+            _slots.Add(slot);
+        }
+
+        var renderMethodName = GetComponentRenderMethodName(component);
+        if (!_renderMethods.ContainsKey(renderMethodName))
+        {
+            _renderMethods.Add(
+                renderMethodName,
+                CreateComponentRenderMethod(component, renderMethodName, componentBody)
+            );
+        }
+
+        //create render call
+        var renderComponentCall = new StringBuilder(renderMethodName).Append('(');
+        var renderArguments = new List<string>();
+        foreach (var (attributeName, attributeValue) in attributeList)
+        {
+            if (component.Properties.TryGetValue(attributeName, out var value))
+            {
+                renderArguments.Add(
+                    $"{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s => IsStringType(value) ? $@"{{{s}}}" : s))}");
+            }
+        }
+
+        renderComponentCall.Append(string.Join(", ", renderArguments));
+
+        if (slot != null)
+        {
+            if (renderArguments.Count > 0)
+            {
+                renderComponentCall.Append(", ");
+            }
+
+            renderComponentCall.Append("__slotRenderer: ")
+                .Append("() => ")
+                .Append(GetSlotRenderMethodName(slot));
+
+            if (newScopeCreated)
+            {
+                var dataVariableSuffix = "(__data)";
+                if (currentContext.ParentContext is { Count: 0 })
+                {
+                    dataVariableSuffix = "";
+                }
+
+                renderComponentCall.Append($"(new {currentContext}{dataVariableSuffix}{{");
+
+                var variables = new List<string>();
+                foreach (var variableName in currentContext.Keys)
+                {
+                    variables.Add($"{variableName} = {variableName}");
+                }
+
+                renderComponentCall.Append(string.Join(", ", variables)).Append("})");
+            }
+            else
+            {
+                renderComponentCall.Append("(__data)");
+            }
+        }
+
+        renderComponentCall.AppendLine(");");
+
+        _namespaces.AddRange(component.Namespaces);
+
+        foreach (var script in component.Scripts)
+        {
+            var scriptHash = script.ContentHash();
+            if (_maniaScripts.ContainsKey(scriptHash))
+            {
+                continue;
+            }
+
+            _maniaScripts.Add(scriptHash, script);
+        }
+
+        return renderComponentCall.ToString();
+    }
+
+    /// <summary>
+    /// Creates the method which renders the contents of a component.
+    /// </summary>
+    private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody)
+    {
+        var renderMethod = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
+            .Append("void ")
+            .Append(renderMethodName)
+            .Append('(');
+
+        //open method arguments
+        var arguments = new List<string>();
+
+        //add slot render method
+        if (component.HasSlot)
+        {
+            arguments.Add("Action __slotRenderer");
+        }
+
+        //add method arguments with defaults
+        arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null).Select(property =>
+            property.Default == null
+                ? $"{property.Type} {property.Name}"
+                : $"{property.Type} {property.Name} = {WrapIfString(property, property.Default)}"));
+
+        //close method arguments
+        renderMethod.Append(string.Join(", ", arguments))
+            .AppendLine(") {")
+            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
+
+        //insert body
+        renderMethod.AppendLine(componentBody);
+
+        return renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+            .Append('}')
+            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
+            .ToString();
+    }
+
+    /// <summary>
+    /// Checks the attribute list for if-condition and returns it, else null.
     /// </summary>
     private string? GetIfConditionFromNodeAttributes(MtComponentAttributes attributeList)
     {
@@ -406,12 +420,13 @@ public class MtTransformer
     }
 
     /// <summary>
-    /// Returns the foreach condition, if a loop attribute is found in the given list, else null.
+    /// Checks the attribute list for loop-condition and returns it, else null.
     /// </summary>
-    private MtForeach? GetForeachConditionFromNodeAttributes(MtComponentAttributes attributeList, MtDataContext context)
+    private MtForeach? GetForeachConditionFromNodeAttributes(MtComponentAttributes attributeList, MtDataContext context,
+        int nodeId)
     {
         return attributeList.ContainsKey("foreach")
-            ? MtForeach.FromString(attributeList.Pull("foreach"), context)
+            ? MtForeach.FromString(attributeList.Pull("foreach"), context, nodeId)
             : null;
     }
 
@@ -424,51 +439,39 @@ public class MtTransformer
         var ifContent = TemplateInterpolationRegex.Replace(ifCondition, "$1");
 
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, $" if({ifContent})");
-        snippet.AppendLine(null, " {");
+        snippet.AppendLine(null, $"if ({ifContent}) {{");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, " }");
+        snippet.AppendLine(null, "}");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
 
         return snippet;
     }
 
     /// <summary>
-    /// Wraps the snippet in a foreach-loop.-
+    /// Wraps the snippet in a foreach-loop.
     /// </summary>
     private Snippet WrapInForeachLoop(Snippet input, MtForeach foreachLoop)
     {
-        var loopDataAssignments = new List<string>
-        {
-            { "__index = __index" }
-        };
-        foreach (var loopVariable in foreachLoop.Variables)
-        {
-            loopDataAssignments.Add($"{loopVariable.Name} = {loopVariable.Name}");
-        }
+        var outerIndexVariableName = "__outerIndex" + (new Random()).Next();
+        var innerIndexVariableName = "__index";
 
-        if (foreachLoop.Context.ParentContext != null)
+        if (_loopDepth > 1)
         {
-            foreach (var varName in foreachLoop.Context.ParentContext.Keys)
-            {
-                loopDataAssignments.Add($"{varName} = __data.{varName}");
-            }
+            innerIndexVariableName += _loopDepth;
         }
 
         var snippet = new Snippet();
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, " var __index = 0;");
-        snippet.AppendLine(null, $" foreach({foreachLoop.Condition})");
-        snippet.AppendLine(null, " {");
-        snippet.AppendLine(null,
-            $" {foreachLoop.Context} __loopData = new {foreachLoop.Context}{{{string.Join(",", loopDataAssignments)}}};");
+        snippet.AppendLine(null, $"var {outerIndexVariableName} = 0;");
+        snippet.AppendLine(null, $"foreach ({foreachLoop.Condition}) {{");
+        snippet.AppendLine(null, $"var {innerIndexVariableName} = {outerIndexVariableName};");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, " __index++;");
-        snippet.AppendLine(null, " }");
+        snippet.AppendLine(null, $"{outerIndexVariableName}++;");
+        snippet.AppendLine(null, "}");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
 
         return snippet;
@@ -484,44 +487,51 @@ public class MtTransformer
             CreateContextClass(rootContext)
         };
 
-        dataClasses.AddRange(_dataContexts.Select(dataContext => CreateContextClass(dataContext)));
-
-        dataClasses.AddRange(_componentNodes.Select(componentNode =>
-            CreateContextClass(componentNode.Context, componentNode.MtComponent)));
+        dataClasses.AddRange(_dataContexts.Select(dataContext => CreateContextClass(dataContext, rootContext)));
 
         return "\n" + _maniaTemplateLanguage.FeatureBlock(string.Join("\n\n", dataClasses)).ToString();
     }
 
     /// <summary>
-    /// Creates a single class definition for the given data context and optional parent component.
+    /// Creates a single class definition for the given data context and optional root context.
     /// </summary>
-    private static string CreateContextClass(MtDataContext context, MtComponent? component = null)
+    private static string CreateContextClass(MtDataContext context, MtDataContext? rootContext = null)
     {
-        var dataClass = new Snippet();
+        var dataClass = new StringBuilder();
+
+        //Name of the data context class
         var className = context.ToString();
 
+        //Extend previous context
         if (context.ParentContext != null)
         {
             className += $": {context.ParentContext}";
         }
 
+        //Create body of context class
         dataClass.AppendLine($"class {className} {{");
+        dataClass.AppendLine(CreateContextClassProperties(context));
+        dataClass.AppendLine(CreateContextClassConstructor(context, context.ParentContext == rootContext));
+        dataClass.AppendLine("}");
 
-        foreach (var (dataName, dataType) in context)
+        return dataClass.ToString();
+    }
+
+    /// <summary>
+    /// Creates the constructor for a data context class.
+    /// </summary>
+    private static string CreateContextClassConstructor(MtDataContext context, bool parentContextIsRoot)
+    {
+        if (context.ParentContext is not { Count: > 0 }) return "";
+
+        var dataClass = new StringBuilder();
+        dataClass.AppendLine(parentContextIsRoot
+            ? $"internal {context}({context.ParentContext} data) {{"
+            : $"internal {context}({context.ParentContext} data) : base(data) {{");
+
+        foreach (var propertyName in context.ParentContext.Keys)
         {
-            var suffix = "";
-
-            if (component != null && component.Properties.ContainsKey(dataName))
-            {
-                var property = component.Properties[dataName];
-                if (property.Default != null)
-                {
-                    var defaultValue = WrapIfString(property, property.Default);
-                    suffix += $" = {defaultValue};";
-                }
-            }
-
-            dataClass.AppendLine(1, $"public {dataType} {dataName} {{ get; set; }}{suffix}");
+            dataClass.AppendLine($"{propertyName} = data.{propertyName};");
         }
 
         dataClass.AppendLine("}");
@@ -530,9 +540,18 @@ public class MtTransformer
     }
 
     /// <summary>
+    /// Creates the properties of a data context class.
+    /// </summary>
+    private static string CreateContextClassProperties(MtDataContext context)
+    {
+        return string.Join("\n",
+            context.Select(property => $"public {property.Value} {property.Key} {{ get; set; }}").ToList());
+    }
+
+    /// <summary>
     /// Parses the attributes of a XmlNode to an MtComponentAttributes-instance.
     /// </summary>
-    private static MtComponentAttributes GetNodeAttributes(XmlNode node)
+    private static MtComponentAttributes GetXmlNodeAttributes(XmlNode node)
     {
         var attributeList = new MtComponentAttributes();
         if (node.Attributes == null) return attributeList;
@@ -546,79 +565,25 @@ public class MtTransformer
     }
 
     /// <summary>
-    /// Takes parsed information and creates a new MtComponentNode-instance.
-    /// </summary>
-    private MtComponentNode CreateComponentNode(XmlNode currentNode, MtComponent component,
-        MtComponentMap availableMtComponents, MtComponentAttributes attributeList, MtComponentSlot? slot,
-        Dictionary<int, MtComponentScript> maniaScripts, MtComponent parentComponent, MtDataContext context)
-    {
-        var subComponents = availableMtComponents.Overload(component.ImportedComponents);
-        var subSlot = new MtComponentSlot
-        {
-            Context = context,
-            Content = ProcessNode(
-                currentNode,
-                availableMtComponents,
-                maniaScripts,
-                parentComponent,
-                context,
-                slot
-            )
-        };
-
-        var componentTemplate = ProcessNode(
-            XmlStringToNode(component.TemplateContent),
-            subComponents,
-            maniaScripts,
-            component,
-            context,
-            subSlot
-        );
-
-        _slots.Add(subSlot);
-
-        return new MtComponentNode(
-            currentNode.Name,
-            component,
-            attributeList,
-            componentTemplate,
-            context
-        );
-    }
-
-    /// <summary>
-    /// Used to convert component arguments into expressions, that can be assigned to C# method calls.
-    /// </summary>
-    private static string ConvertPropertyAssignment(MtComponentProperty property, string parameterValue)
-    {
-        if (IsStringType(property))
-        {
-            return "$" + WrapIfString(property, ReplaceCurlyBraces(parameterValue, s => "{" + s + "}"));
-        }
-
-        return ReplaceCurlyBraces(parameterValue, s => s);
-    }
-
-    /// <summary>
     /// Creates a method which renders all loaded ManiaScripts into a block, which is usually placed at the end of the ManiaLink.
     /// </summary>
-    private string BuildManiaScripts(Dictionary<int, MtComponentScript> scripts, MtDataContext context)
+    private string BuildManiaScripts(MtComponent rootComponent)
     {
+        var maniaScripts = rootComponent.Scripts.ToDictionary(script => script.ContentHash());
+        foreach (var (key, value) in _maniaScripts)
+        {
+            maniaScripts[key] = value;
+        }
+        
         var scriptMethod = new Snippet
         {
-            $"void RenderManiaScripts({context} __data)",
-            "{",
+            "void RenderManiaScripts() {",
         };
-
-        foreach (var dataName in context.Keys)
-        {
-            scriptMethod.AppendLine($"var {dataName} = __data.{dataName};");
-        }
 
         scriptMethod.AppendLine("#>")
             .AppendLine("<script><!--");
 
-        foreach (var script in scripts.Values)
+        foreach (var script in maniaScripts.Values)
         {
             scriptMethod.AppendLine(script.Content);
         }
@@ -631,40 +596,11 @@ public class MtTransformer
     }
 
     /// <summary>
-    /// Creates a method call in the target language, which renders a component.
-    /// </summary>
-    private string CreateComponentRenderMethodCall(MtComponentNode componentNode, MtForeach? foreachLoop)
-    {
-        var methodName = GetRenderMethodName(componentNode);
-        var renderContextId = componentNode.Context.ToString();
-        var methodArguments = new StringBuilder();
-
-        methodArguments.Append($"new {renderContextId} {{ ");
-        methodArguments.Append(ComponentNodeToMethodArguments(componentNode))
-            .Append(" }");
-
-        if (componentNode.MtComponent.HasSlot)
-        {
-            if (foreachLoop != null)
-            {
-                methodArguments.Append(", __loopData");
-            }
-            else
-            {
-                methodArguments.Append(", __data");
-            }
-        }
-
-        return _maniaTemplateLanguage.FeatureBlock(CreateMethodCall(methodName, methodArguments.ToString()))
-            .ToString(" ");
-    }
-
-    /// <summary>
     /// Creates a fresh data context from a component instance.
     /// </summary>
-    private static MtDataContext GetContextFromComponent(MtComponent component)
+    private static MtDataContext GetContextFromComponent(MtComponent component, string? name = null)
     {
-        var context = new MtDataContext();
+        var context = new MtDataContext(name);
 
         foreach (var property in component.Properties.Values)
         {
@@ -684,6 +620,22 @@ public class MtTransformer
     }
 
     /// <summary>
+    /// Returns the method name that renders the given component.
+    /// </summary>
+    private string GetComponentRenderMethodName(MtComponent component)
+    {
+        return $"Render_Component_{component.Id()}";
+    }
+
+    /// <summary>
+    /// Returns the name of the method that renders the slot contents.
+    /// </summary>
+    private string GetSlotRenderMethodName(MtComponentSlot slot)
+    {
+        return "Render_Slot_" + slot.Scope.GetHashCode();
+    }
+
+    /// <summary>
     /// Wrap the second argument in quotes, if the given property is a string type.
     /// </summary>
     private static string WrapIfString(MtComponentProperty property, string value)
@@ -700,20 +652,11 @@ public class MtTransformer
     }
 
     /// <summary>
-    /// Returns the name of the render method for a component node.
-    /// </summary>
-    private static string GetRenderMethodName(MtComponentNode componentNode)
-    {
-        var renderContextId = componentNode.Context.ToString();
-        return $"Render{componentNode.Tag}_{renderContextId}";
-    }
-
-    /// <summary>
     /// Wraps a string in quotes.
     /// </summary>
     private static string WrapStringInQuotes(string str)
     {
-        return $@"""{str}""";
+        return $@"$""{str}""";
     }
 
     /// <summary>
@@ -802,7 +745,7 @@ public class MtTransformer
     /// </summary>
     private static string JoinFeatureBlocks(string manialink)
     {
-        var match = TemplateControlRegex.Match(manialink);
+        var match = TemplateFeatureControlRegex.Match(manialink);
         var output = new Snippet();
 
         while (match.Success)
