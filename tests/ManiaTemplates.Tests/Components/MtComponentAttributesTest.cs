@@ -6,7 +6,8 @@ public class MtComponentAttributesTest
 {
     private readonly MtComponentAttributes _mtComponentAttributes = new();
 
-    public MtComponentAttributesTest()
+    [Fact]
+    public void Should_Contain_Single_Attribute_Pair()
     {
         _mtComponentAttributes["key"] = "value";
         Assert.Single(_mtComponentAttributes);
@@ -16,7 +17,7 @@ public class MtComponentAttributesTest
     public void Should_Remove_Existing()
     {
         var result = _mtComponentAttributes.Pull("key");
-        
+
         Assert.Equal("value", result);
         Assert.Empty(_mtComponentAttributes);
     }
