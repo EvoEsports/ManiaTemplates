@@ -6,10 +6,11 @@ public class ManialinkEngineTest
     
     [Theory]
     [ClassData(typeof(TestDataProvider))]
-    public void ShouldConvertTemplatesToResult(string template, dynamic data, string expected)
+    public void Should_Convert_Templates_To_Result(string template, dynamic data, string expected)
     {
         _maniaTemplateEngine.AddTemplateFromString("test", template);
         _maniaTemplateEngine.PreProcess("test", new[] { typeof(ManiaTemplateEngine).Assembly });
+        
         var result = _maniaTemplateEngine.Render("test", data, new[] { typeof(ManiaTemplateEngine).Assembly });
         
         Assert.Equal(expected, result, ignoreWhiteSpaceDifferences: true);

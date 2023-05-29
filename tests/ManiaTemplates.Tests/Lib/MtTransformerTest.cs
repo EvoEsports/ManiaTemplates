@@ -53,7 +53,7 @@ public class MtTransformerTest
     }
 
     [Fact]
-    public void ShouldBuildManialink()
+    public void Should_Build_Manialink()
     {
         var components = new Dictionary<string, MtComponent>
         {
@@ -90,7 +90,7 @@ public class MtTransformerTest
         Assert.Equal(expected, StripLineBreaks(TransformCodeToOrderNumber(result)));
     }
 
-    private string StripLineBreaks(string input)
+    private static string StripLineBreaks(string input)
     {
         return input.Replace("\r", "").Replace("\n", "");
     }

@@ -13,7 +13,7 @@ public class MtComponentMapTest
     }
 
     [Fact]
-    public void ShouldOverloadEntries()
+    public void Should_Overload_Entries()
     {
         var test = new MtComponentImport { Tag = "test", TemplateKey = "test" };
         var entry = new MtComponentImport { Tag = "entry", TemplateKey = "entry" };

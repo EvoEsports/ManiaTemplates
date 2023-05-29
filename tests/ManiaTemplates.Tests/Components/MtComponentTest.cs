@@ -1,7 +1,6 @@
 using System.Reflection;
 using FluentAssertions;
 using ManiaTemplates.Components;
-using ManiaTemplates.Exceptions;
 
 namespace ManiaTemplates.Tests.Components;
 
@@ -10,9 +9,10 @@ public class MtComponentTest
     private readonly ManiaTemplateEngine _engine = new();
 
     [Fact]
-    public void ShouldReadEmptyTemplate()
+    public void Should_Read_Empty_Template()
     {
-        const string Component = "<component/>";
+        const string component = "<component/>";
+        
         var expected = new MtComponent
         {
             Namespaces = new(),
@@ -23,15 +23,15 @@ public class MtComponentTest
             TemplateContent = ""
         };
 
-        var result = MtComponent.FromTemplate(_engine, Component);
+        var result = MtComponent.FromTemplate(_engine, component);
 
         result.Should().BeEquivalentTo(expected);
     }
 
     [Fact]
-    public void ShouldPopulatedTemplate()
+    public void Should_Populate_Template()
     {
-        const string Component = """
+        const string component = """
             <component>
                 <property type="int" name="number" default="0"/>
                 <property type="string" name="text"/>
@@ -52,8 +52,10 @@ public class MtComponentTest
                 <script>scriptText3</script>
             </component>
         """;
+        
         _engine.GetType().GetField("_maniaScripts", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(_engine,
             new Dictionary<string, string> { { "res", "resourceScript" } });
+        
         var expected = new MtComponent
         {
             Namespaces = new() { "namespace" },
@@ -79,7 +81,7 @@ public class MtComponentTest
             TemplateContent = @"<node attr=""value"" /><slot />"
         };
 
-        var result = MtComponent.FromTemplate(_engine, Component);
+        var result = MtComponent.FromTemplate(_engine, component);
 
         result.Should().BeEquivalentTo(expected);
     }
@@ -89,7 +91,7 @@ public class MtComponentTest
     [InlineData(@"<property type=""int""/>", "property", "name")]
     [InlineData(@"<import/>", "import", "component")]
     [InlineData(@"<using/>", "using", "namespace")]
-    public void ShouldNotReadTemplateMissingAttributes(string content, string nodeName, string attributeName)
+    public void Should_Not_Read_Template_Missing_Attributes(string content, string nodeName, string attributeName)
     {
         var component = $"<component>{content}</component>";
 

@@ -21,7 +21,7 @@ public class MtComponentScriptTest
     [InlineData("<script resource='res' main=''/>", true, false)]
     [InlineData("<script resource='res' once=''/>", false, true)]
     [InlineData("<script resource='res' main='' once=''/>", true, true)]
-    public void ShouldLoadManiaScript(string input, bool expectedMain, bool expectedOnce)
+    public void Should_Load_ManiaScript(string input, bool expectedMain, bool expectedOnce)
     {
         var document = new XmlDocument();
         document.LoadXml(input);
@@ -35,7 +35,7 @@ public class MtComponentScriptTest
     [Theory]
     [InlineData("<script/>")]
     [InlineData("<script main='false' once='true' />")]
-    public void ShouldFailToLoadEmptyManiaScript(string input)
+    public void Should_Fail_To_Load_Empty_ManiaScript(string input)
     {
         var document = new XmlDocument();
         document.LoadXml(input);
@@ -45,16 +45,16 @@ public class MtComponentScriptTest
     }
 
     [Fact]
-    public void ScriptsWithDifferentContentDifferentHashCodes()
+    public void Should_Load_ManiaScript_With_Different_Hash_Codes()
     {
-        const string Input1 = "<script>a</script>";
+        const string firstInput = "<script>a</script>";
         var document1 = new XmlDocument();
-        document1.LoadXml(Input1);
+        document1.LoadXml(firstInput);
         var script1 = MtComponentScript.FromNode(_templateEngine, document1.DocumentElement!);
         
-        const string Input2 = "<script resource='res'/>";
+        const string secondInput = "<script resource='res'/>";
         var document2 = new XmlDocument();
-        document2.LoadXml(Input2);
+        document2.LoadXml(secondInput);
         var script2 = MtComponentScript.FromNode(_templateEngine, document2.DocumentElement!);
         
         Assert.NotEqual(script1, script2);

@@ -13,7 +13,7 @@ public class MtComponentAttributesTest
     }
 
     [Fact]
-    public void ShouldRemoveExisting()
+    public void Should_Remove_Existing()
     {
         var result = _mtComponentAttributes.Pull("key");
         
