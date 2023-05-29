@@ -1,6 +1,7 @@
 using System.Reflection;
 using FluentAssertions;
 using ManiaTemplates.Components;
+using ManiaTemplates.Exceptions;
 
 namespace ManiaTemplates.Tests.Components;
 
@@ -87,16 +88,14 @@ public class MtComponentTest
     }
 
     [Theory]
-    [InlineData(@"<property name=""text""/>", "property", "type")]
-    [InlineData(@"<property type=""int""/>", "property", "name")]
-    [InlineData(@"<import/>", "import", "component")]
-    [InlineData(@"<using/>", "using", "namespace")]
-    public void Should_Not_Read_Template_Missing_Attributes(string content, string nodeName, string attributeName)
+    [InlineData(@"<property name=""text""/>")]
+    [InlineData(@"<property type=""int""/>")]
+    [InlineData(@"<import/>")]
+    [InlineData(@"<using/>")]
+    public void Should_Not_Read_Invalid_Nodes(string content)
     {
         var component = $"<component>{content}</component>";
 
-        var exception = Assert.Throws<Exception>(() => MtComponent.FromTemplate(_engine, component));
-        Assert.Contains(nodeName, exception.Message);
-        Assert.Contains($"'{attributeName}'", exception.Message);
+        Assert.Throws<MissingAttributeException>(() => MtComponent.FromTemplate(_engine, component));
     }
 }

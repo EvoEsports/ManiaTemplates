@@ -1,5 +1,6 @@
 ﻿using System.Xml;
 using ManiaTemplates.Components;
+using ManiaTemplates.Exceptions;
 
 namespace ManiaTemplates.Tests.Components;
 
@@ -40,8 +41,8 @@ public class MtComponentScriptTest
         var document = new XmlDocument();
         document.LoadXml(input);
 
-        var exception = Assert.Throws<Exception>(() => MtComponentScript.FromNode(_templateEngine, document.DocumentElement!));
-        Assert.Equal("Failed to get ManiaScript contents. Script tags need to either specify a body or resource-attribute.", exception.Message);
+        Assert.Throws<ManiaScriptSourceMissingException>(() =>
+            MtComponentScript.FromNode(_templateEngine, document.DocumentElement!));
     }
 
     [Fact]
@@ -51,13 +52,15 @@ public class MtComponentScriptTest
         var document1 = new XmlDocument();
         document1.LoadXml(firstInput);
         var script1 = MtComponentScript.FromNode(_templateEngine, document1.DocumentElement!);
-        
+        var script1Hash = script1.ContentHash();
+
         const string secondInput = "<script resource='res'/>";
         var document2 = new XmlDocument();
         document2.LoadXml(secondInput);
         var script2 = MtComponentScript.FromNode(_templateEngine, document2.DocumentElement!);
-        
+        var script2Hash = script2.ContentHash();
+
         Assert.NotEqual(script1, script2);
-        Assert.NotEqual(script1.ContentHash(), script2.ContentHash());
+        Assert.NotEqual(script1Hash, script2Hash);
     }
 }

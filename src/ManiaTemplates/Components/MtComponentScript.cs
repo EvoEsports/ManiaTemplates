@@ -1,4 +1,5 @@
 ﻿using System.Xml;
+using ManiaTemplates.Exceptions;
 
 namespace ManiaTemplates.Components;
 
@@ -44,8 +45,8 @@ public class MtComponentScript
 
         if (content == null)
         {
-            throw new Exception(
-                "Failed to get ManiaScript contents. Script tags need to either specify a body or resource-attribute.");
+            throw new ManiaScriptSourceMissingException(
+                "Script tags need to either specify a body or resource-attribute.");
         }
 
         return new MtComponentScript

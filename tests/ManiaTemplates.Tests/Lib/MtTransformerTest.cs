@@ -83,11 +83,11 @@ public class MtTransformerTest
         _maniaTemplateEngine.GetType().GetField("_components", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(_maniaTemplateEngine, components);
 
-        var expected = StripLineBreaks(File.ReadAllText("Lib/expected.tt"));
-
+        var sanitizedExpected = StripLineBreaks(File.ReadAllText("Lib/expected.tt"));
         var result = _transformer.BuildManialink(_testComponent, "expected");
+        var sanitizedResult = StripLineBreaks(TransformCodeToOrderNumber(result));
 
-        Assert.Equal(expected, StripLineBreaks(TransformCodeToOrderNumber(result)));
+        Assert.Equal(sanitizedExpected, sanitizedResult);
     }
 
     private static string StripLineBreaks(string input)

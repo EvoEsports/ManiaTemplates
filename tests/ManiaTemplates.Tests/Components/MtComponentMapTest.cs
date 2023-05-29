@@ -6,7 +6,8 @@ public class MtComponentMapTest
 {
     private readonly MtComponentMap _mtComponentMap = new();
 
-    public MtComponentMapTest()
+    [Fact]
+    public void Should_Contain_Single_Component_Import()
     {
         _mtComponentMap["test"] = new MtComponentImport { Tag = "preTest", TemplateKey = "preTest" };
         Assert.Single(_mtComponentMap);
