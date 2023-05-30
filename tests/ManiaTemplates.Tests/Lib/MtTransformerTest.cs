@@ -80,19 +80,15 @@ public class MtTransformerTest
                 }
             }
         };
+        
         _maniaTemplateEngine.GetType().GetField("_components", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(_maniaTemplateEngine, components);
 
-        var sanitizedExpected = StripLineBreaks(File.ReadAllText("Lib/expected.tt"));
+        var expected = File.ReadAllText("Lib/expected.tt");
         var result = _transformer.BuildManialink(_testComponent, "expected");
-        var sanitizedResult = StripLineBreaks(TransformCodeToOrderNumber(result));
+        var generalizedResult = TransformCodeToOrderNumber(result);
 
-        Assert.Equal(sanitizedExpected, sanitizedResult);
-    }
-
-    private static string StripLineBreaks(string input)
-    {
-        return input.Replace("\r", "").Replace("\n", "");
+        Assert.Equal(expected, generalizedResult, ignoreLineEndingDifferences: true);
     }
 
     private string TransformCodeToOrderNumber(string input)
