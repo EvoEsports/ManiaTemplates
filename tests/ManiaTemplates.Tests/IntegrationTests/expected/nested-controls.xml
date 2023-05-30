@@ -1,0 +1,11 @@
+<manialink version="3" id="Mttest" name="EvoSC#-Mttest">
+<frame>
+<frame>
+<test>
+<label valign="center" textfont="GameFont" textsize="1" text="Nested controls" />
+</test>
+</frame>
+</frame>
+<script><!--
+--></script>
+</manialink>

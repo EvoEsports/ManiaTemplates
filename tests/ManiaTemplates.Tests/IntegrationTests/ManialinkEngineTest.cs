@@ -11,8 +11,9 @@ public class ManialinkEngineTest
         _maniaTemplateEngine.AddTemplateFromString("test", template);
         _maniaTemplateEngine.PreProcess("test", new[] { typeof(ManiaTemplateEngine).Assembly });
         
-        var result = _maniaTemplateEngine.Render("test", data, new[] { typeof(ManiaTemplateEngine).Assembly });
+        var pendingResult = _maniaTemplateEngine.RenderAsync("test", data, new[] { typeof(ManiaTemplateEngine).Assembly });
+        var result = pendingResult.Result;
         
-        Assert.Equal(expected, result, ignoreWhiteSpaceDifferences: true);
+        Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
     }
 }
