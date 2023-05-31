@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Xml;
+using ManiaTemplates.Exceptions;
 using ManiaTemplates.Lib;
 
 namespace ManiaTemplates.Components;
@@ -101,7 +99,7 @@ public class MtComponent
 
         if (resource == null)
         {
-            throw new Exception($"Missing required attribute 'component' for element '{node.OuterXml}'.");
+            throw new MissingAttributeException($"Missing required attribute 'component' for element '{node.OuterXml}'.");
         }
 
         tag ??= resource.Split('.')[^2];
@@ -122,7 +120,7 @@ public class MtComponent
 
         if (nameSpace == null)
         {
-            throw new Exception($"Missing attribute 'namespace' for element '{node.OuterXml}'.");
+            throw new MissingAttributeException($"Missing attribute 'namespace' for element '{node.OuterXml}'.");
         }
 
         return nameSpace;
@@ -162,12 +160,12 @@ public class MtComponent
 
         if (name == null)
         {
-            throw new Exception($"Missing attribute 'name' for element '{node.OuterXml}'.");
+            throw new MissingAttributeException($"Missing attribute 'name' for element '{node.OuterXml}'.");
         }
 
         if (type == null)
         {
-            throw new Exception($"Missing attribute 'type' for element '{node.OuterXml}'.");
+            throw new MissingAttributeException($"Missing attribute 'type' for element '{node.OuterXml}'.");
         }
 
         var property = new MtComponentProperty

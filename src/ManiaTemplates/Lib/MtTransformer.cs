@@ -67,11 +67,11 @@ public class MtTransformer
     /// </summary>
     private string CreateBodyRenderMethod(string body, MtDataContext context)
     {
-        var bodyRenderMethod = new StringBuilder("void RenderBody() {");
+        var bodyRenderMethod = new StringBuilder("void RenderBody() {\n");
 
         //Arguments for root data context
         var renderBodyArguments =
-            $"new {context}{{ {string.Join(",", context.ToList().Select(contextProperty => $"{contextProperty.Key} = {contextProperty.Key}"))} }}";
+            $"new {context} {{ {string.Join(",", context.ToList().Select(contextProperty => $"{contextProperty.Key} = {contextProperty.Key}"))} }}";
 
         //Initialize root data context
         bodyRenderMethod.AppendLine($"var __data = {renderBodyArguments};");
@@ -102,7 +102,8 @@ public class MtTransformer
     {
         return string.Join("\n",
             mtComponent.Properties.Values.Select(property =>
-                _maniaTemplateLanguage.FeatureBlock($"public {property.Type} {property.Name} {{ get; init; }}")
+                _maniaTemplateLanguage.FeatureBlock(
+                        $"public {property.Type} {property.Name} {{ get; init; }}{(property.Default == null ? "" : $" = {property.Default};")}")
                     .ToString()));
     }
 
@@ -126,17 +127,16 @@ public class MtTransformer
         var methodName = "Render_Slot_" + scope;
 
         var output = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
-            .AppendLine("void " + CreateMethodCall(methodName, $"{context} __data", ""))
-            .AppendLine("{");
+            .AppendLine("void " + CreateMethodCall(methodName, $"{context} __data", "") + " {");
 
         if (context.ParentContext != null)
         {
-            output.AppendLine(CreateLocalVariablesFromContext(context.ParentContext).ToString());
+            output.AppendLine(CreateLocalVariablesFromContext(context.ParentContext));
             variablesInherited.AddRange(context.ParentContext.Keys);
         }
 
         output
-            .AppendLine(CreateLocalVariablesFromContext(context, variablesInherited).ToString())
+            .AppendLine(CreateLocalVariablesFromContext(context, variablesInherited))
             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
             .AppendLine(slotContent)
             .AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
@@ -231,7 +231,9 @@ public class MtTransformer
                         subSnippet.AppendLine($"<!-- {child.InnerText} -->");
                         break;
                     case "slot":
-                        subSnippet.AppendLine($"<#+ {CreateMethodCall("__slotRenderer", "")} #>");
+                        subSnippet.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+                            .AppendLine(CreateMethodCall("__slotRenderer", ""))
+                            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
                         break;
 
                     default:
@@ -312,7 +314,7 @@ public class MtTransformer
             if (component.Properties.TryGetValue(attributeName, out var value))
             {
                 renderArguments.Add(
-                    $"\n{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s => IsStringType(value) ? $@"{{{s}}}" : s))}");
+                    $"{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s => IsStringType(value) ? $@"{{{s}}}" : s))}");
             }
         }
 
@@ -353,7 +355,7 @@ public class MtTransformer
             }
         }
 
-        renderComponentCall.AppendLine("\n);");
+        renderComponentCall.AppendLine(");");
 
         _namespaces.AddRange(component.Namespaces);
 
@@ -398,7 +400,7 @@ public class MtTransformer
 
         //close method arguments
         renderMethod.Append(string.Join(", ", arguments))
-            .Append("){")
+            .AppendLine(") {")
             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
 
         //insert body
@@ -438,12 +440,11 @@ public class MtTransformer
         var ifContent = TemplateInterpolationRegex.Replace(ifCondition, "$1");
 
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, $" if({ifContent})");
-        snippet.AppendLine(null, " {");
+        snippet.AppendLine(null, $"if ({ifContent}) {{");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, " }");
+        snippet.AppendLine(null, "}");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
 
         return snippet;
@@ -464,15 +465,14 @@ public class MtTransformer
 
         var snippet = new Snippet();
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, $" var {outerIndexVariableName} = 0;");
-        snippet.AppendLine(null, $" foreach({foreachLoop.Condition})");
-        snippet.AppendLine(null, " {");
-        snippet.AppendLine(null, $" var {innerIndexVariableName} = {outerIndexVariableName};");
+        snippet.AppendLine(null, $"var {outerIndexVariableName} = 0;");
+        snippet.AppendLine(null, $"foreach ({foreachLoop.Condition}) {{");
+        snippet.AppendLine(null, $"var {innerIndexVariableName} = {outerIndexVariableName};");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, $" {outerIndexVariableName}++;");
-        snippet.AppendLine(null, " }");
+        snippet.AppendLine(null, $"{outerIndexVariableName}++;");
+        snippet.AppendLine(null, "}");
         snippet.AppendLine(null, _maniaTemplateLanguage.FeatureBlockEnd());
 
         return snippet;
@@ -571,6 +571,11 @@ public class MtTransformer
     private string BuildManiaScripts(MtComponent rootComponent)
     {
         var maniaScripts = rootComponent.Scripts.ToDictionary(script => script.ContentHash());
+        foreach (var (key, value) in _maniaScripts)
+        {
+            maniaScripts[key] = value;
+        }
+        
         var scriptMethod = new Snippet
         {
             "void RenderManiaScripts() {",
