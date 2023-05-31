@@ -102,7 +102,8 @@ public class MtTransformer
     {
         return string.Join("\n",
             mtComponent.Properties.Values.Select(property =>
-                _maniaTemplateLanguage.FeatureBlock($"public {property.Type} {property.Name} {{ get; init; }}")
+                _maniaTemplateLanguage.FeatureBlock(
+                        $"public {property.Type} {property.Name} {{ get; init; }}{(property.Default == null ? "" : $" = {property.Default};")}")
                     .ToString()));
     }
 

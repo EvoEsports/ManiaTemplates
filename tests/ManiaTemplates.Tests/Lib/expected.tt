@@ -10,7 +10,7 @@ RenderManiaScripts();
 </manialink>
 <#+
 public List<int> numbers { get; init; }
-public boolean enabled { get; init; }
+public boolean enabled { get; init; } = true;
 class CRoot {
 public List<int> numbers { get; set; }
 public boolean enabled { get; set; }

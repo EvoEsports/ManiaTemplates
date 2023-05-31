@@ -1,5 +1,109 @@
 <manialink version="3" id="Mttest" name="EvoSC#-Mttest">
 <frame>
+<label valign="center" textfont="GameFont" textsize="1" text="1, 1 at index 0, 0" />
+</frame>
+<frame pos="10 0">
+<label valign="center" textfont="GameFont" textsize="1" text="2, 1 at index 1, 0" />
+<label valign="center" textfont="GameFont" textsize="1" text="2, 2 at index 1, 1" />
+</frame>
+<frame pos="20 0">
+<label valign="center" textfont="GameFont" textsize="1" text="3, 1 at index 2, 0" />
+<label valign="center" textfont="GameFont" textsize="1" text="3, 2 at index 2, 1" />
+<label valign="center" textfont="GameFont" textsize="1" text="3, 3 at index 2, 2" />
+</frame>
+<frame pos="30 0">
+<label valign="center" textfont="GameFont" textsize="1" text="4, 1 at index 3, 0" />
+<label valign="center" textfont="GameFont" textsize="1" text="4, 2 at index 3, 1" />
+<label valign="center" textfont="GameFont" textsize="1" text="4, 3 at index 3, 2" />
+<label valign="center" textfont="GameFont" textsize="1" text="4, 4 at index 3, 3" />
+</frame>
+<frame pos="40 0">
+<label valign="center" textfont="GameFont" textsize="1" text="5, 1 at index 4, 0" />
+<label valign="center" textfont="GameFont" textsize="1" text="5, 2 at index 4, 1" />
+<label valign="center" textfont="GameFont" textsize="1" text="5, 3 at index 4, 2" />
+<label valign="center" textfont="GameFont" textsize="1" text="5, 4 at index 4, 3" />
+<label valign="center" textfont="GameFont" textsize="1" text="5, 5 at index 4, 4" />
+</frame>
+<frame pos="50 0">
+<label valign="center" textfont="GameFont" textsize="1" text="6, 1 at index 5, 0" />
+<label valign="center" textfont="GameFont" textsize="1" text="6, 2 at index 5, 1" />
+<label valign="center" textfont="GameFont" textsize="1" text="6, 3 at index 5, 2" />
+<label valign="center" textfont="GameFont" textsize="1" text="6, 4 at index 5, 3" />
+<label valign="center" textfont="GameFont" textsize="1" text="6, 5 at index 5, 4" />
+<label valign="center" textfont="GameFont" textsize="1" text="6, 6 at index 5, 5" />
+</frame>
+<frame pos="60 0">
+<label valign="center" textfont="GameFont" textsize="1" text="7, 1 at index 6, 0" />
+<label valign="center" textfont="GameFont" textsize="1" text="7, 2 at index 6, 1" />
+<label valign="center" textfont="GameFont" textsize="1" text="7, 3 at index 6, 2" />
+<label valign="center" textfont="GameFont" textsize="1" text="7, 4 at index 6, 3" />
+<label valign="center" textfont="GameFont" textsize="1" text="7, 5 at index 6, 4" />
+<label valign="center" textfont="GameFont" textsize="1" text="7, 6 at index 6, 5" />
+<label valign="center" textfont="GameFont" textsize="1" text="7, 7 at index 6, 6" />
+</frame>
+<frame pos="70 0">
+<label valign="center" textfont="GameFont" textsize="1" text="8, 1 at index 7, 0" />
+<label valign="center" textfont="GameFont" textsize="1" text="8, 2 at index 7, 1" />
+<label valign="center" textfont="GameFont" textsize="1" text="8, 3 at index 7, 2" />
+<label valign="center" textfont="GameFont" textsize="1" text="8, 4 at index 7, 3" />
+<label valign="center" textfont="GameFont" textsize="1" text="8, 5 at index 7, 4" />
+<label valign="center" textfont="GameFont" textsize="1" text="8, 6 at index 7, 5" />
+<label valign="center" textfont="GameFont" textsize="1" text="8, 7 at index 7, 6" />
+<label valign="center" textfont="GameFont" textsize="1" text="8, 8 at index 7, 7" />
+</frame>
+<frame pos="80 0">
+<label valign="center" textfont="GameFont" textsize="1" text="9, 1 at index 8, 0" />
+<label valign="center" textfont="GameFont" textsize="1" text="9, 2 at index 8, 1" />
+<label valign="center" textfont="GameFont" textsize="1" text="9, 3 at index 8, 2" />
+<label valign="center" textfont="GameFont" textsize="1" text="9, 4 at index 8, 3" />
+<label valign="center" textfont="GameFont" textsize="1" text="9, 5 at index 8, 4" />
+<label valign="center" textfont="GameFont" textsize="1" text="9, 6 at index 8, 5" />
+<label valign="center" textfont="GameFont" textsize="1" text="9, 7 at index 8, 6" />
+<label valign="center" textfont="GameFont" textsize="1" text="9, 8 at index 8, 7" />
+<label valign="center" textfont="GameFont" textsize="1" text="9, 9 at index 8, 8" />
+</frame>
+<frame pos="90 0">
+<label valign="center" textfont="GameFont" textsize="1" text="10, 1 at index 9, 0" />
+<label valign="center" textfont="GameFont" textsize="1" text="10, 2 at index 9, 1" />
+<label valign="center" textfont="GameFont" textsize="1" text="10, 3 at index 9, 2" />
+<label valign="center" textfont="GameFont" textsize="1" text="10, 4 at index 9, 3" />
+<label valign="center" textfont="GameFont" textsize="1" text="10, 5 at index 9, 4" />
+<label valign="center" textfont="GameFont" textsize="1" text="10, 6 at index 9, 5" />
+<label valign="center" textfont="GameFont" textsize="1" text="10, 7 at index 9, 6" />
+<label valign="center" textfont="GameFont" textsize="1" text="10, 8 at index 9, 7" />
+<label valign="center" textfont="GameFont" textsize="1" text="10, 9 at index 9, 8" />
+<label valign="center" textfont="GameFont" textsize="1" text="10, 10 at index 9, 9" />
+</frame>
+<frame pos="100 0">
+<label valign="center" textfont="GameFont" textsize="1" text="11, 1 at index 10, 0" />
+<label valign="center" textfont="GameFont" textsize="1" text="11, 2 at index 10, 1" />
+<label valign="center" textfont="GameFont" textsize="1" text="11, 3 at index 10, 2" />
+<label valign="center" textfont="GameFont" textsize="1" text="11, 4 at index 10, 3" />
+<label valign="center" textfont="GameFont" textsize="1" text="11, 5 at index 10, 4" />
+<label valign="center" textfont="GameFont" textsize="1" text="11, 6 at index 10, 5" />
+<label valign="center" textfont="GameFont" textsize="1" text="11, 7 at index 10, 6" />
+<label valign="center" textfont="GameFont" textsize="1" text="11, 8 at index 10, 7" />
+<label valign="center" textfont="GameFont" textsize="1" text="11, 9 at index 10, 8" />
+<label valign="center" textfont="GameFont" textsize="1" text="11, 10 at index 10, 9" />
+<label valign="center" textfont="GameFont" textsize="1" text="11, 11 at index 10, 10" />
+</frame>
+<frame pos="110 0">
+<label valign="center" textfont="GameFont" textsize="1" text="12, 1 at index 11, 0" />
+<label valign="center" textfont="GameFont" textsize="1" text="12, 2 at index 11, 1" />
+<label valign="center" textfont="GameFont" textsize="1" text="12, 3 at index 11, 2" />
+<label valign="center" textfont="GameFont" textsize="1" text="12, 4 at index 11, 3" />
+<label valign="center" textfont="GameFont" textsize="1" text="12, 5 at index 11, 4" />
+<label valign="center" textfont="GameFont" textsize="1" text="12, 6 at index 11, 5" />
+<label valign="center" textfont="GameFont" textsize="1" text="12, 7 at index 11, 6" />
+<label valign="center" textfont="GameFont" textsize="1" text="12, 8 at index 11, 7" />
+<label valign="center" textfont="GameFont" textsize="1" text="12, 9 at index 11, 8" />
+<label valign="center" textfont="GameFont" textsize="1" text="12, 10 at index 11, 9" />
+<label valign="center" textfont="GameFont" textsize="1" text="12, 11 at index 11, 10" />
+<label valign="center" textfont="GameFont" textsize="1" text="12, 12 at index 11, 11" />
+</frame>
+<frame pos="120 0">
+</frame>
+<frame>
 <frame>
 <test>
 <label valign="center" textfont="GameFont" textsize="1" text="Nested controls" />
