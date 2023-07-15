@@ -4,7 +4,7 @@
 <#@ import namespace="GraphNamespace" #>
 <manialink version="3" id="expected" name="EvoSC#-expected">
 <#
-RenderBody();
+RenderBody(() => DoNothing());
 RenderManiaScripts();
 #>
 </manialink>
@@ -31,7 +31,8 @@ __index = data.__index;
 i = data.i;
 }
 }
-void RenderBody() {
+string DoNothing(){return "";}
+void RenderBody(Action __slotRenderer) {
 var __data = new CRoot { numbers = numbers,enabled = enabled };
 var __outerIndex1 = 0;
 foreach (int i in numbers) {
