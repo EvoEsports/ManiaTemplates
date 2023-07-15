@@ -48,12 +48,13 @@ public class MtTransformer
             CreateImportStatements(),
             ManiaLinkStart(className, version),
             "<#",
-            "RenderBody();",
+            "RenderBody(() => DoNothing());",
             "RenderManiaScripts();",
             "#>",
             ManiaLinkEnd(),
             CreateTemplatePropertiesBlock(rootComponent),
             CreateDataClassesBlock(rootContext),
+            DoNothingMethod(),
             CreateBodyRenderMethod(body, rootContext),
             CreateRenderMethodsBlock(),
             BuildManiaScripts(rootComponent)
@@ -63,11 +64,19 @@ public class MtTransformer
     }
 
     /// <summary>
+    /// Creates a dummy DoNothing() method that returns a empty string.
+    /// </summary>
+    private string DoNothingMethod()
+    {
+        return _maniaTemplateLanguage.FeatureBlock(@"string DoNothing(){return """";}").ToString();
+    }
+
+    /// <summary>
     /// Creates the method that renders the body of the ManiaLink.
     /// </summary>
     private string CreateBodyRenderMethod(string body, MtDataContext context)
     {
-        var bodyRenderMethod = new StringBuilder("void RenderBody() {\n");
+        var bodyRenderMethod = new StringBuilder("void RenderBody(Action __slotRenderer) {\n");
 
         //Arguments for root data context
         var renderBodyArguments =
