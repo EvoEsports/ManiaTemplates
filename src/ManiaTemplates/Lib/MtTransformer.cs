@@ -217,7 +217,7 @@ public class MtTransformer
                     attributeList,
                     ProcessNode(
                         XmlStringToNode(component.TemplateContent),
-                        availableMtComponents,
+                        availableMtComponents.Overload(component.ImportedComponents),
                         currentContext
                     ),
                     slotContent

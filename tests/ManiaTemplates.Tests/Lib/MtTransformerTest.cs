@@ -3,11 +3,13 @@ using System.Text.RegularExpressions;
 using ManiaTemplates.Components;
 using ManiaTemplates.Languages;
 using ManiaTemplates.Lib;
+using Xunit.Abstractions;
 
 namespace ManiaTemplates.Tests.Lib;
 
 public class MtTransformerTest
 {
+    private readonly ITestOutputHelper _testOutputHelper;
     private readonly ManiaTemplateEngine _maniaTemplateEngine = new();
     private readonly Regex _hashCodePattern = new("[0-9]{6,10}");
 
@@ -47,8 +49,9 @@ public class MtTransformerTest
 
     private readonly MtTransformer _transformer;
 
-    public MtTransformerTest()
+    public MtTransformerTest(ITestOutputHelper testOutputHelper)
     {
+        _testOutputHelper = testOutputHelper;
         _transformer = new MtTransformer(_maniaTemplateEngine, new MtLanguageT4());
     }
 
@@ -80,7 +83,7 @@ public class MtTransformerTest
                 }
             }
         };
-        
+
         _maniaTemplateEngine.GetType().GetField("_components", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(_maniaTemplateEngine, components);
 
@@ -106,5 +109,24 @@ public class MtTransformerTest
             assignments[match.Value] = count.ToString();
             return count.ToString();
         });
+    }
+
+    [Fact]
+    public void Should_Import_Components_Recursively()
+    {
+        var assemblies = new List<Assembly>();
+        assemblies.Add(Assembly.GetExecutingAssembly());
+        
+        _maniaTemplateEngine.AddTemplateFromString("Embeddable", "<component><template><el/></template></component>");
+        _maniaTemplateEngine.AddTemplateFromString("RecursionElement", "<component><import component='Embeddable' as='Comp' /><template><Comp/></template></component>");
+        _maniaTemplateEngine.AddTemplateFromString("RecursionRoot", "<component><import component='RecursionElement' as='REL' /><template><REL/></template></component>");
+        
+        var output = _maniaTemplateEngine.RenderAsync("RecursionRoot", new {}, assemblies).Result;
+        Assert.Equal( @$"<manialink version=""3"" id=""MtRecursionRoot"" name=""EvoSC#-MtRecursionRoot"">
+<el />
+<script><!--
+--></script>
+</manialink>
+", output, ignoreLineEndingDifferences: true);
     }
 }
