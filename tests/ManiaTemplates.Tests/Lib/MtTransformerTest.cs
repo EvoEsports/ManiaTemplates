@@ -9,7 +9,6 @@ namespace ManiaTemplates.Tests.Lib;
 
 public class MtTransformerTest
 {
-    private readonly ITestOutputHelper _testOutputHelper;
     private readonly ManiaTemplateEngine _maniaTemplateEngine = new();
     private readonly Regex _hashCodePattern = new("[0-9]{6,10}");
 
@@ -49,9 +48,8 @@ public class MtTransformerTest
 
     private readonly MtTransformer _transformer;
 
-    public MtTransformerTest(ITestOutputHelper testOutputHelper)
+    public MtTransformerTest()
     {
-        _testOutputHelper = testOutputHelper;
         _transformer = new MtTransformer(_maniaTemplateEngine, new MtLanguageT4());
     }
 
