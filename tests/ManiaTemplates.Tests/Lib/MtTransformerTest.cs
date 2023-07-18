@@ -80,7 +80,7 @@ public class MtTransformerTest
                 }
             }
         };
-        
+
         _maniaTemplateEngine.GetType().GetField("_components", BindingFlags.NonPublic | BindingFlags.Instance)
             ?.SetValue(_maniaTemplateEngine, components);
 
@@ -106,5 +106,24 @@ public class MtTransformerTest
             assignments[match.Value] = count.ToString();
             return count.ToString();
         });
+    }
+
+    [Fact]
+    public void Should_Import_Components_Recursively()
+    {
+        var assemblies = new List<Assembly>();
+        assemblies.Add(Assembly.GetExecutingAssembly());
+        
+        _maniaTemplateEngine.AddTemplateFromString("Embeddable", "<component><template><el/></template></component>");
+        _maniaTemplateEngine.AddTemplateFromString("RecursionElement", "<component><import component='Embeddable' as='Comp' /><template><Comp/></template></component>");
+        _maniaTemplateEngine.AddTemplateFromString("RecursionRoot", "<component><import component='RecursionElement' as='REL' /><template><REL/></template></component>");
+        
+        var output = _maniaTemplateEngine.RenderAsync("RecursionRoot", new {}, assemblies).Result;
+        Assert.Equal( @$"<manialink version=""3"" id=""MtRecursionRoot"" name=""EvoSC#-MtRecursionRoot"">
+<el />
+<script><!--
+--></script>
+</manialink>
+", output, ignoreLineEndingDifferences: true);
     }
 }
