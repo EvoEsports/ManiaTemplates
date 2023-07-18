@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 using ManiaTemplates.Components;
 using ManiaTemplates.Languages;
 using ManiaTemplates.Lib;
-using Xunit.Abstractions;
 
 namespace ManiaTemplates.Tests.Lib;
 
