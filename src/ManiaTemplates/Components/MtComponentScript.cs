@@ -9,6 +9,7 @@ public class MtComponentScript
     public required string Content { get; init; }
     public required bool HasMainMethod { get; init; }
     public required bool Once { get; init; }
+    public int Depth { get; set; }
 
     private static readonly Regex DetectMainMethodRegex = new(@"(?s)main\(\).*\{.*\}");
     
@@ -41,7 +42,7 @@ public class MtComponentScript
                 }
             }
         }
-
+        
         if (content == null)
         {
             throw new ManiaScriptSourceMissingException(

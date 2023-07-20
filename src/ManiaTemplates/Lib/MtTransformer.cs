@@ -176,7 +176,7 @@ public class MtTransformer
     /// <summary>
     /// Process a ManiaTemplate node.
     /// </summary>
-    private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents, MtDataContext context)
+    private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents, MtDataContext context, int depth = 1)
     {
         Snippet snippet = new();
 
@@ -209,7 +209,8 @@ public class MtTransformer
                     slotContent = ProcessNode(
                         child,
                         availableMtComponents,
-                        currentContext
+                        currentContext,
+                        depth
                     );
                 }
 
@@ -222,9 +223,11 @@ public class MtTransformer
                     ProcessNode(
                         XmlStringToNode(component.TemplateContent),
                         availableMtComponents.Overload(component.ImportedComponents),
-                        currentContext
+                        currentContext,
+                        depth + 1
                     ),
-                    slotContent
+                    slotContent,
+                    depth
                 );
 
                 subSnippet.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
@@ -293,7 +296,8 @@ public class MtTransformer
         MtDataContext currentContext,
         MtComponentAttributes attributeList,
         string componentBody,
-        string? slotContent = null
+        string? slotContent = null,
+        int depth = 0
     )
     {
         MtComponentSlot? slot = null;
@@ -379,6 +383,7 @@ public class MtTransformer
                 continue;
             }
 
+            script.Depth = depth;
             _maniaScripts.Add(scriptHash, script);
         }
 
@@ -588,34 +593,39 @@ public class MtTransformer
             maniaScripts[key] = value;
         }
 
-        var mainMethodSet = false;
+        MtComponentScript? mainScript = null;
         var scripts = new StringBuilder();
         var scriptMethod = new Snippet
         {
             "void RenderManiaScripts() {",
         };
 
-        foreach (var script in maniaScripts.Values) //TODO: sort by depth
+        var maniaScriptsByDepth = from script in maniaScripts orderby script.Value.Depth descending select script;
+        foreach (var (i, script) in maniaScriptsByDepth)
         {
             if (script.HasMainMethod)
             {
-                if (mainMethodSet)
+                if (mainScript != null)
                 {
                     throw new DuplicateMainManiaScriptException(
-                        "You may only include one main-method per ManiaLink. Offending script:\n" + script.Content);
+                        "You may only include one main-method per ManiaLink. Offending script:\n" + mainScript.Content);
                 }
 
-                mainMethodSet = true;
+                mainScript = script;
             }
 
             scripts.AppendLine(script.Content);
         }
 
-        var combinedScripts = JoinScriptBlocksRegex.Replace(string.Join("\n", scripts), "");
+        var joinedScripts = string.Join("\n", scripts);
+        while (JoinScriptBlocksRegex.IsMatch(joinedScripts))
+        {
+            joinedScripts = JoinScriptBlocksRegex.Replace(joinedScripts, "");
+        }
 
         scriptMethod.AppendLine("#>")
             .AppendLine("<script>")
-            .AppendLine(combinedScripts)
+            .AppendLine(joinedScripts)
             .AppendLine("</script>")
             .AppendLine("<#+")
             .AppendLine("}");
