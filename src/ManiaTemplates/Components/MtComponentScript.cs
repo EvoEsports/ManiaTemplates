@@ -17,9 +17,9 @@ public class MtComponentScript
         string? content = null;
         bool main = false, once = false;
 
-        if (node.InnerText.Length > 0)
+        if (node.InnerXml.Length > 0)
         {
-            content = node.InnerText;
+            content = node.InnerXml;
         }
 
         if (node.Attributes != null)

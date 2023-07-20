@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Xml;
 using ManiaTemplates.Components;
 using ManiaTemplates.ControlElements;
+using ManiaTemplates.Exceptions;
 using ManiaTemplates.Interfaces;
 
 namespace ManiaTemplates.Lib;
@@ -20,6 +21,7 @@ public class MtTransformer
 
     private static readonly Regex TemplateFeatureControlRegex = new(@"#>\s*<#\+");
     private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
+    private static readonly Regex JoinScriptBlocksRegex = new(@"(?s)-->.+?<!--");
 
     public MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage maniaTemplateLanguage)
     {
@@ -157,11 +159,13 @@ public class MtTransformer
     /// <summary>
     /// Creates a list of variables from a given context, used in render methods.
     /// </summary>
-    private static string CreateLocalVariablesFromContext(MtDataContext context, ICollection<string>? variablesInherited = null)
+    private static string CreateLocalVariablesFromContext(MtDataContext context,
+        ICollection<string>? variablesInherited = null)
     {
         var localVariables = new StringBuilder();
-        
-        foreach (var dataName in context.Keys.Where(dataName => variablesInherited == null || !variablesInherited.Contains(dataName)))
+
+        foreach (var dataName in context.Keys.Where(dataName =>
+                     variablesInherited == null || !variablesInherited.Contains(dataName)))
         {
             localVariables.AppendLine($"var {dataName} = __data.{dataName};");
         }
@@ -583,23 +587,38 @@ public class MtTransformer
         {
             maniaScripts[key] = value;
         }
-        
+
+        var mainSet = false;
+        var scripts = new StringBuilder();
         var scriptMethod = new Snippet
         {
             "void RenderManiaScripts() {",
         };
 
-        scriptMethod.AppendLine("#>")
-            .AppendLine("<script><!--");
-
-        foreach (var script in maniaScripts.Values)
+        foreach (var script in maniaScripts.Values) //TODO: sort by depth
         {
-            scriptMethod.AppendLine(script.Content);
+            if (script.Main)
+            {
+                if (mainSet)
+                {
+                    throw new DuplicateMainManiaScriptException(
+                        "You may only include one script with main-attribute. Offending script: " + script.Content);
+                }
+
+                mainSet = true;
+            }
+
+            scripts.AppendLine(script.Content);
         }
 
-        scriptMethod.AppendLine("--></script>");
-        scriptMethod.AppendLine("<#+");
-        scriptMethod.AppendLine("}");
+        var combinedScripts = JoinScriptBlocksRegex.Replace(string.Join("\n", scripts), "");
+
+        scriptMethod.AppendLine("#>")
+            .AppendLine("<script>")
+            .AppendLine(combinedScripts)
+            .AppendLine("</script>")
+            .AppendLine("<#+")
+            .AppendLine("}");
 
         return _maniaTemplateLanguage.FeatureBlock(scriptMethod.ToString()).ToString();
     }
