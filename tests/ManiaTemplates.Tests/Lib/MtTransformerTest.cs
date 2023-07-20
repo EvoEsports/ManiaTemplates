@@ -22,9 +22,9 @@ public class MtTransformerTest
             },
         Scripts = new()
         {
-            new() { Content = "scriptText1", Main = true, Once = false },
-            new() { Content = "scriptText2", Main = false, Once = true },
-            new() { Content = "scriptText3", Main = false, Once = false }
+            new() { Content = "scriptText1", HasMainMethod = true, Once = false },
+            new() { Content = "scriptText2", HasMainMethod = false, Once = true },
+            new() { Content = "scriptText3", HasMainMethod = false, Once = false }
         },
         HasSlot = true,
         ImportedComponents =
@@ -71,8 +71,8 @@ public class MtTransformerTest
                         },
                     Scripts = new List<MtComponentScript>()
                     {
-                        new() { Content = "GraphScript", Main = false, Once = false },
-                        new() { Content = "GraphScript", Main = false, Once = true }
+                        new() { Content = "GraphScript", HasMainMethod = false, Once = false },
+                        new() { Content = "GraphScript", HasMainMethod = false, Once = true },
                     },
                     HasSlot = false,
                     ImportedComponents = new MtComponentMap(),
@@ -121,8 +121,8 @@ public class MtTransformerTest
         var output = _maniaTemplateEngine.RenderAsync("RecursionRoot", new {}, assemblies).Result;
         Assert.Equal( @$"<manialink version=""3"" id=""MtRecursionRoot"" name=""EvoSC#-MtRecursionRoot"">
 <el />
-<script><!--
---></script>
+<script>
+</script>
 </manialink>
 ", output, ignoreLineEndingDifferences: true);
     }

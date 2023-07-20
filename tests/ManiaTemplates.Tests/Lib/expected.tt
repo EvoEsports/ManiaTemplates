@@ -92,12 +92,12 @@ Render_Component_MtContext2(__slotRenderer: () => Render_Slot_8(__data));
 }
 void RenderManiaScripts() {
 #>
-<script><!--
+<script>
+GraphScript
 scriptText1
 scriptText2
 scriptText3
-GraphScript
---></script>
+</script>
 <#+
 }
 #>

@@ -1,4 +1,5 @@
-﻿using System.Xml;
+﻿using System.Text.RegularExpressions;
+using System.Xml;
 using ManiaTemplates.Exceptions;
 
 namespace ManiaTemplates.Components;
@@ -6,20 +7,23 @@ namespace ManiaTemplates.Components;
 public class MtComponentScript
 {
     public required string Content { get; init; }
-    public required bool Main { get; init; }
+    public required bool HasMainMethod { get; init; }
     public required bool Once { get; init; }
+    public int Depth { get; set; }
 
+    private static readonly Regex DetectMainMethodRegex = new(@"(?s)main\(\).*\{.*\}");
+    
     /// <summary>
     /// Creates a MtComponentScript instance from a components script-node.
     /// </summary>
     public static MtComponentScript FromNode(ManiaTemplateEngine engine, XmlNode node)
     {
         string? content = null;
-        bool main = false, once = false;
+        var once = false;
 
-        if (node.InnerText.Length > 0)
+        if (node.InnerXml.Length > 0)
         {
-            content = node.InnerText;
+            content = node.InnerXml;
         }
 
         if (node.Attributes != null)
@@ -32,17 +36,13 @@ public class MtComponentScript
                         content = engine.GetManiaScript(attribute.Value);
                         break;
 
-                    case "main":
-                        main = true;
-                        break;
-
                     case "once":
                         once = true;
                         break;
                 }
             }
         }
-
+        
         if (content == null)
         {
             throw new ManiaScriptSourceMissingException(
@@ -52,7 +52,7 @@ public class MtComponentScript
         return new MtComponentScript
         {
             Content = content,
-            Main = main,
+            HasMainMethod = DetectMainMethodRegex.IsMatch(content),
             Once = once
         };
     }
