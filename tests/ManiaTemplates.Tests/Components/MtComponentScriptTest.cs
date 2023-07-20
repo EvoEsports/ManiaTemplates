@@ -29,7 +29,7 @@ public class MtComponentScriptTest
 
         var res = MtComponentScript.FromNode(_templateEngine, document.DocumentElement!);
         Assert.Equal("text", res.Content);
-        Assert.Equal(expectedMain, res.Main);
+        Assert.Equal(expectedMain, res.HasMainMethod);
         Assert.Equal(expectedOnce, res.Once);
     }
 

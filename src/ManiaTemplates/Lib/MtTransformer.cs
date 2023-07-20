@@ -588,7 +588,7 @@ public class MtTransformer
             maniaScripts[key] = value;
         }
 
-        var mainSet = false;
+        var mainMethodSet = false;
         var scripts = new StringBuilder();
         var scriptMethod = new Snippet
         {
@@ -597,15 +597,15 @@ public class MtTransformer
 
         foreach (var script in maniaScripts.Values) //TODO: sort by depth
         {
-            if (script.Main)
+            if (script.HasMainMethod)
             {
-                if (mainSet)
+                if (mainMethodSet)
                 {
                     throw new DuplicateMainManiaScriptException(
-                        "You may only include one script with main-attribute. Offending script: " + script.Content);
+                        "You may only include one main-method per ManiaLink. Offending script:\n" + script.Content);
                 }
 
-                mainSet = true;
+                mainMethodSet = true;
             }
 
             scripts.AppendLine(script.Content);

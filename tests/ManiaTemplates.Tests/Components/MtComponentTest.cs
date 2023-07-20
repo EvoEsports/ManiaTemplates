@@ -68,10 +68,10 @@ public class MtComponentTest
                 },
             Scripts = new()
             {
-                new() { Content = "resourceScript", Main = true, Once = false },
-                new() { Content = "scriptText1", Main = false, Once = true },
-                new() { Content = "scriptText2", Main = false, Once = true },
-                new() { Content = "scriptText3", Main = false, Once = false }
+                new() { Content = "resourceScript", HasMainMethod = true, Once = false },
+                new() { Content = "scriptText1", HasMainMethod = false, Once = true },
+                new() { Content = "scriptText2", HasMainMethod = false, Once = true },
+                new() { Content = "scriptText3", HasMainMethod = false, Once = false }
             },
             HasSlot = true,
             ImportedComponents = new()
