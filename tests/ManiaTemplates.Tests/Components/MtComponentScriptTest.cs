@@ -30,6 +30,20 @@ public class MtComponentScriptTest
     }
 
     [Theory]
+    [InlineData("<script>main(){ //dummy comment }</script>", true, false)]
+    [InlineData("<script once=''>main(){ //dummy comment }</script>", true, true)]
+    public void Should_Load_ManiaScriptMainMethod(string input, bool expectedMain, bool expectedOnce)
+    {
+        var document = new XmlDocument();
+        document.LoadXml(input);
+
+        var res = MtComponentScript.FromNode(_templateEngine, document.DocumentElement!);
+        Assert.Equal("main(){ //dummy comment }", res.Content);
+        Assert.Equal(expectedMain, res.HasMainMethod);
+        Assert.Equal(expectedOnce, res.Once);
+    }
+
+    [Theory]
     [InlineData("<script/>")]
     [InlineData("<script once='true' />")]
     public void Should_Fail_To_Load_Empty_ManiaScript(string input)
