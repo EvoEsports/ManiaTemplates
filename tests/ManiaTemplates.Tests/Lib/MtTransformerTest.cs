@@ -72,7 +72,7 @@ public class MtTransformerTest
                     Scripts = new List<MtComponentScript>()
                     {
                         new() { Content = "GraphScript", HasMainMethod = false, Once = false },
-                        new() { Content = "GraphScript", HasMainMethod = false, Once = true }
+                        new() { Content = "GraphScript", HasMainMethod = false, Once = true },
                     },
                     HasSlot = false,
                     ImportedComponents = new MtComponentMap(),
@@ -121,8 +121,8 @@ public class MtTransformerTest
         var output = _maniaTemplateEngine.RenderAsync("RecursionRoot", new {}, assemblies).Result;
         Assert.Equal( @$"<manialink version=""3"" id=""MtRecursionRoot"" name=""EvoSC#-MtRecursionRoot"">
 <el />
-<script><!--
---></script>
+<script>
+</script>
 </manialink>
 ", output, ignoreLineEndingDifferences: true);
     }

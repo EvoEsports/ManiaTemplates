@@ -47,7 +47,7 @@ public class MtComponentTest
                     <slot/>
                 </template>
                 
-                <script resource="res" main="notUsed">scriptText1</script>
+                <script resource="res"><!--main(){}--></script>
                 <script once="notUsed">scriptText1</script>
                 <script once="notUsed">scriptText2</script>
                 <script>scriptText3</script>
@@ -55,7 +55,7 @@ public class MtComponentTest
         """;
         
         _engine.GetType().GetField("_maniaScripts", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(_engine,
-            new Dictionary<string, string> { { "res", "resourceScript" } });
+            new Dictionary<string, string> { { "res", "<!--main(){}-->" } });
         
         var expected = new MtComponent
         {
@@ -68,7 +68,7 @@ public class MtComponentTest
                 },
             Scripts = new()
             {
-                new() { Content = "resourceScript", HasMainMethod = true, Once = false },
+                new() { Content = "<!--main(){}-->", HasMainMethod = true, Once = false },
                 new() { Content = "scriptText1", HasMainMethod = false, Once = true },
                 new() { Content = "scriptText2", HasMainMethod = false, Once = true },
                 new() { Content = "scriptText3", HasMainMethod = false, Once = false }

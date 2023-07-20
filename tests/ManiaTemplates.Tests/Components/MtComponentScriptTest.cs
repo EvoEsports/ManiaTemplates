@@ -15,13 +15,9 @@ public class MtComponentScriptTest
 
     [Theory]
     [InlineData("<script>text</script>", false, false)]
-    [InlineData("<script main=''>text</script>", true, false)]
     [InlineData("<script once=''>text</script>", false, true)]
-    [InlineData("<script main='' once=''>text</script>", true, true)]
     [InlineData("<script resource='res'/>", false, false)]
-    [InlineData("<script resource='res' main=''/>", true, false)]
     [InlineData("<script resource='res' once=''/>", false, true)]
-    [InlineData("<script resource='res' main='' once=''/>", true, true)]
     public void Should_Load_ManiaScript(string input, bool expectedMain, bool expectedOnce)
     {
         var document = new XmlDocument();
@@ -35,7 +31,7 @@ public class MtComponentScriptTest
 
     [Theory]
     [InlineData("<script/>")]
-    [InlineData("<script main='false' once='true' />")]
+    [InlineData("<script once='true' />")]
     public void Should_Fail_To_Load_Empty_ManiaScript(string input)
     {
         var document = new XmlDocument();
