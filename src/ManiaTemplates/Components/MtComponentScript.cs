@@ -19,7 +19,7 @@ public class MtComponentScript
     public static MtComponentScript FromNode(ManiaTemplateEngine engine, XmlNode node)
     {
         string? content = null;
-        bool main = false, once = false;
+        var once = false;
 
         if (node.InnerXml.Length > 0)
         {
@@ -49,15 +49,10 @@ public class MtComponentScript
                 "Script tags need to either specify a body or resource-attribute.");
         }
 
-        if (DetectMainMethodRegex.IsMatch(content))
-        {
-            main = true;
-        }
-
         return new MtComponentScript
         {
             Content = content,
-            HasMainMethod = main,
+            HasMainMethod = DetectMainMethodRegex.IsMatch(content),
             Once = once
         };
     }
