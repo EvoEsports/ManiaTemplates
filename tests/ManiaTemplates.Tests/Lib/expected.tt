@@ -5,7 +5,6 @@
 <manialink version="3" id="expected" name="EvoSC#-expected">
 <#
 RenderBody(() => DoNothing());
-RenderManiaScripts();
 #>
 </manialink>
 <#+
@@ -31,6 +30,7 @@ __index = data.__index;
 i = data.i;
 }
 }
+List<string> __insertedOneTimeManiaScripts = new List<string>();
 string DoNothing(){return "";}
 void RenderBody(Action __slotRenderer) {
 var __data = new CRoot { numbers = numbers,enabled = enabled };
@@ -43,6 +43,19 @@ Render_Component_MtContext2(x: 20 * __index, __slotRenderer: () => Render_Slot_3
 __outerIndex1++;
 }
 Render_Component_MtContext2(__slotRenderer: () => Render_Slot_4(__data));
+#>
+<script>scriptText1
+<#+
+if(!__insertedOneTimeManiaScripts.Contains("0zU/AjjFBI5iWuZPX521w2ZluB8P21bd48fEgb65Qz4=")){
+#>
+scriptText2
+<#+
+__insertedOneTimeManiaScripts.Add("0zU/AjjFBI5iWuZPX521w2ZluB8P21bd48fEgb65Qz4=");
+}
+#>
+scriptText3
+</script>
+<#+
 }
 void Render_Component_MtContext5(double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = $"left", string valign = $"center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = $"", string url = $"", string manialink = $"", string style = $"", string textfont = $"GameFont", double textsize = 1.0, string textcolor = $"", string focusareacolor1 = $"", string focusareacolor2 = $"", string text = $"", string textprefix = $"", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = $"", string id = $"") {
 #>
@@ -59,6 +72,18 @@ __slotRenderer();
 <#+
 }
 void Render_Component_MtContext6(test arg3, string arg1 = $"", int arg2 = 0) {
+#>
+<script>GraphScript
+<#+
+if(!__insertedOneTimeManiaScripts.Contains("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU=")){
+#>
+GraphScript
+<#+
+__insertedOneTimeManiaScripts.Add("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU=");
+}
+#>
+</script>
+<#+
 }
 void Render_Slot_3(CRoot_ForEachLoop1 __data) {
 var numbers = __data.numbers;
@@ -89,15 +114,5 @@ void Render_Slot_4(CRoot __data) {
 var numbers = __data.numbers;
 var enabled = __data.enabled;
 Render_Component_MtContext2(__slotRenderer: () => Render_Slot_8(__data));
-}
-void RenderManiaScripts() {
-#>
-<script>
-GraphScript
-scriptText1
-scriptText2
-scriptText3
-</script>
-<#+
 }
 #>

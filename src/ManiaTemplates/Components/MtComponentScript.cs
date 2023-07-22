@@ -1,4 +1,6 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 using ManiaTemplates.Exceptions;
 
@@ -57,8 +59,8 @@ public class MtComponentScript
         };
     }
 
-    public int ContentHash()
+    public string ContentHash()
     {
-        return Content.GetHashCode();
+        return Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(Content)));
     }
 }
