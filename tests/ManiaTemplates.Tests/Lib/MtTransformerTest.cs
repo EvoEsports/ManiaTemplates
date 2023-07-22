@@ -3,11 +3,13 @@ using System.Text.RegularExpressions;
 using ManiaTemplates.Components;
 using ManiaTemplates.Languages;
 using ManiaTemplates.Lib;
+using Xunit.Abstractions;
 
 namespace ManiaTemplates.Tests.Lib;
 
 public class MtTransformerTest
 {
+    private readonly ITestOutputHelper _testOutputHelper;
     private readonly ManiaTemplateEngine _maniaTemplateEngine = new();
     private readonly Regex _hashCodePattern = new("[0-9]{6,10}");
 
@@ -47,8 +49,9 @@ public class MtTransformerTest
 
     private readonly MtTransformer _transformer;
 
-    public MtTransformerTest()
+    public MtTransformerTest(ITestOutputHelper testOutputHelper)
     {
+        _testOutputHelper = testOutputHelper;
         _transformer = new MtTransformer(_maniaTemplateEngine, new MtLanguageT4());
     }
 
@@ -87,7 +90,7 @@ public class MtTransformerTest
         var expected = File.ReadAllText("Lib/expected.tt");
         var result = _transformer.BuildManialink(_testComponent, "expected");
         var generalizedResult = TransformCodeToOrderNumber(result);
-
+        
         Assert.Equal(expected, generalizedResult, ignoreLineEndingDifferences: true);
     }
 
@@ -121,8 +124,6 @@ public class MtTransformerTest
         var output = _maniaTemplateEngine.RenderAsync("RecursionRoot", new {}, assemblies).Result;
         Assert.Equal( @$"<manialink version=""3"" id=""MtRecursionRoot"" name=""EvoSC#-MtRecursionRoot"">
 <el />
-<script>
-</script>
 </manialink>
 ", output, ignoreLineEndingDifferences: true);
     }

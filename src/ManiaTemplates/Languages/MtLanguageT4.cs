@@ -12,7 +12,7 @@ public class MtLanguageT4 : IManiaTemplateLanguage
 
     public string InsertResult(string content)
     {
-        return $"<#= {content} #>";
+        return $"<#= ({content}) #>";
     }
 
     public string Code(string content)

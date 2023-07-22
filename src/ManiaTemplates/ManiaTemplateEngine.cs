@@ -107,9 +107,9 @@ public class ManiaTemplateEngine
     /// <summary>
     /// PreProcesses a template-key for faster rendering.
     /// </summary>
-    public void PreProcess(string key, IEnumerable<Assembly> assemblies)
+    public void PreProcess(string key, IEnumerable<Assembly> assemblies, string? writeTo = null)
     {
-        _preProcessed[key] = PreProcessComponent(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies);
+        _preProcessed[key] = PreProcessComponent(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies, writeTo);
     }
 
     /// <summary>

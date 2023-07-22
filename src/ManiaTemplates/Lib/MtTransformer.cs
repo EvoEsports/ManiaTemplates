@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
 using ManiaTemplates.Components;
@@ -14,14 +15,25 @@ public class MtTransformer
     private readonly IManiaTemplateLanguage _maniaTemplateLanguage;
     private readonly List<string> _namespaces = new();
     private readonly List<MtDataContext> _dataContexts = new();
-    private readonly Dictionary<int, MtComponentScript> _maniaScripts = new();
+    private readonly Dictionary<string, MtComponentScript> _maniaScripts = new();
     private readonly Dictionary<string, string> _renderMethods = new();
     private readonly List<MtComponentSlot> _slots = new();
+    private readonly Dictionary<string, string> _maniaScriptIncludes = new();
+    private readonly Dictionary<string, string> _maniaScriptConstants = new();
+    private readonly Dictionary<string, string> _maniaScriptStructs = new();
+    private readonly List<string> _maniaScriptGlobalVariables = new();
     private int _loopDepth;
 
     private static readonly Regex TemplateFeatureControlRegex = new(@"#>\s*<#\+");
     private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
     private static readonly Regex JoinScriptBlocksRegex = new(@"(?s)-->.+?<!--");
+
+    private static readonly Regex ManiaScriptIncludeRegex = new(@"#Include ""(.+?)"" as ([_a-zA-Z]+)");
+    private static readonly Regex ManiaScriptConstantRegex = new(@"#Const ([a-zA-Z_]+) .+");
+    private static readonly Regex ManiaScriptStructRegex = new(@"(?s)#Struct ([_a-zA-Z]+)\s*\{.+?\}");
+
+    private static readonly Regex ManiaScriptGlobalVariableRegex =
+        new(@"declare ([A-Z][a-zA-Z_\[\]]+) (\w[a-zA-Z0-9_]+);");
 
     public MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage maniaTemplateLanguage)
     {
@@ -51,15 +63,14 @@ public class MtTransformer
             ManiaLinkStart(className, version),
             "<#",
             "RenderBody(() => DoNothing());",
-            "RenderManiaScripts();",
             "#>",
             ManiaLinkEnd(),
             CreateTemplatePropertiesBlock(rootComponent),
             CreateDataClassesBlock(rootContext),
-            DoNothingMethod(),
-            CreateBodyRenderMethod(body, rootContext),
-            CreateRenderMethodsBlock(),
-            BuildManiaScripts(rootComponent)
+            CreateInsertedManiaScriptsList(),
+            CreateDoNothingMethod(),
+            CreateBodyRenderMethod(body, rootContext, rootComponent),
+            CreateRenderMethodsBlock()
         };
 
         return JoinFeatureBlocks(template.ToString());
@@ -68,15 +79,24 @@ public class MtTransformer
     /// <summary>
     /// Creates a dummy DoNothing() method that returns a empty string.
     /// </summary>
-    private string DoNothingMethod()
+    private string CreateDoNothingMethod()
     {
         return _maniaTemplateLanguage.FeatureBlock(@"string DoNothing(){return """";}").ToString();
     }
 
     /// <summary>
+    /// Creates a dummy DoNothing() method that returns a empty string.
+    /// </summary>
+    private string CreateInsertedManiaScriptsList()
+    {
+        return _maniaTemplateLanguage.FeatureBlock("List<string> __insertedOneTimeManiaScripts = new List<string>();")
+            .ToString();
+    }
+
+    /// <summary>
     /// Creates the method that renders the body of the ManiaLink.
     /// </summary>
-    private string CreateBodyRenderMethod(string body, MtDataContext context)
+    private string CreateBodyRenderMethod(string body, MtDataContext context, MtComponent rootComponent)
     {
         var bodyRenderMethod = new StringBuilder("void RenderBody(Action __slotRenderer) {\n");
 
@@ -87,9 +107,18 @@ public class MtTransformer
         //Initialize root data context
         bodyRenderMethod.AppendLine($"var __data = {renderBodyArguments};");
 
+        //Root mania script block
+        string rootScriptBlock = "";
+        if (rootComponent.Scripts.Count > 0)
+        {
+            rootScriptBlock = CreateManiaScriptBlock(rootComponent);
+        }
+
         //Render content
         bodyRenderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
+            .AppendLine(CreateManiaScriptDirectivesBlock())
             .AppendLine(body)
+            .AppendLine(rootScriptBlock)
             .AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
             .AppendLine("}");
 
@@ -330,8 +359,16 @@ public class MtTransformer
         {
             if (component.Properties.TryGetValue(attributeName, out var value))
             {
-                renderArguments.Add(
-                    $"{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s => IsStringType(value) ? $@"{{{s}}}" : s))}");
+                if (IsStringType(value))
+                {
+                    renderArguments.Add(
+                        $"{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s =>  $@"{{({s})}}"))}");
+                }
+                else
+                {
+                    renderArguments.Add(
+                        $"{attributeName}: {ReplaceCurlyBraces(attributeValue, s => $"({s})")}"); 
+                }
             }
         }
 
@@ -376,17 +413,17 @@ public class MtTransformer
 
         _namespaces.AddRange(component.Namespaces);
 
-        foreach (var script in component.Scripts)
-        {
-            var scriptHash = script.ContentHash();
-            if (_maniaScripts.ContainsKey(scriptHash))
-            {
-                continue;
-            }
-
-            script.Depth = depth;
-            _maniaScripts.Add(scriptHash, script);
-        }
+        // foreach (var script in component.Scripts)
+        // {
+        //     var scriptHash = script.ContentHash();
+        //     if (_maniaScripts.ContainsKey(scriptHash))
+        //     {
+        //         continue;
+        //     }
+        //
+        //     script.Depth = depth;
+        //     _maniaScripts.Add(scriptHash, script);
+        // }
 
         return renderComponentCall.ToString();
     }
@@ -414,7 +451,7 @@ public class MtTransformer
         arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null).Select(property =>
             property.Default == null
                 ? $"{property.Type} {property.Name}"
-                : $"{property.Type} {property.Name} = {WrapIfString(property, property.Default)}"));
+                : $"{property.Type} {property.Name} = {(WrapIfString(property, property.Default))}"));
 
         //close method arguments
         renderMethod.Append(string.Join(", ", arguments))
@@ -424,10 +461,145 @@ public class MtTransformer
         //insert body
         renderMethod.AppendLine(componentBody);
 
+        //insert mania scripts
+        if (component.Scripts.Count > 0)
+        {
+            renderMethod.AppendLine(CreateManiaScriptBlock(component));
+        }
+
         return renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
             .Append('}')
             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
             .ToString();
+    }
+
+    private string CreateManiaScriptBlock(MtComponent component)
+    {
+        var renderMethod = new StringBuilder("<script>");
+
+        foreach (var script in component.Scripts)
+        {
+            //TODO: once
+            if (script.Once)
+            {
+                renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+                    .AppendLine($@"if(!__insertedOneTimeManiaScripts.Contains(""{script.ContentHash()}"")){{")
+                    .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
+            }
+
+            renderMethod.AppendLine(ReplaceCurlyBraces(ExtractManiaScriptDirectives(script.Content),
+                _maniaTemplateLanguage.InsertResult));
+
+            if (script.Once)
+            {
+                renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+                    .AppendLine($@"__insertedOneTimeManiaScripts.Add(""{script.ContentHash()}"");")
+                    .AppendLine("}")
+                    .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
+            }
+        }
+
+        return renderMethod.AppendLine("</script>").ToString();
+    }
+
+    private string ExtractManiaScriptDirectives(string maniaScriptSource)
+    {
+        var output = maniaScriptSource;
+
+        var includeMatcher = ManiaScriptIncludeRegex.Match(output);
+        while (includeMatcher.Success)
+        {
+            var match = includeMatcher.ToString();
+            var libraryToInclude = includeMatcher.Groups[1].Value;
+            var includedAs = includeMatcher.Groups[2].Value;
+
+            if (_maniaScriptIncludes.TryGetValue(includedAs, out var blockingLibrary))
+            {
+                if (blockingLibrary != libraryToInclude)
+                {
+                    throw new DuplicateManiaScriptIncludeException(
+                        $"Can't include {libraryToInclude} as {includedAs}, because another include ({blockingLibrary}) blocks it.");
+                }
+            }
+            else
+            {
+                _maniaScriptIncludes.Add(includedAs, libraryToInclude);
+            }
+
+            output = output.Replace(match, "");
+            includeMatcher = includeMatcher.NextMatch();
+        }
+
+        var constantMatcher = ManiaScriptConstantRegex.Match(output);
+        while (constantMatcher.Success)
+        {
+            var match = constantMatcher.ToString();
+            _maniaScriptConstants.TryAdd(constantMatcher.Groups[1].Value, match);
+            output = output.Replace(match, "");
+            //TODO: exceptions double constant
+
+            constantMatcher = constantMatcher.NextMatch();
+        }
+
+        var structMatcher = ManiaScriptStructRegex.Match(output);
+        while (structMatcher.Success)
+        {
+            var structName = structMatcher.Groups[1].Value;
+            var structDefinition = structMatcher.ToString().Trim();
+
+            if (_maniaScriptStructs.TryGetValue(structName, out var existingStructDefinition))
+            {
+                if (string.Compare(structDefinition, existingStructDefinition, CultureInfo.CurrentCulture,
+                        CompareOptions.IgnoreCase | CompareOptions.IgnoreSymbols) != 0)
+                {
+                    throw new DuplicateManiaScriptStructException(
+                        $"Can't redefine struct {structName}, because it is already defined as: {existingStructDefinition}.");
+                }
+            }
+            else
+            {
+                _maniaScriptStructs.Add(structName, structDefinition);
+            }
+
+            output = output.Replace(structDefinition, "");
+
+            structMatcher = structMatcher.NextMatch();
+        }
+
+        // var globalVariableMatcher = ManiaScriptGlobalVariableRegex.Match(output);
+        // while (globalVariableMatcher.Success)
+        // {
+        //     var match = globalVariableMatcher.ToString();
+        //     if (!_maniaScriptIncludes.Contains(match))
+        //     {
+        //         _maniaScriptIncludes.Add(match);
+        //     }
+        //
+        //     output = output.Replace(match, "");
+        //
+        //     globalVariableMatcher = globalVariableMatcher.NextMatch();
+        // }
+
+        return output;
+    }
+
+    private string CreateManiaScriptDirectivesBlock()
+    {
+        if (_maniaScriptIncludes.Count + _maniaScriptStructs.Count + _maniaScriptConstants.Count == 0)
+        {
+            return "";
+        }
+
+        var output = new StringBuilder("<script><!--\n");
+
+        output.AppendJoin("\n",
+                _maniaScriptIncludes.Select(include => $@"#Include ""{include.Value}"" as {include.Key}"))
+            .AppendLine()
+            .AppendJoin("\n", _maniaScriptStructs.Values)
+            .AppendLine()
+            .AppendJoin("\n", _maniaScriptConstants.Values);
+
+        return output.AppendLine("\n--></script>").ToString();
     }
 
     /// <summary>
