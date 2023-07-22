@@ -38,7 +38,7 @@ var __outerIndex1 = 0;
 foreach (int i in numbers) {
 var __index = __outerIndex1;
 if (enabled) {
-Render_Component_MtContext2(x: 20 * __index, __slotRenderer: () => Render_Slot_3(new CRoot_ForEachLoop1(__data){__index = __index, i = i}));
+Render_Component_MtContext2(x: (20 * __index), __slotRenderer: () => Render_Slot_3(new CRoot_ForEachLoop1(__data){__index = __index, i = i}));
 }
 __outerIndex1++;
 }
@@ -59,12 +59,12 @@ scriptText3
 }
 void Render_Component_MtContext5(double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = $"left", string valign = $"center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = $"", string url = $"", string manialink = $"", string style = $"", string textfont = $"GameFont", double textsize = 1.0, string textcolor = $"", string focusareacolor1 = $"", string focusareacolor2 = $"", string text = $"", string textprefix = $"", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = $"", string id = $"") {
 #>
-<label pos="<#= x #> <#= y #>" size="<#= w #> <#= h #>" halign="<#= halign #>" valign="<#= valign #>" opacity="<#= opacity #>" z-index="<#= zIndex #>" ScriptEvents="<#= events #>" action="<#= action #>" url="<#= url #>" manialink="<#= manialink #>" style="<#= style #>" textfont="<#= textfont #>" textsize="<#= textsize #>" textcolor="<#= textcolor #>" focusareacolor1="<#= focusareacolor1 #>" focusareacolor2="<#= focusareacolor2 #>" text="<#= text #>" textprefix="<#= textprefix #>" textemboss="<#= bold #>" autonewline="<#= autonewline #>" maxline="<#= maxline #>" translate="<#= translate #>" textid="<#= textid #>" id="<#= id #>" />
+<label pos="<#= (x) #> <#= (y) #>" size="<#= (w) #> <#= (h) #>" halign="<#= (halign) #>" valign="<#= (valign) #>" opacity="<#= (opacity) #>" z-index="<#= (zIndex) #>" ScriptEvents="<#= (events) #>" action="<#= (action) #>" url="<#= (url) #>" manialink="<#= (manialink) #>" style="<#= (style) #>" textfont="<#= (textfont) #>" textsize="<#= (textsize) #>" textcolor="<#= (textcolor) #>" focusareacolor1="<#= (focusareacolor1) #>" focusareacolor2="<#= (focusareacolor2) #>" text="<#= (text) #>" textprefix="<#= (textprefix) #>" textemboss="<#= (bold) #>" autonewline="<#= (autonewline) #>" maxline="<#= (maxline) #>" translate="<#= (translate) #>" textid="<#= (textid) #>" id="<#= (id) #>" />
 <#+
 }
 void Render_Component_MtContext2(Action __slotRenderer, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
 #>
-<frame pos="<#= x #> <#= y #>" size="<#= w #> <#= h #>" z-index="<#= zIndex #>">
+<frame pos="<#= (x) #> <#= (y) #>" size="<#= (w) #> <#= (h) #>" z-index="<#= (zIndex) #>">
 <#+
 __slotRenderer();
 #>
@@ -94,7 +94,7 @@ var __outerIndex7 = 0;
 foreach (int j in numbers.GetRange(0, i)) {
 var __index2 = __outerIndex7;
 if (i < numbers.Count) {
-Render_Component_MtContext5(text: $"{i}, {j} at index {__index}, {__index2}");
+Render_Component_MtContext5(text: $"{(i)}, {(j)} at index {(__index)}, {(__index2)}");
 }
 __outerIndex7++;
 }
@@ -105,7 +105,7 @@ var enabled = __data.enabled;
 #>
 <test>
 <#+
-Render_Component_MtContext6(arg3: new test());
+Render_Component_MtContext6(arg3: (new test()));
 #>
 </test>
 <#+

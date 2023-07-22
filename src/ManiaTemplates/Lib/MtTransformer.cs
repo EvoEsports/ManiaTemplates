@@ -358,8 +358,16 @@ public class MtTransformer
         {
             if (component.Properties.TryGetValue(attributeName, out var value))
             {
-                renderArguments.Add(
-                    $"{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s => IsStringType(value) ? $@"{{{s}}}" : s))}");
+                if (IsStringType(value))
+                {
+                    renderArguments.Add(
+                        $"{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s =>  $@"{{({s})}}"))}");
+                }
+                else
+                {
+                    renderArguments.Add(
+                        $"{attributeName}: {ReplaceCurlyBraces(attributeValue, s => $"({s})")}"); 
+                }
             }
         }
 
@@ -442,7 +450,7 @@ public class MtTransformer
         arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null).Select(property =>
             property.Default == null
                 ? $"{property.Type} {property.Name}"
-                : $"{property.Type} {property.Name} = {WrapIfString(property, property.Default)}"));
+                : $"{property.Type} {property.Name} = {(WrapIfString(property, property.Default))}"));
 
         //close method arguments
         renderMethod.Append(string.Join(", ", arguments))
