@@ -91,6 +91,8 @@ public class MtTransformerTest
         var result = _transformer.BuildManialink(_testComponent, "expected");
         var generalizedResult = TransformCodeToOrderNumber(result);
         
+        _testOutputHelper.WriteLine(generalizedResult);
+        
         Assert.Equal(expected, generalizedResult, ignoreLineEndingDifferences: true);
     }
 

@@ -17,6 +17,7 @@ public class MtTransformer
     private readonly List<MtDataContext> _dataContexts = new();
     private readonly Dictionary<string, MtComponentScript> _maniaScripts = new();
     private readonly Dictionary<string, string> _renderMethods = new();
+    private readonly Dictionary<string, string> _maniaScriptRenderMethods = new();
     private readonly List<MtComponentSlot> _slots = new();
     private readonly Dictionary<string, string> _maniaScriptIncludes = new();
     private readonly Dictionary<string, string> _maniaScriptConstants = new();
@@ -89,7 +90,11 @@ public class MtTransformer
     /// </summary>
     private string CreateInsertedManiaScriptsList()
     {
-        return _maniaTemplateLanguage.FeatureBlock("List<string> __insertedOneTimeManiaScripts = new List<string>();")
+        return new StringBuilder()
+            .AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+            .AppendLine("List<string> __insertedOneTimeManiaScripts = new List<string>();")
+            .AppendLine("List<Action> __maniaScriptRenderMethods = new List<Action>();")
+            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
             .ToString();
     }
 
@@ -114,10 +119,16 @@ public class MtTransformer
             rootScriptBlock = CreateManiaScriptBlock(rootComponent);
         }
 
+        var subManiaScripts = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
+            .AppendLine("foreach(var maniaScriptRenderMethod in __maniaScriptRenderMethods){ maniaScriptRenderMethod(); }")
+            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
+            .ToString();
+
         //Render content
         bodyRenderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
             .AppendLine(CreateManiaScriptDirectivesBlock())
             .AppendLine(body)
+            .AppendLine(subManiaScripts)
             .AppendLine(rootScriptBlock)
             .AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
             .AppendLine("}");
@@ -154,6 +165,7 @@ public class MtTransformer
     {
         return new StringBuilder()
             .AppendJoin("\n", _renderMethods.Values)
+            .AppendJoin("\n", _maniaScriptRenderMethods.Values)
             .AppendJoin("\n", _slots.Select(slot => slot.RenderMethod))
             .ToString();
     }
@@ -362,12 +374,12 @@ public class MtTransformer
                 if (IsStringType(value))
                 {
                     renderArguments.Add(
-                        $"{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s =>  $@"{{({s})}}"))}");
+                        $"{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s => $@"{{({s})}}"))}");
                 }
                 else
                 {
                     renderArguments.Add(
-                        $"{attributeName}: {ReplaceCurlyBraces(attributeValue, s => $"({s})")}"); 
+                        $"{attributeName}: {ReplaceCurlyBraces(attributeValue, s => $"({s})")}");
                 }
             }
         }
@@ -413,18 +425,6 @@ public class MtTransformer
 
         _namespaces.AddRange(component.Namespaces);
 
-        // foreach (var script in component.Scripts)
-        // {
-        //     var scriptHash = script.ContentHash();
-        //     if (_maniaScripts.ContainsKey(scriptHash))
-        //     {
-        //         continue;
-        //     }
-        //
-        //     script.Depth = depth;
-        //     _maniaScripts.Add(scriptHash, script);
-        // }
-
         return renderComponentCall.ToString();
     }
 
@@ -464,8 +464,53 @@ public class MtTransformer
         //insert mania scripts
         if (component.Scripts.Count > 0)
         {
-            renderMethod.AppendLine(CreateManiaScriptBlock(component));
+            var scriptRenderMethodName = GetComponentScriptsRenderMethodName(component);
+            var scriptRenderMethod = CreateComponentScriptsRenderMethod(component, scriptRenderMethodName);
+            _maniaScriptRenderMethods.TryAdd(scriptRenderMethodName, scriptRenderMethod);
+
+            var scriptArguments = new List<string>();
+
+            //add method arguments with defaults
+            scriptArguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null)
+                .Select(property => property.Name));
+
+            renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+                .AppendLine($"__maniaScriptRenderMethods.Add(() => {scriptRenderMethodName}({string.Join(',', scriptArguments)}));")
+                .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
         }
+
+        return renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+            .Append('}')
+            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
+            .ToString();
+    }
+
+    /// <summary>
+    /// Creates the method which renders the contents of a component.
+    /// </summary>
+    private string CreateComponentScriptsRenderMethod(MtComponent component, string renderMethodName)
+    {
+        var renderMethod = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
+            .Append("void ")
+            .Append(renderMethodName)
+            .Append('(');
+
+        //open method arguments
+        var arguments = new List<string>();
+
+        //add method arguments with defaults
+        arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null).Select(property =>
+            property.Default == null
+                ? $"{property.Type} {property.Name}"
+                : $"{property.Type} {property.Name} = {(WrapIfString(property, property.Default))}"));
+
+        //close method arguments
+        renderMethod.Append(string.Join(", ", arguments))
+            .AppendLine(") {")
+            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
+
+        //insert body
+        renderMethod.AppendLine(CreateManiaScriptBlock(component));
 
         return renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
             .Append('}')
@@ -479,7 +524,6 @@ public class MtTransformer
 
         foreach (var script in component.Scripts)
         {
-            //TODO: once
             if (script.Once)
             {
                 renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
@@ -836,6 +880,14 @@ public class MtTransformer
     private string GetComponentRenderMethodName(MtComponent component)
     {
         return $"Render_Component_{component.Id()}";
+    }
+
+    /// <summary>
+    /// Returns the method name that renders the scripts of a given component.
+    /// </summary>
+    private string GetComponentScriptsRenderMethodName(MtComponent component)
+    {
+        return $"Render_ComponentScript_{component.Id()}";
     }
 
     /// <summary>
