@@ -31,6 +31,7 @@ i = data.i;
 }
 }
 List<string> __insertedOneTimeManiaScripts = new List<string>();
+List<Action> __maniaScriptRenderMethods = new List<Action>();
 string DoNothing(){return "";}
 void RenderBody(Action __slotRenderer) {
 var __data = new CRoot { numbers = numbers,enabled = enabled };
@@ -43,6 +44,7 @@ Render_Component_MtContext2(x: (20 * __index), __slotRenderer: () => Render_Slot
 __outerIndex1++;
 }
 Render_Component_MtContext2(__slotRenderer: () => Render_Slot_4(__data));
+foreach(var maniaScriptRenderMethod in __maniaScriptRenderMethods){ maniaScriptRenderMethod(); }
 #>
 <script>scriptText1
 <#+
@@ -72,6 +74,9 @@ __slotRenderer();
 <#+
 }
 void Render_Component_MtContext6(test arg3, string arg1 = $"", int arg2 = 0) {
+__maniaScriptRenderMethods.Add(() => Render_ComponentScript_MtContext6(arg3,arg1,arg2));
+}
+void Render_ComponentScript_MtContext6(test arg3, string arg1 = $"", int arg2 = 0) {
 #>
 <script>GraphScript
 <#+
