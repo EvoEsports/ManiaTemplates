@@ -25,11 +25,9 @@ public class MtComponent
         var maniaScripts = new List<MtComponentScript>();
         var componentTemplate = "";
         var hasSlot = false;
+        var rootNode = FindComponentNode(templateContent);
 
-        var doc = new XmlDocument();
-        doc.LoadXml(Helper.EscapePropertyTypes(templateContent));
-
-        foreach (XmlNode node in doc.ChildNodes[0]!)
+        foreach (XmlNode node in rootNode.ChildNodes)
         {
             Debug.WriteLine($"Read node {node.OuterXml}");
             switch (node.Name)
@@ -74,6 +72,25 @@ public class MtComponent
             Namespaces = namespaces,
             Scripts = maniaScripts
         };
+    }
+
+    /// <summary>
+    /// Looks for the component root node in a given ManiaTemplate string
+    /// </summary>
+    private static XmlNode FindComponentNode(string templateContent)
+    {
+        var doc = new XmlDocument();
+        doc.LoadXml(Helper.EscapePropertyTypes(templateContent));
+
+        foreach (XmlNode node in doc.ChildNodes)
+        {
+            if (node.Name.ToLower() == "component")
+            {
+                return node;
+            }
+        }
+
+        throw new MissingComponentRootException($"Could not find <component> node in: {templateContent}");
     }
 
     /// <summary>

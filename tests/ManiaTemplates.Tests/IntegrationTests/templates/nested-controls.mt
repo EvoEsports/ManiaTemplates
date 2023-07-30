@@ -1,3 +1,4 @@
+<!-- should not break parsing -->
 <component>
     <property type="List<int>" name="numbers"/>
     <property type="bool" name="enabled" default="true"/>
