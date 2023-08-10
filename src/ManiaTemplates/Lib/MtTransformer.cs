@@ -61,7 +61,7 @@ public class MtTransformer
             _maniaTemplateLanguage.Context(@"template language=""C#"""), //Might not be needed
             _maniaTemplateLanguage.Context(@"import namespace=""System.Collections.Generic"""),
             CreateImportStatements(),
-            ManiaLinkStart(className, version),
+            ManiaLinkStart(className, version, rootComponent.DisplayLayer),
             "<#",
             "RenderBody(() => DoNothing());",
             "#>",
@@ -609,20 +609,6 @@ public class MtTransformer
             structMatcher = structMatcher.NextMatch();
         }
 
-        // var globalVariableMatcher = ManiaScriptGlobalVariableRegex.Match(output);
-        // while (globalVariableMatcher.Success)
-        // {
-        //     var match = globalVariableMatcher.ToString();
-        //     if (!_maniaScriptIncludes.Contains(match))
-        //     {
-        //         _maniaScriptIncludes.Add(match);
-        //     }
-        //
-        //     output = output.Replace(match, "");
-        //
-        //     globalVariableMatcher = globalVariableMatcher.NextMatch();
-        // }
-
         return output;
     }
 
@@ -928,9 +914,15 @@ public class MtTransformer
     /// name = Shown in in-game debugger.
     /// version = Version for the markup language of Trackmania.
     /// </summary>
-    private static string ManiaLinkStart(string name, int version = 3)
+    private static string ManiaLinkStart(string name, int version = 3, string? displayLayer = null)
     {
-        return $@"<manialink version=""{version}"" id=""{name}"" name=""EvoSC#-{name}"">";
+        var layer = "";
+        if (displayLayer != null)
+        {
+            layer += $@" layer=""{displayLayer}""";
+        }
+        
+        return $@"<manialink version=""{version}"" id=""{name}"" name=""EvoSC#-{name}""{layer}>";
     }
 
     /// <summary>

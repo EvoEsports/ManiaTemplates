@@ -9,6 +9,7 @@ public class MtComponent
 {
     public required string TemplateContent { get; init; }
     public required bool HasSlot { get; init; }
+    public string? DisplayLayer { get; init; }
     public required MtComponentMap ImportedComponents { get; init; }
     public required Dictionary<string, MtComponentProperty> Properties { get; init; }
     public required List<string> Namespaces { get; init; }
@@ -25,6 +26,7 @@ public class MtComponent
         var maniaScripts = new List<MtComponentScript>();
         var componentTemplate = "";
         var hasSlot = false;
+        string? layer = null;
         var rootNode = FindComponentNode(templateContent);
 
         foreach (XmlNode node in rootNode.ChildNodes)
@@ -53,6 +55,7 @@ public class MtComponent
 
                 case "template":
                     componentTemplate = node.InnerXml;
+                    layer = ParseDisplayLayer(node);
                     hasSlot = NodeHasSlot(node);
                     break;
 
@@ -70,7 +73,8 @@ public class MtComponent
             ImportedComponents = foundComponents,
             Properties = foundProperties,
             Namespaces = namespaces,
-            Scripts = maniaScripts
+            Scripts = maniaScripts,
+            DisplayLayer = layer
         };
     }
 
@@ -116,7 +120,8 @@ public class MtComponent
 
         if (resource == null)
         {
-            throw new MissingAttributeException($"Missing required attribute 'component' for element '{node.OuterXml}'.");
+            throw new MissingAttributeException(
+                $"Missing required attribute 'component' for element '{node.OuterXml}'.");
         }
 
         tag ??= resource.Split('.')[^2];
@@ -126,6 +131,15 @@ public class MtComponent
             TemplateKey = resource,
             Tag = tag,
         };
+    }
+
+    /// <summary>
+    /// Gets the layer value of a template node in a component file.
+    /// </summary>
+    private static string? ParseDisplayLayer(XmlNode node)
+    {
+        return (from XmlAttribute attribute in node.Attributes! where attribute.Name == "layer" select attribute.Value)
+            .FirstOrDefault();
     }
 
     /// <summary>
