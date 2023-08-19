@@ -22,16 +22,15 @@ public class MtTransformer
     private readonly Dictionary<string, string> _maniaScriptIncludes = new();
     private readonly Dictionary<string, string> _maniaScriptConstants = new();
     private readonly Dictionary<string, string> _maniaScriptStructs = new();
-    private readonly List<string> _maniaScriptGlobalVariables = new();
     private int _loopDepth;
 
     private static readonly Regex TemplateFeatureControlRegex = new(@"#>\s*<#\+");
     private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
     private static readonly Regex JoinScriptBlocksRegex = new(@"(?s)-->.+?<!--");
 
-    private static readonly Regex ManiaScriptIncludeRegex = new(@"#Include ""(.+?)"" as ([_a-zA-Z]+)");
-    private static readonly Regex ManiaScriptConstantRegex = new(@"#Const ([a-zA-Z_]+) .+");
-    private static readonly Regex ManiaScriptStructRegex = new(@"(?s)#Struct ([_a-zA-Z]+)\s*\{.+?\}");
+    private static readonly Regex ManiaScriptIncludeRegex = new(@"#Include\s+""(.+?)""\s+as\s+([_a-zA-Z]+)");
+    private static readonly Regex ManiaScriptConstantRegex = new(@"#Const\s+([a-zA-Z_:]+)\s+.+");
+    private static readonly Regex ManiaScriptStructRegex = new(@"(?s)#Struct\s+([_a-zA-Z]+)\s*\{.+?\}");
 
     private static readonly Regex ManiaScriptGlobalVariableRegex =
         new(@"declare ([A-Z][a-zA-Z_\[\]]+) (\w[a-zA-Z0-9_]+);");
