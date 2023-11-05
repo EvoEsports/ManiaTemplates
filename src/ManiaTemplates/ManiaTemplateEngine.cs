@@ -282,10 +282,26 @@ public class ManiaTemplateEngine
         _maniaScripts.Remove(name);
     }
 
+    /// <summary>
+    /// Set a global variable that is passed to every component on render.
+    /// </summary>
     public Task SetGlobalVariable(string key, string? value)
     {
         _globalVariables[key] = value;
         
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Removes an element from global variables by its key.
+    /// </summary>
+    public Task RemoveGlobalVariable(string key)
+    {
+        if (_globalVariables.ContainsKey(key))
+        {
+            _globalVariables.Remove(key, out var removedElement);
+        }
+
         return Task.CompletedTask;
     }
 }
