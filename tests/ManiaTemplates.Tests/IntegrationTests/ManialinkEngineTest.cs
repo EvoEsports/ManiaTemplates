@@ -16,4 +16,19 @@ public class ManialinkEngineTest
         
         Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
     }
+
+    [Fact]
+    public void Should_Pass_Global_Variables()
+    {
+        var componentTemplate = File.ReadAllText($"IntegrationTests/templates/global-variables.mt");
+        var expectedOutput = File.ReadAllText($"IntegrationTests/expected/global-variables.xml");
+        
+        _maniaTemplateEngine.AddTemplateFromString("GlobalVariables", componentTemplate);
+        _maniaTemplateEngine.PreProcess("GlobalVariables", new[] { typeof(ManiaTemplateEngine).Assembly });
+        
+        var pendingResult = _maniaTemplateEngine.RenderAsync("GlobalVariables", new{ testVariable = "unittest" }, new[] { typeof(ManiaTemplateEngine).Assembly });
+        var result = pendingResult.Result;
+        
+        Assert.Equal(expectedOutput, result, ignoreLineEndingDifferences: true);
+    }
 }
