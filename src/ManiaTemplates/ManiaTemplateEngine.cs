@@ -17,6 +17,7 @@ public class ManiaTemplateEngine
     private readonly Dictionary<string, string> _templates = new();
     private readonly Dictionary<string, string> _maniaScripts = new();
     private readonly ConcurrentDictionary<string, ManiaLink> _preProcessed = new();
+    private readonly ConcurrentDictionary<string, object?> _globalVariables = new();
     protected internal MtComponentMap BaseMtComponents { get; }
 
     private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplates \{((?:.|\n)+)\}");
@@ -127,14 +128,14 @@ public class ManiaTemplateEngine
     public async Task<string> RenderAsync(string key, dynamic data, IEnumerable<Assembly> assemblies)
     {
         await CheckPreprocessingAsync(key, assemblies);
-        return await _preProcessed[key].RenderAsync(data);
+        return await _preProcessed[key].RenderAsync(data, _globalVariables);
     }
 
     public async Task<string> RenderAsync(string key, IDictionary<string, object?> data,
         IEnumerable<Assembly> assemblies)
     {
         await CheckPreprocessingAsync(key, assemblies);
-        return await _preProcessed[key].RenderAsync(data);
+        return await _preProcessed[key].RenderAsync(data, _globalVariables);
     }
 
     private async Task CheckPreprocessingAsync(string key, IEnumerable<Assembly> assemblies)
@@ -279,5 +280,12 @@ public class ManiaTemplateEngine
         }
 
         _maniaScripts.Remove(name);
+    }
+
+    public Task SetGlobalVariable(string key, string? value)
+    {
+        _globalVariables[key] = value;
+        
+        return Task.CompletedTask;
     }
 }

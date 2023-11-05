@@ -25,8 +25,9 @@ public class ManialinkEngineTest
         
         _maniaTemplateEngine.AddTemplateFromString("GlobalVariables", componentTemplate);
         _maniaTemplateEngine.PreProcess("GlobalVariables", new[] { typeof(ManiaTemplateEngine).Assembly });
+        _maniaTemplateEngine.SetGlobalVariable("testVariable", "unittest");
         
-        var pendingResult = _maniaTemplateEngine.RenderAsync("GlobalVariables", new{ testVariable = "unittest" }, new[] { typeof(ManiaTemplateEngine).Assembly });
+        var pendingResult = _maniaTemplateEngine.RenderAsync("GlobalVariables", new{}, new[] { typeof(ManiaTemplateEngine).Assembly });
         var result = pendingResult.Result;
         
         Assert.Equal(expectedOutput, result, ignoreLineEndingDifferences: true);
