@@ -22,17 +22,14 @@ public class ManialinkEngineTest
     {
         var componentTemplate = File.ReadAllText($"IntegrationTests/templates/global-variables.mt");
         var expectedOutput = File.ReadAllText($"IntegrationTests/expected/global-variables.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
         
         _maniaTemplateEngine.AddTemplateFromString("GlobalVariables", componentTemplate);
-
-        var complexVar = new ComplexDataType();
+        
         _maniaTemplateEngine.SetGlobalVariable("testVariable", "unittest");
-        _maniaTemplateEngine.SetGlobalVariable("complex", complexVar);
+        _maniaTemplateEngine.SetGlobalVariable("complex", new ComplexDataType());
         
-        //TODO: auto pre-process on var add/remove
-        _maniaTemplateEngine.PreProcess("GlobalVariables", new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly });
-        
-        var pendingResult = _maniaTemplateEngine.RenderAsync("GlobalVariables", new{}, new[] { typeof(ManiaTemplateEngine).Assembly });
+        var pendingResult = _maniaTemplateEngine.RenderAsync("GlobalVariables", new{}, assemblies);
         var result = pendingResult.Result;
         
         Assert.Equal(expectedOutput, result, ignoreLineEndingDifferences: true);

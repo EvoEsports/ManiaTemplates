@@ -17,7 +17,7 @@ public class ManiaTemplateEngine
     private readonly Dictionary<string, string> _templates = new();
     private readonly Dictionary<string, string> _maniaScripts = new();
     private readonly ConcurrentDictionary<string, ManiaLink> _preProcessed = new();
-    private readonly ConcurrentDictionary<string, object?> _globalVariables = new();
+    private readonly ConcurrentDictionary<string, object> _globalVariables = new();
     protected internal MtComponentMap BaseMtComponents { get; }
 
     private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplates \{((?:.|\n)+)\}");
@@ -122,6 +122,18 @@ public class ManiaTemplateEngine
             await PreProcessComponentAsync(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies);
     }
 
+    public int Len()
+    {
+        return _preProcessed.Count;
+    }
+    
+    public Task ClearPreProcessedTemplates()
+    {
+        _preProcessed.Clear();
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>
     /// Renders a template in the given context.
     /// </summary>
@@ -210,7 +222,6 @@ public class ManiaTemplateEngine
         var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
 
-        writeTo = "";
         if (writeTo != null)
         {
             await File.WriteAllTextAsync(Path.Combine(writeTo,className + ".tt"), t4Template);
@@ -286,17 +297,17 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Set a global variable that is passed to every component on render.
     /// </summary>
-    public Task SetGlobalVariable(string key, object? value)
+    public Task SetGlobalVariable(string key, object value)
     {
         _globalVariables[key] = value;
         
-        return Task.CompletedTask;
+        return ClearPreProcessedTemplates();
     }
 
     /// <summary>
     /// Gets all global variables.
     /// </summary>
-    public Task<ConcurrentDictionary<string, object?>> GetGlobalVariables()
+    public Task<ConcurrentDictionary<string, object>> GetGlobalVariables()
     {
         return Task.FromResult(_globalVariables);
     }
@@ -311,6 +322,6 @@ public class ManiaTemplateEngine
             _globalVariables.Remove(key, out var removedElement);
         }
 
-        return Task.CompletedTask;
+        return ClearPreProcessedTemplates();
     }
 }
