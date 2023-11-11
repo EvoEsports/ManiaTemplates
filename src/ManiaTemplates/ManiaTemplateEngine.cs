@@ -122,18 +122,6 @@ public class ManiaTemplateEngine
             await PreProcessComponentAsync(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies);
     }
 
-    public int Len()
-    {
-        return _preProcessed.Count;
-    }
-    
-    public Task ClearPreProcessedTemplates()
-    {
-        _preProcessed.Clear();
-
-        return Task.CompletedTask;
-    }
-
     /// <summary>
     /// Renders a template in the given context.
     /// </summary>
@@ -301,7 +289,7 @@ public class ManiaTemplateEngine
     {
         _globalVariables[key] = value;
         
-        return ClearPreProcessedTemplates();
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -322,6 +310,6 @@ public class ManiaTemplateEngine
             _globalVariables.Remove(key, out var removedElement);
         }
 
-        return ClearPreProcessedTemplates();
+        return Task.CompletedTask;
     }
 }
