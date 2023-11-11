@@ -21,9 +21,11 @@ public class ManialinkEngineTest
     public void Should_Pass_Global_Variables()
     {
         var componentTemplate = File.ReadAllText($"IntegrationTests/templates/global-variables.mt");
+        var componentWithGlobalVariable = File.ReadAllText($"IntegrationTests/templates/component-using-gvar.mt");
         var expectedOutput = File.ReadAllText($"IntegrationTests/expected/global-variables.xml");
         var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
-        
+
+        _maniaTemplateEngine.AddTemplateFromString("ComponentGlobalVariable", componentWithGlobalVariable);
         _maniaTemplateEngine.AddTemplateFromString("GlobalVariables", componentTemplate);
         
         _maniaTemplateEngine.SetGlobalVariable("testVariable", "unittest");
