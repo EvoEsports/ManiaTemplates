@@ -210,6 +210,7 @@ public class ManiaTemplateEngine
         var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
 
+        writeTo = "";
         if (writeTo != null)
         {
             await File.WriteAllTextAsync(Path.Combine(writeTo,className + ".tt"), t4Template);
@@ -285,11 +286,19 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Set a global variable that is passed to every component on render.
     /// </summary>
-    public Task SetGlobalVariable(string key, string? value)
+    public Task SetGlobalVariable(string key, object? value)
     {
         _globalVariables[key] = value;
         
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Gets all global variables.
+    /// </summary>
+    public Task<ConcurrentDictionary<string, object?>> GetGlobalVariables()
+    {
+        return Task.FromResult(_globalVariables);
     }
 
     /// <summary>

@@ -1,3 +1,7 @@
 ﻿<manialink version="3" id="MtGlobalVariables" name="EvoSC#-MtGlobalVariables">
 <label text="unittest" />
+<label text="UnitTest" />
+<label text="one" />
+<label text="two" />
+<label text="three" />
 </manialink>

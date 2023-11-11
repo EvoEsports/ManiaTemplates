@@ -24,8 +24,13 @@ public class ManialinkEngineTest
         var expectedOutput = File.ReadAllText($"IntegrationTests/expected/global-variables.xml");
         
         _maniaTemplateEngine.AddTemplateFromString("GlobalVariables", componentTemplate);
-        _maniaTemplateEngine.PreProcess("GlobalVariables", new[] { typeof(ManiaTemplateEngine).Assembly });
+
+        var complexVar = new ComplexDataType();
         _maniaTemplateEngine.SetGlobalVariable("testVariable", "unittest");
+        _maniaTemplateEngine.SetGlobalVariable("complex", complexVar);
+        
+        //TODO: auto pre-process on var add/remove
+        _maniaTemplateEngine.PreProcess("GlobalVariables", new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly });
         
         var pendingResult = _maniaTemplateEngine.RenderAsync("GlobalVariables", new{}, new[] { typeof(ManiaTemplateEngine).Assembly });
         var result = pendingResult.Result;
