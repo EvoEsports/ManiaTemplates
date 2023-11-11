@@ -30,6 +30,7 @@ public class ManialinkEngineTest
         
         _maniaTemplateEngine.SetGlobalVariable("testVariable", "unittest");
         _maniaTemplateEngine.SetGlobalVariable("complex", new ComplexDataType());
+        _maniaTemplateEngine.SetGlobalVariable("list", new List<int> { 3, 6, 9 });
         
         var pendingResult = _maniaTemplateEngine.RenderAsync("GlobalVariables", new{}, assemblies);
         var result = pendingResult.Result;

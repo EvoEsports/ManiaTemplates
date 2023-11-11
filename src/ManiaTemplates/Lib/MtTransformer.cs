@@ -145,7 +145,7 @@ public class MtTransformer
 
         foreach (var propertyValue in _engine.GetGlobalVariables().Result.Values)
         {
-            var nameSpace = propertyValue?.GetType().Namespace;
+            var nameSpace = propertyValue.GetType().Namespace;
             
             if(nameSpace != "System")
             {
@@ -170,10 +170,10 @@ public class MtTransformer
 
         foreach (var (propertyName, propertyValue) in _engine.GetGlobalVariables().Result)
         {
-            var type = propertyValue?.GetType().Name;
+            var type = propertyValue.GetType();
 
             properties.AppendLine(_maniaTemplateLanguage
-                .FeatureBlock($"public {type} ?{propertyName} {{ get; init; }}").ToString());
+                .FeatureBlock($"public {GetFormattedName(type)} ?{propertyName} {{ get; init; }}").ToString());
         }
 
         foreach (var property in mtComponent.Properties.Values)
@@ -185,6 +185,28 @@ public class MtTransformer
         }
 
         return properties.ToString();
+    }
+    
+    /// <summary>
+    /// Returns the type name. If this is a generic type, appends
+    /// the list of generic type arguments between angle brackets.
+    /// (Does not account for embedded / inner generic arguments.)
+    ///
+    /// From: https://stackoverflow.com/a/66604069
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <returns>System.String.</returns>
+    public static string GetFormattedName(Type type)
+    {
+        if(type.IsGenericType)
+        {
+            string genericArguments = type.GetGenericArguments()
+                .Select(x => x.Name)
+                .Aggregate((x1, x2) => $"{x1}, {x2}");
+            return $"{type.Name.Substring(0, type.Name.IndexOf("`"))}"
+                   + $"<{genericArguments}>";
+        }
+        return type.Name;
     }
 
     /// <summary>

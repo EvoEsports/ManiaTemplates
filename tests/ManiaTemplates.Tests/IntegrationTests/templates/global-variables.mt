@@ -4,7 +4,8 @@
     <template>
         <label text="{{ testVariable }}"/>
         <label text="{{ complex.TestString }}"/>
-        <label foreach="string test in complex.TestArray" text="{{ test }}"/>
+        <label foreach="string testString in complex.TestArray" text="{{ testString }}"/>
+        <label foreach="int testList in complex.TestEnumerable" text="{{ testList }}"/>
         <ComponentGlobalVariable />
     </template>
 </component>

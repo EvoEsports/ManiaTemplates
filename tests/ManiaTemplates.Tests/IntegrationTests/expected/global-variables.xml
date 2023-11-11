@@ -4,5 +4,8 @@
 <label text="one" />
 <label text="two" />
 <label text="three" />
+<label text="3" />
+<label text="6" />
+<label text="9" />
 <label class="inner" text="UnitTest" />
 </manialink>
