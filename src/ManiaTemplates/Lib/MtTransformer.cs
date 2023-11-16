@@ -143,7 +143,7 @@ public class MtTransformer
     {
         var imports = new StringBuilder();
 
-        foreach (var propertyValue in _engine.GetGlobalVariables().Result.Values)
+        foreach (var propertyValue in _engine.GlobalVariables.Values)
         {
             var nameSpace = propertyValue.GetType().Namespace;
             
@@ -168,7 +168,7 @@ public class MtTransformer
     {
         var properties = new StringBuilder();
 
-        foreach (var (propertyName, propertyValue) in _engine.GetGlobalVariables().Result)
+        foreach (var (propertyName, propertyValue) in _engine.GlobalVariables)
         {
             var type = propertyValue.GetType();
 

@@ -17,7 +17,7 @@ public class ManiaTemplateEngine
     private readonly Dictionary<string, string> _templates = new();
     private readonly Dictionary<string, string> _maniaScripts = new();
     private readonly ConcurrentDictionary<string, ManiaLink> _preProcessed = new();
-    private readonly ConcurrentDictionary<string, object> _globalVariables = new();
+    public readonly ConcurrentDictionary<string, object> GlobalVariables = new();
     protected internal MtComponentMap BaseMtComponents { get; }
 
     private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplates \{((?:.|\n)+)\}");
@@ -128,14 +128,14 @@ public class ManiaTemplateEngine
     public async Task<string> RenderAsync(string key, dynamic data, IEnumerable<Assembly> assemblies)
     {
         await CheckPreprocessingAsync(key, assemblies);
-        return await _preProcessed[key].RenderAsync(data, _globalVariables);
+        return await _preProcessed[key].RenderAsync(data, GlobalVariables);
     }
 
     public async Task<string> RenderAsync(string key, IDictionary<string, object?> data,
         IEnumerable<Assembly> assemblies)
     {
         await CheckPreprocessingAsync(key, assemblies);
-        return await _preProcessed[key].RenderAsync(data, _globalVariables);
+        return await _preProcessed[key].RenderAsync(data, GlobalVariables);
     }
 
     private async Task CheckPreprocessingAsync(string key, IEnumerable<Assembly> assemblies)
@@ -280,36 +280,5 @@ public class ManiaTemplateEngine
         }
 
         _maniaScripts.Remove(name);
-    }
-
-    /// <summary>
-    /// Set a global variable that is passed to every component on render.
-    /// </summary>
-    public Task SetGlobalVariable(string key, object value)
-    {
-        _globalVariables[key] = value;
-        
-        return Task.CompletedTask;
-    }
-
-    /// <summary>
-    /// Gets all global variables.
-    /// </summary>
-    public Task<ConcurrentDictionary<string, object>> GetGlobalVariables()
-    {
-        return Task.FromResult(_globalVariables);
-    }
-
-    /// <summary>
-    /// Removes an element from global variables by its key.
-    /// </summary>
-    public Task RemoveGlobalVariable(string key)
-    {
-        if (_globalVariables.ContainsKey(key))
-        {
-            _globalVariables.Remove(key, out var removedElement);
-        }
-
-        return Task.CompletedTask;
     }
 }

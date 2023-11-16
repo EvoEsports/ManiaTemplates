@@ -28,9 +28,9 @@ public class ManialinkEngineTest
         _maniaTemplateEngine.AddTemplateFromString("ComponentGlobalVariable", componentWithGlobalVariable);
         _maniaTemplateEngine.AddTemplateFromString("GlobalVariables", componentTemplate);
         
-        _maniaTemplateEngine.SetGlobalVariable("testVariable", "unittest");
-        _maniaTemplateEngine.SetGlobalVariable("complex", new ComplexDataType());
-        _maniaTemplateEngine.SetGlobalVariable("list", new List<int> { 3, 6, 9 });
+        _maniaTemplateEngine.GlobalVariables["testVariable"] = "unittest";
+        _maniaTemplateEngine.GlobalVariables["complex"] = new ComplexDataType();
+        _maniaTemplateEngine.GlobalVariables["list"] = new List<int> { 3, 6, 9 };
         
         var pendingResult = _maniaTemplateEngine.RenderAsync("GlobalVariables", new{}, assemblies);
         var result = pendingResult.Result;
