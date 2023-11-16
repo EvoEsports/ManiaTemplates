@@ -40,10 +40,11 @@ public class ManiaLink
         return RenderInternalAsync(data).Result;
     }
 
-    public Task<string> RenderAsync(object data)
+    public Task<string> RenderAsync(object data, IDictionary<string, object?>? globalVariables = null)
     {
         var runnable = GetTransformerinstance();
-        Type dataType = data.GetType();
+        var dataType = data.GetType();
+        AddGlobalVariablesToTextTransformer(runnable, globalVariables);
         foreach (var dt in dataType.GetProperties())
         {
             _textTransformer.GetProperty(dt.Name)?.SetValue(runnable, dt.GetValue(data));
@@ -51,16 +52,30 @@ public class ManiaLink
 
         return RenderInternalAsync(runnable);
     }
-    
-    public Task<string> RenderAsync(IDictionary<string, object?> data)
+
+    public Task<string> RenderAsync(IDictionary<string, object?> data, IDictionary<string, object?>? globalVariables = null)
     {
         var runnable = GetTransformerinstance();
+        AddGlobalVariablesToTextTransformer(runnable, globalVariables);
         foreach (var (key, value) in data)
         {
             _textTransformer.GetProperty(key)?.SetValue(runnable, value);
         }
 
         return RenderInternalAsync(runnable);
+    }
+
+    private void AddGlobalVariablesToTextTransformer(object? runnable, IDictionary<string, object?>? globalVariables = null)
+    {
+        if (runnable == null || globalVariables == null)
+        {
+            return;
+        }
+
+        foreach (var (key, value) in globalVariables)
+        {
+            _textTransformer.GetProperty(key)?.SetValue(runnable, value);
+        }
     }
 
     public Task<string> RenderAsync(ExpandoObject data) => RenderAsync((IDictionary<string, object?>)data);
@@ -71,10 +86,10 @@ public class ManiaLink
         {
             throw new InvalidOperationException("Text transformer not initialized, call CompileAsync first.");
         }
-        
+
         return Activator.CreateInstance(_textTransformer);
     }
-    
+
     /// <summary>
     /// Render the manialink instance with the given data.
     /// </summary>
@@ -122,7 +137,7 @@ public class ManiaLink
         var result = await script.RunAsync();
         var type = result.ReturnValue as Type;
         var method = type?.GetMethod("TransformText");
-        
+
         if (type == null || method == null)
         {
             throw new InvalidOperationException("Missing method 'TransformText' in compiled render script.");

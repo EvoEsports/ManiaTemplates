@@ -119,7 +119,8 @@ public class MtTransformer
         }
 
         var subManiaScripts = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
-            .AppendLine("foreach(var maniaScriptRenderMethod in __maniaScriptRenderMethods){ maniaScriptRenderMethod(); }")
+            .AppendLine(
+                "foreach(var maniaScriptRenderMethod in __maniaScriptRenderMethods){ maniaScriptRenderMethod(); }")
             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
             .ToString();
 
@@ -140,9 +141,24 @@ public class MtTransformer
     /// </summary>
     private string CreateImportStatements()
     {
-        return string.Join("\n",
-            _namespaces.Select(nameSpace => _maniaTemplateLanguage.Context($@"import namespace=""{nameSpace}"""))
-                .ToList());
+        var imports = new StringBuilder();
+
+        foreach (var propertyValue in _engine.GlobalVariables.Values)
+        {
+            var nameSpace = propertyValue.GetType().Namespace;
+            
+            if(nameSpace != "System")
+            {
+                imports.AppendLine(_maniaTemplateLanguage.Context($@"import namespace=""{nameSpace}"""));
+            }
+        }
+
+        foreach (var nameSpace in _namespaces)
+        {
+            imports.AppendLine(_maniaTemplateLanguage.Context($@"import namespace=""{nameSpace}"""));
+        }
+
+        return imports.ToString();
     }
 
     /// <summary>
@@ -150,11 +166,47 @@ public class MtTransformer
     /// </summary>
     private string CreateTemplatePropertiesBlock(MtComponent mtComponent)
     {
-        return string.Join("\n",
-            mtComponent.Properties.Values.Select(property =>
-                _maniaTemplateLanguage.FeatureBlock(
-                        $"public {property.Type} {property.Name} {{ get; init; }}{(property.Default == null ? "" : $" = {WrapIfString(property, property.Default)};")}")
-                    .ToString()));
+        var properties = new StringBuilder();
+
+        foreach (var (propertyName, propertyValue) in _engine.GlobalVariables)
+        {
+            var type = propertyValue.GetType();
+
+            properties.AppendLine(_maniaTemplateLanguage
+                .FeatureBlock($"public {GetFormattedName(type)} ?{propertyName} {{ get; init; }}").ToString());
+        }
+
+        foreach (var property in mtComponent.Properties.Values)
+        {
+            properties.AppendLine(_maniaTemplateLanguage
+                .FeatureBlock(
+                    $"public {property.Type} {property.Name} {{ get; init; }}{(property.Default == null ? "" : $" = {WrapIfString(property, property.Default)};")}")
+                .ToString());
+        }
+
+        return properties.ToString();
+    }
+    
+    /// <summary>
+    /// Returns the type name. If this is a generic type, appends
+    /// the list of generic type arguments between angle brackets.
+    /// (Does not account for embedded / inner generic arguments.)
+    ///
+    /// From: https://stackoverflow.com/a/66604069
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <returns>System.String.</returns>
+    public static string GetFormattedName(Type type)
+    {
+        if(type.IsGenericType)
+        {
+            string genericArguments = type.GetGenericArguments()
+                .Select(x => x.Name)
+                .Aggregate((x1, x2) => $"{x1}, {x2}");
+            return $"{type.Name.Substring(0, type.Name.IndexOf("`"))}"
+                   + $"<{genericArguments}>";
+        }
+        return type.Name;
     }
 
     /// <summary>
@@ -474,7 +526,8 @@ public class MtTransformer
                 .Select(property => property.Name));
 
             renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
-                .AppendLine($"__maniaScriptRenderMethods.Add(() => {scriptRenderMethodName}({string.Join(',', scriptArguments)}));")
+                .AppendLine(
+                    $"__maniaScriptRenderMethods.Add(() => {scriptRenderMethodName}({string.Join(',', scriptArguments)}));")
                 .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
         }
 
@@ -921,7 +974,7 @@ public class MtTransformer
         {
             layer += $@" layer=""{displayLayer}""";
         }
-        
+
         return $@"<manialink version=""{version}"" id=""{name}"" name=""EvoSC#-{name}""{layer}>";
     }
 
