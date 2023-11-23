@@ -8,6 +8,5 @@
         <label foreach="int testList in complex.TestEnumerable" text="{{ testList }}"/>
         <label foreach="int testListTwo in list" text="{{ testListTwo }}"/>
         <ComponentGlobalVariable />
-        <label text="{{ dynamicObject.DynamicProperty }}"/>
     </template>
 </component>

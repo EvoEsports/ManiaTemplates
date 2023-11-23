@@ -3,18 +3,17 @@
 public class ManialinkEngineTest
 {
     private readonly ManiaTemplateEngine _maniaTemplateEngine = new();
-
+    
     [Theory]
     [ClassData(typeof(TestDataProvider))]
     public void Should_Convert_Templates_To_Result(string template, dynamic data, string expected)
     {
         _maniaTemplateEngine.AddTemplateFromString("test", template);
         _maniaTemplateEngine.PreProcess("test", new[] { typeof(ManiaTemplateEngine).Assembly });
-
-        var pendingResult =
-            _maniaTemplateEngine.RenderAsync("test", data, new[] { typeof(ManiaTemplateEngine).Assembly });
+        
+        var pendingResult = _maniaTemplateEngine.RenderAsync("test", data, new[] { typeof(ManiaTemplateEngine).Assembly });
         var result = pendingResult.Result;
-
+        
         Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
     }
 
@@ -28,23 +27,14 @@ public class ManialinkEngineTest
 
         _maniaTemplateEngine.AddTemplateFromString("ComponentGlobalVariable", componentWithGlobalVariable);
         _maniaTemplateEngine.AddTemplateFromString("GlobalVariables", componentTemplate);
-
-        dynamic dynamicObject = new DynamicDictionary();
-        dynamicObject.DynamicProperty = "UnitTest";
-        AddGlobalVariable("dynamicObject", dynamicObject);
-
+        
         _maniaTemplateEngine.GlobalVariables["testVariable"] = "unittest";
         _maniaTemplateEngine.GlobalVariables["complex"] = new ComplexDataType();
         _maniaTemplateEngine.GlobalVariables["list"] = new List<int> { 3, 6, 9 };
-
-        var pendingResult = _maniaTemplateEngine.RenderAsync("GlobalVariables", new { }, assemblies);
+        
+        var pendingResult = _maniaTemplateEngine.RenderAsync("GlobalVariables", new{}, assemblies);
         var result = pendingResult.Result;
-
+        
         Assert.Equal(expectedOutput, result, ignoreLineEndingDifferences: true);
-    }
-
-    private void AddGlobalVariable(string name, object value)
-    {
-        _maniaTemplateEngine.GlobalVariables.AddOrUpdate(name, value, (s, o) => value);
     }
 }
