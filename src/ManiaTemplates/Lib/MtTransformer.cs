@@ -1,4 +1,5 @@
-﻿using System.Dynamic;
+﻿using System.CodeDom;
+using System.Dynamic;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -7,6 +8,7 @@ using ManiaTemplates.Components;
 using ManiaTemplates.ControlElements;
 using ManiaTemplates.Exceptions;
 using ManiaTemplates.Interfaces;
+using Microsoft.CSharp;
 
 namespace ManiaTemplates.Lib;
 
@@ -883,14 +885,9 @@ public class MtTransformer
     }
     
     /// <summary>
-    /// Returns the type name. If this is a generic type, appends
-    /// the list of generic type arguments between angle brackets.
-    /// (Does not account for embedded / inner generic arguments.)
-    ///
-    /// From: https://stackoverflow.com/a/66604069
+    /// Returns C# code representation of the type.
     /// </summary>
     /// <param name="type">The type.</param>
-    /// <returns>System.String.</returns>
     private static string GetFormattedName(Type type)
     {
         if (type.IsSubclassOf(typeof(DynamicObject)))
@@ -898,17 +895,9 @@ public class MtTransformer
             return "dynamic";
         }
         
-        if(type.IsGenericType)
-        {
-            string genericArguments = type.GetGenericArguments()
-                .Select(x => x.Name)
-                .Aggregate((x1, x2) => $"{x1}, {x2}");
-            
-            return $"{type.Name.Substring(0, type.Name.IndexOf("`"))}"
-                   + $"<{genericArguments}>";
-        }
-
-        return type.Name;
+        using var codeProvider = new CSharpCodeProvider();
+        var typeReference = new CodeTypeReference(type);
+        return codeProvider.GetTypeOutput(typeReference);
     }
 
     /// <summary>
