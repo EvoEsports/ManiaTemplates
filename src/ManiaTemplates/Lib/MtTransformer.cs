@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System.Dynamic;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -168,10 +169,12 @@ public class MtTransformer
     {
         var properties = new StringBuilder();
 
-        foreach (var propertyName in _engine.GlobalVariables.Keys)
+        foreach (var  (propertyName, propertyValue) in _engine.GlobalVariables)
         {
+            var type = propertyValue.GetType();
+
             properties.AppendLine(_maniaTemplateLanguage
-                .FeatureBlock($"public dynamic ?{propertyName} {{ get; init; }}").ToString());
+                    .FeatureBlock($"public {GetFormattedName(type)} ?{propertyName} {{ get; init; }}").ToString());
         }
 
         foreach (var property in mtComponent.Properties.Values)
@@ -877,6 +880,35 @@ public class MtTransformer
         }
 
         return context;
+    }
+    
+    /// <summary>
+    /// Returns the type name. If this is a generic type, appends
+    /// the list of generic type arguments between angle brackets.
+    /// (Does not account for embedded / inner generic arguments.)
+    ///
+    /// From: https://stackoverflow.com/a/66604069
+    /// </summary>
+    /// <param name="type">The type.</param>
+    /// <returns>System.String.</returns>
+    private static string GetFormattedName(Type type)
+    {
+        if (type.IsSubclassOf(typeof(DynamicObject)))
+        {
+            return "dynamic";
+        }
+        
+        if(type.IsGenericType)
+        {
+            string genericArguments = type.GetGenericArguments()
+                .Select(x => x.Name)
+                .Aggregate((x1, x2) => $"{x1}, {x2}");
+            
+            return $"{type.Name.Substring(0, type.Name.IndexOf("`"))}"
+                   + $"<{genericArguments}>";
+        }
+
+        return type.Name;
     }
 
     /// <summary>
