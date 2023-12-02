@@ -49,4 +49,22 @@ public class ManialinkEngineTest
     {
         _maniaTemplateEngine.GlobalVariables.AddOrUpdate(name, value, (s, o) => value);
     }
+
+    [Fact]
+    public void Should_Fill_Named_Slots()
+    {
+        var namedSlotsTemplate = File.ReadAllText($"IntegrationTests/templates/named-slots.mt");
+        var componentTemplate = File.ReadAllText($"IntegrationTests/templates/component-multi-slot.mt");
+        var expected = File.ReadAllText($"IntegrationTests/expected/named-slots.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("NamedSlots", namedSlotsTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", componentTemplate);
+
+        var result = _maniaTemplateEngine.RenderAsync("NamedSlots", new
+        {
+            testVariable = "UnitTest"
+        }, assemblies).Result;
+        Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
+    }
 }

@@ -1,0 +1,8 @@
+﻿<manialink version="3" id="MtNamedSlots" name="EvoSC#-MtNamedSlots">
+<frame class="outer">
+<label text="test" />
+<frame class="inner">
+<label text="UnitTest" />
+</frame>
+</frame>
+</manialink>
