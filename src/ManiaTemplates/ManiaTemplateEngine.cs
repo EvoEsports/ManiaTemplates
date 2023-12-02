@@ -210,7 +210,6 @@ public class ManiaTemplateEngine
         var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
 
-        writeTo = "../../../";
         if (writeTo != null)
         {
             await File.WriteAllTextAsync(Path.Combine(writeTo,className + ".tt"), t4Template);
