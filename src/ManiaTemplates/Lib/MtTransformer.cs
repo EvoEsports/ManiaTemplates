@@ -205,10 +205,10 @@ public class MtTransformer
     /// <summary>
     /// Creates the slot-render method for a given data context.
     /// </summary>
-    private string CreateSlotRenderMethod(int scope, MtDataContext context, string? slotContent = null)
+    private string CreateSlotRenderMethod(int scope, MtDataContext context, string slotName, string? slotContent = null)
     {
         var variablesInherited = new List<string>();
-        var methodName = "Render_Slot_" + scope;
+        var methodName = GetSlotRenderMethodName(scope, slotName);
 
         var output = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
             .AppendLine("void " + CreateMethodCall(methodName, $"{context} __data", "") + " {");
@@ -377,11 +377,13 @@ public class MtTransformer
         MtComponentSlot? slot = null;
         if (component.HasSlot)
         {
+            var slotName = "default";
             slot = new MtComponentSlot
             {
                 Scope = scope,
                 Context = currentContext,
-                RenderMethod = CreateSlotRenderMethod(scope, currentContext, slotContent)
+                Name = slotName,
+                RenderMethod = CreateSlotRenderMethod(scope, currentContext, slotName, slotContent)
             };
 
             _slots.Add(slot);
@@ -427,7 +429,7 @@ public class MtTransformer
 
             renderComponentCall.Append("__slotRenderer: ")
                 .Append("() => ")
-                .Append(GetSlotRenderMethodName(slot));
+                .Append(GetSlotRenderMethodName(slot.Scope, slot.Name));
 
             if (newScopeCreated)
             {
@@ -928,9 +930,9 @@ public class MtTransformer
     /// <summary>
     /// Returns the name of the method that renders the slot contents.
     /// </summary>
-    private string GetSlotRenderMethodName(MtComponentSlot slot)
+    private string GetSlotRenderMethodName(int scope, string name)
     {
-        return "Render_Slot_" + slot.Scope.GetHashCode();
+        return $"Render_Slot_{scope.GetHashCode()}_{name}";
     }
 
     /// <summary>
