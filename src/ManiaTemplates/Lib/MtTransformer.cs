@@ -368,6 +368,7 @@ public class MtTransformer
 
             if (slotName == "default")
             {
+                //Do not strip contents for default slot from node
                 continue;
             }
 
@@ -401,6 +402,17 @@ public class MtTransformer
         IReadOnlyDictionary<string, string> slotContents
     )
     {
+        // foreach (var slotContentKey in slotContents.Keys)
+        // {
+        //     //Prevent filling a slot that does not exist.
+        //     if (!component.Slots.Contains(slotContentKey))
+        //     {
+        //         var availableSlots = string.Join(", ", component.Slots);
+        //         throw new InvalidSlotException(
+        //             $"A slot with name '{slotContentKey}' couldn't be found in the component, available slots: {availableSlots}.");
+        //     }
+        // }
+        
         foreach (var slotName in component.Slots)
         {
             var slotContent = "";

@@ -14,7 +14,7 @@ public class MtComponent
     public required Dictionary<string, MtComponentProperty> Properties { get; init; }
     public required List<string> Namespaces { get; init; }
     public required List<MtComponentScript> Scripts { get; init; }
-    public List<string> Slots { get; set; } = new();
+    public HashSet<string> Slots { get; init; } = new();
 
     /// <summary>
     /// Creates a MtComponent instance from template contents.
@@ -25,7 +25,7 @@ public class MtComponent
         var namespaces = new List<string>();
         var foundProperties = new Dictionary<string, MtComponentProperty>();
         var maniaScripts = new List<MtComponentScript>();
-        var slots = new List<string>();
+        var slots = new HashSet<string>();
         var componentTemplate = "";
         var hasSlot = false;
         string? layer = null;
@@ -229,26 +229,27 @@ public class MtComponent
     /// <summary>
     /// Gets all slot names recursively.
     /// </summary>
-    private static List<string> GetSlotNamesInTemplate(XmlNode node)
+    private static HashSet<string> GetSlotNamesInTemplate(XmlNode node)
     {
-        var slotNames = new List<string>();
+        var slotNames = new HashSet<string>();
 
         if (node.Name == "slot")
         {
-            var slotName = node.Attributes?["name"]?.Value.ToLower() ?? "default";
-
-            if (slotNames.Contains(slotName))
-            {
-                throw new DuplicateSlotException($"""A slot with the name "{slotName}" already exists.""");
-            }
-
-            slotNames.Add(slotName);
+            slotNames.Add(node.Attributes?["name"]?.Value.ToLower() ?? "default");
         }
         else if (node.HasChildNodes)
         {
             foreach (XmlNode childNode in node.ChildNodes)
             {
-                slotNames.AddRange(GetSlotNamesInTemplate(childNode));
+                foreach (var slotName in GetSlotNamesInTemplate(childNode))
+                {
+                    if (slotNames.Contains(slotName))
+                    {
+                        throw new DuplicateSlotException($"""A slot with the name "{slotName}" already exists.""");
+                    }
+                    
+                    slotNames.Add(slotName);
+                }
             }
         }
 
