@@ -14,6 +14,7 @@ public class MtComponent
     public required Dictionary<string, MtComponentProperty> Properties { get; init; }
     public required List<string> Namespaces { get; init; }
     public required List<MtComponentScript> Scripts { get; init; }
+    public HashSet<string> Slots { get; init; } = new();
 
     /// <summary>
     /// Creates a MtComponent instance from template contents.
@@ -24,6 +25,7 @@ public class MtComponent
         var namespaces = new List<string>();
         var foundProperties = new Dictionary<string, MtComponentProperty>();
         var maniaScripts = new List<MtComponentScript>();
+        var slots = new HashSet<string>();
         var componentTemplate = "";
         var hasSlot = false;
         string? layer = null;
@@ -57,6 +59,7 @@ public class MtComponent
                     componentTemplate = node.InnerXml;
                     layer = ParseDisplayLayer(node);
                     hasSlot = NodeHasSlot(node);
+                    slots = GetSlotNamesInTemplate(node);
                     break;
 
                 case "script":
@@ -70,6 +73,7 @@ public class MtComponent
         {
             TemplateContent = componentTemplate,
             HasSlot = hasSlot,
+            Slots = slots,
             ImportedComponents = foundComponents,
             Properties = foundProperties,
             Namespaces = namespaces,
@@ -220,6 +224,36 @@ public class MtComponent
 
         return node.ChildNodes.Cast<XmlNode>()
             .Any(NodeHasSlot);
+    }
+
+    /// <summary>
+    /// Gets all slot names recursively.
+    /// </summary>
+    private static HashSet<string> GetSlotNamesInTemplate(XmlNode node)
+    {
+        var slotNames = new HashSet<string>();
+
+        if (node.Name == "slot")
+        {
+            slotNames.Add(node.Attributes?["name"]?.Value.ToLower() ?? "default");
+        }
+        else if (node.HasChildNodes)
+        {
+            foreach (XmlNode childNode in node.ChildNodes)
+            {
+                foreach (var slotName in GetSlotNamesInTemplate(childNode))
+                {
+                    if (slotNames.Contains(slotName))
+                    {
+                        throw new DuplicateSlotException($"""A slot with the name "{slotName}" already exists.""");
+                    }
+                    
+                    slotNames.Add(slotName);
+                }
+            }
+        }
+
+        return slotNames;
     }
 
     public string Id()

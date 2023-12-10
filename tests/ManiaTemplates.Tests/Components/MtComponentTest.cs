@@ -20,6 +20,7 @@ public class MtComponentTest
             Properties = new(),
             Scripts = new(),
             HasSlot = false,
+            Slots = new HashSet<string>(),
             ImportedComponents = new(),
             TemplateContent = ""
         };
@@ -74,6 +75,7 @@ public class MtComponentTest
                 new() { Content = "scriptText3", HasMainMethod = false, Once = false }
             },
             HasSlot = true,
+            Slots = new HashSet<string>(){"default"},
             ImportedComponents = new()
             {
                 { "name1", new() { TemplateKey = "name1.mt", Tag = "name1" } },

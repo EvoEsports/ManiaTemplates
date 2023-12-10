@@ -1,4 +1,6 @@
-﻿namespace ManiaTemplates.Tests.IntegrationTests;
+﻿using ManiaTemplates.Exceptions;
+
+namespace ManiaTemplates.Tests.IntegrationTests;
 
 public class ManialinkEngineTest
 {
@@ -22,9 +24,9 @@ public class ManialinkEngineTest
     [Fact]
     public void Should_Pass_Global_Variables()
     {
-        var componentTemplate = File.ReadAllText($"IntegrationTests/templates/global-variables.mt");
-        var componentWithGlobalVariable = File.ReadAllText($"IntegrationTests/templates/component-using-gvar.mt");
-        var expectedOutput = File.ReadAllText($"IntegrationTests/expected/global-variables.xml");
+        var componentTemplate = File.ReadAllText("IntegrationTests/templates/global-variables.mt");
+        var componentWithGlobalVariable = File.ReadAllText("IntegrationTests/templates/component-using-gvar.mt");
+        var expectedOutput = File.ReadAllText("IntegrationTests/expected/global-variables.xml");
         var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("ComponentGlobalVariable", componentWithGlobalVariable);
@@ -48,5 +50,38 @@ public class ManialinkEngineTest
     private void AddGlobalVariable(string name, object value)
     {
         _maniaTemplateEngine.GlobalVariables.AddOrUpdate(name, value, (s, o) => value);
+    }
+
+    [Fact]
+    public void Should_Fill_Named_Slots()
+    {
+        var namedSlotsTemplate = File.ReadAllText("IntegrationTests/templates/named-slots.mt");
+        var componentTemplate = File.ReadAllText("IntegrationTests/templates/component-multi-slot.mt");
+        var expected = File.ReadAllText($"IntegrationTests/expected/named-slots.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("NamedSlots", namedSlotsTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", componentTemplate);
+
+        var result = _maniaTemplateEngine.RenderAsync("NamedSlots", new
+        {
+            testVariable = "UnitTest"
+        }, assemblies).Result;
+
+        Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public async void Should_Throw_Exception_For_Duplicate_Slot_In_Source_Template()
+    {
+        var namedSlotsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/named-slots.mt");
+        var componentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component-duplicate-slot.mt");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("NamedSlots", namedSlotsTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", componentTemplate);
+
+        await Assert.ThrowsAsync<DuplicateSlotException>(() =>
+            _maniaTemplateEngine.RenderAsync("NamedSlots", new { testVariable = "UnitTest" }, assemblies));
     }
 }
