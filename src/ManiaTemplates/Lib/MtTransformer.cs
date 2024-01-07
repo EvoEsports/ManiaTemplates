@@ -251,7 +251,7 @@ public class MtTransformer
     /// <summary>
     /// Process a ManiaTemplate node.
     /// </summary>
-    private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents, MtDataContext context)
+    private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents, MtDataContext context, int depth = 0)
     {
         Snippet snippet = new();
 
@@ -278,7 +278,7 @@ public class MtTransformer
                 //Node is a component
                 var component = _engine.GetComponent(availableMtComponents[tag].TemplateKey);
                 var slotContents =
-                    GetSlotContentsBySlotName(childNode, component, availableMtComponents, currentContext);
+                    GetSlotContentsBySlotName(childNode, component, availableMtComponents, currentContext, depth);
 
                 var componentRenderMethodCall = ProcessComponentNode(
                     context != currentContext,
@@ -289,7 +289,8 @@ public class MtTransformer
                     ProcessNode(
                         XmlStringToNode(component.TemplateContent),
                         availableMtComponents.Overload(component.ImportedComponents),
-                        currentContext
+                        currentContext,
+                        depth + 1
                     ),
                     slotContents
                 );
@@ -310,10 +311,15 @@ public class MtTransformer
                         subSnippet.AppendLine($"<!-- {childNode.InnerText} -->");
                         break;
                     case "slot":
-                        var slotName = GetNameFromNodeAttributes(attributeList);
-                        subSnippet.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
-                            .AppendLine(CreateMethodCall("__slotRenderer_" + slotName, ""))
-                            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
+                        if (depth > 0)
+                        {
+                            var slotName = GetNameFromNodeAttributes(attributeList);
+                            subSnippet.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+                                .AppendLine(CreateMethodCall("__slotRenderer_" + slotName, ""))
+                                .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
+                        }
+
+                        //TODO: only add call if the render method exists in params
                         break;
 
                     default:
@@ -324,7 +330,7 @@ public class MtTransformer
                         if (hasChildren)
                         {
                             subSnippet.AppendLine(1,
-                                ProcessNode(childNode, availableMtComponents, currentContext));
+                                ProcessNode(childNode, availableMtComponents, currentContext, depth));
                             subSnippet.AppendLine(CreateXmlClosingTag(tag));
                         }
 
@@ -352,8 +358,7 @@ public class MtTransformer
     }
 
     private Dictionary<string, string> GetSlotContentsBySlotName(XmlNode componentNode,
-        MtComponent component,
-        MtComponentMap availableMtComponents, MtDataContext context)
+        MtComponent component, MtComponentMap availableMtComponents, MtDataContext context, int depth)
     {
         var contentsByName = new Dictionary<string, XmlNode>();
 
@@ -385,7 +390,7 @@ public class MtTransformer
 
         return contentsByName.ToDictionary(
             kvp => kvp.Key,
-            kvp => ProcessNode(kvp.Value, availableMtComponents, context)
+            kvp => ProcessNode(kvp.Value, availableMtComponents, context, depth)
         );
     }
 
