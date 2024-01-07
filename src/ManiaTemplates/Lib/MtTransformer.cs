@@ -311,13 +311,13 @@ public class MtTransformer
                         subSnippet.AppendLine($"<!-- {childNode.InnerText} -->");
                         break;
                     case "slot":
-                        if (depth > 0)
-                        {
+                        // if (depth > 0)
+                        // {
                             var slotName = GetNameFromNodeAttributes(attributeList);
                             subSnippet.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
                                 .AppendLine(CreateMethodCall("__slotRenderer_" + slotName, ""))
                                 .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
-                        }
+                        // }
 
                         //TODO: only add call if the render method exists in params
                         break;
@@ -429,13 +429,19 @@ public class MtTransformer
         {
             _renderMethods.Add(
                 renderMethodName,
-                CreateComponentRenderMethod(component, renderMethodName, componentBody)
+                CreateComponentRenderMethod(component, renderMethodName, componentBody, currentContext)
             );
         }
 
-        //create render call
+        //Create render call
         var renderComponentCall = new StringBuilder(renderMethodName).Append('(');
-        var renderArguments = new List<string>();
+        
+        //Pass available arguments
+        var renderArguments = new List<string>
+        {
+            "__data: __data"
+        };
+        
         foreach (var (attributeName, attributeValue) in attributeList)
         {
             if (component.Properties.TryGetValue(attributeName, out var value))
@@ -455,6 +461,7 @@ public class MtTransformer
 
         renderComponentCall.Append(string.Join(", ", renderArguments));
 
+        //Append slot render calls
         if (component.Slots.Count > 0)
         {
             var i = 0;
@@ -506,7 +513,7 @@ public class MtTransformer
     /// <summary>
     /// Creates the method which renders the contents of a component.
     /// </summary>
-    private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody)
+    private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody, MtDataContext currentContext)
     {
         var renderMethod = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
             .Append("void ")
@@ -514,7 +521,10 @@ public class MtTransformer
             .Append('(');
 
         //open method arguments
-        var arguments = new List<string>();
+        var arguments = new List<string>
+        {
+            $"{currentContext} __data"
+        };
 
         //add slot render method
         foreach (var slotName in component.Slots)
