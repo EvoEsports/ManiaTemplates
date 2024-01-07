@@ -1,9 +1,10 @@
 ﻿<component>
     <import component="SlotRecursionOuterTwo" as="SlotRecursionOuterTwo"/>
-    
+
     <template>
         <SlotRecursionOuterTwo>
-            <slot />
+            <label text="this is parent content"/>
+            <slot/>
         </SlotRecursionOuterTwo>
     </template>
 </component>
