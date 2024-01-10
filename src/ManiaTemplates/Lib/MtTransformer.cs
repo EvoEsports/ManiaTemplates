@@ -219,15 +219,9 @@ public class MtTransformer
         {
             $"{context} __data"
         };
+        
         //add slot render methods
-        if (parentComponent != null)
-        {
-            AppendSlotRenderArgumentsToList(methodArguments, parentComponent);
-        }
-        else
-        {
-            AppendSlotRenderArgumentsToList(methodArguments, component);
-        }
+        AppendSlotRenderArgumentsToList(methodArguments, parentComponent ?? component);
 
         var output = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
             .AppendLine("void " + CreateMethodCall(methodName, string.Join(',', methodArguments), "") + " {");
@@ -237,8 +231,6 @@ public class MtTransformer
             output.AppendLine(CreateLocalVariablesFromContext(context.ParentContext));
             variablesInherited.AddRange(context.ParentContext.Keys);
         }
-
-        //TODO: add slot render methods of current component?
 
         output
             .AppendLine(CreateLocalVariablesFromContext(context, variablesInherited))
@@ -451,7 +443,7 @@ public class MtTransformer
         {
             _renderMethods.Add(
                 renderMethodName,
-                CreateComponentRenderMethod(component, renderMethodName, componentBody, currentContext, scope)
+                CreateComponentRenderMethod(component, renderMethodName, componentBody)
             );
         }
 
@@ -554,8 +546,7 @@ public class MtTransformer
     /// <summary>
     /// Creates the method which renders the contents of a component.
     /// </summary>
-    private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody,
-        MtDataContext currentContext, int scope)
+    private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody)
     {
         var renderMethod = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
             .Append("void ")
