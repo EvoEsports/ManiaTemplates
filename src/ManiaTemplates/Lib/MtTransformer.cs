@@ -456,33 +456,8 @@ public class MtTransformer
         }
 
         //Create render call
-        var renderComponentCall = new StringBuilder(renderMethodName).Append("(__data: ");
+        var renderComponentCall = new StringBuilder(renderMethodName).Append("(__data: __data");
         
-        if (newScopeCreated)
-        {
-            var dataVariableSuffix = "(__data)";
-            // if (currentContext.ParentContext is { Count: 0 })
-            // {
-            //     dataVariableSuffix = "";
-            // }
-
-            renderComponentCall.Append($"new {currentContext}{dataVariableSuffix}{{");
-
-            var variables = new List<string>();
-            foreach (var variableName in currentContext.Keys)
-            {
-                variables.Add($"{variableName} = {variableName}");
-            }
-
-            renderComponentCall.Append(string.Join(", ", variables)).Append("}");
-        }
-        else
-        {
-            renderComponentCall.Append("__data");
-        }
-        
-        // renderComponentCall.Append(", ");
-
         //Pass available arguments
         var renderArguments = new List<string>
         {
@@ -590,7 +565,7 @@ public class MtTransformer
         //open method arguments
         var arguments = new List<string>
         {
-            $"{currentContext} __data"
+            $"CRoot __data"
         };
 
         //add slot render methods
