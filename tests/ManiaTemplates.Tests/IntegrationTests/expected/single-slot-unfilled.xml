@@ -1,0 +1,6 @@
+﻿<manialink version="3" id="MtSlotRecursionInner" name="EvoSC#-MtSlotRecursionInner">
+<label text="test" />
+<label text="this is child content" />
+<label text="this is parent content" />
+<label text="this is root content" />
+</manialink>

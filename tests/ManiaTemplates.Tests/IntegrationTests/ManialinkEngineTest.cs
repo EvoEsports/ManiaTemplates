@@ -84,4 +84,21 @@ public class ManialinkEngineTest
         await Assert.ThrowsAsync<DuplicateSlotException>(() =>
             _maniaTemplateEngine.RenderAsync("NamedSlots", new { testVariable = "UnitTest" }, assemblies));
     }
+
+    [Fact]
+    public async void Should_Render_Component_Without_Content_For_Slot()
+    {
+        var slotRecursionOuterTwoTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-outer-two.mt");
+        var slotRecursionOuterTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-outer.mt");
+        var slotRecursionInnerTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-inner.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/single-slot-unfilled.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+        
+        _maniaTemplateEngine.AddTemplateFromString("SlotRecursionOuterTwo", slotRecursionOuterTwoTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("SlotRecursionOuter", slotRecursionOuterTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("SlotRecursionInner", slotRecursionInnerTemplate);
+        
+        var template = _maniaTemplateEngine.RenderAsync("SlotRecursionInner", new{}, assemblies).Result;
+        Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
 }
