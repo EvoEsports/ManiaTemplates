@@ -395,10 +395,7 @@ public class MtTransformer
             componentNode.RemoveChild(childNode);
         }
 
-        // if (componentNode.InnerXml.Trim().Length > 0)
-        // {
         contentsByName["default"] = componentNode;
-        // }
 
         return contentsByName.ToDictionary(
             kvp => kvp.Key,
