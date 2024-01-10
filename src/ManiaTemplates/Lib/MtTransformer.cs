@@ -303,7 +303,7 @@ public class MtTransformer
 
                 var componentRenderMethodCall = ProcessComponentNode(
                     context != currentContext,
-                    childNode.GetHashCode(), // = newScope
+                    childNode.GetHashCode(),
                     component,
                     currentContext,
                     attributeList,
