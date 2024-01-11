@@ -224,7 +224,10 @@ public class MtTransformer
         AppendSlotRenderArgumentsToList(methodArguments, parentComponent ?? component);
 
         //add component properties as arguments
-        AppendComponentPropertiesToMethodArgumentsList(parentComponent ?? component, methodArguments);
+        if (parentComponent != null)
+        {
+            AppendComponentPropertiesToMethodArgumentsList(parentComponent, methodArguments);
+        }
 
         var output = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
             .AppendLine("void " + CreateMethodCall(methodName, string.Join(',', methodArguments), "") + " {");
