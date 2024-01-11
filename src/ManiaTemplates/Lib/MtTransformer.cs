@@ -219,9 +219,12 @@ public class MtTransformer
         {
             $"{context} __data"
         };
-        
+
         //add slot render methods
         AppendSlotRenderArgumentsToList(methodArguments, parentComponent ?? component);
+
+        //add component properties as arguments
+        AppendComponentPropertiesToMethodArgumentsList(parentComponent ?? component, methodArguments);
 
         var output = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
             .AppendLine("void " + CreateMethodCall(methodName, string.Join(',', methodArguments), "") + " {");
@@ -430,8 +433,14 @@ public class MtTransformer
                 Scope = scope,
                 Context = currentContext,
                 Name = slotName,
-                RenderMethodT4 = CreateSlotRenderMethod(component, scope, currentContext, slotName, slotContent,
-                    parentComponent)
+                RenderMethodT4 = CreateSlotRenderMethod(
+                    component,
+                    scope,
+                    currentContext,
+                    slotName,
+                    slotContent,
+                    parentComponent
+                )
             });
         }
 
@@ -446,13 +455,11 @@ public class MtTransformer
 
         //Create render call
         var renderComponentCall = new StringBuilder(renderMethodName).Append("(__data: __data");
-        
-        //Pass available arguments
-        var renderArguments = new List<string>
-        {
-            ""
-        };
 
+        //Create available arguments
+        var renderArguments = new List<string> { "" };
+
+        //Attach attributes to render method call
         foreach (var (attributeName, attributeValue) in attributeList)
         {
             if (component.Properties.TryGetValue(attributeName, out var value))
@@ -517,6 +524,11 @@ public class MtTransformer
                         renderComponentCall.Append(
                             $", __slotRenderer_{parentSlotName}: __slotRenderer_{parentSlotName}");
                     }
+                    
+                    foreach (var propertyName in parentComponent.Properties.Keys)
+                    {
+                        renderComponentCall.Append($",{propertyName}: {propertyName}");
+                    }
                 }
                 else
                 {
@@ -526,8 +538,8 @@ public class MtTransformer
                             $", __slotRenderer_{parentSlotName}: () => DoNothing()");
                     }
                 }
-
-                renderComponentCall.Append(")");
+                
+                renderComponentCall.Append(')');
 
                 i++;
             }
@@ -539,7 +551,7 @@ public class MtTransformer
 
         return renderComponentCall.ToString();
     }
-
+    
     /// <summary>
     /// Creates the method which renders the contents of a component.
     /// </summary>
@@ -559,19 +571,14 @@ public class MtTransformer
         //add slot render methods
         AppendSlotRenderArgumentsToList(arguments, component);
 
-        //add method arguments with defaults
-        arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null).Select(property =>
-            property.Default == null
-                ? $"{property.Type} {property.Name}"
-                : $"{property.Type} {property.Name} = {(WrapIfString(property, property.Default))}"));
+        //add component properties as arguments with defaults
+        AppendComponentPropertiesToMethodArgumentsList(component, arguments);
 
         //close method arguments
         renderMethod.Append(string.Join(", ", arguments))
             .AppendLine(") {")
-            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
-
-        //insert body
-        renderMethod.AppendLine(componentBody);
+            .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
+            .AppendLine(componentBody);
 
         //insert mania scripts
         if (component.Scripts.Count > 0)
@@ -596,6 +603,17 @@ public class MtTransformer
             .Append('}')
             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
             .ToString();
+    }
+
+    /// <summary>
+    /// Takes all available properties of a component and adds them to the given list of method arguments.
+    /// </summary>
+    private static void AppendComponentPropertiesToMethodArgumentsList(MtComponent component, List<string> arguments)
+    {
+        arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null)
+            .Select(property => property.Default == null
+                ? $"{property.Type} {property.Name}"
+                : $"{property.Type} {property.Name} = {(WrapIfString(property, property.Default))}"));
     }
 
     /// <summary>
