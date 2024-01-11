@@ -1066,7 +1066,7 @@ public class MtTransformer
     /// <summary>
     /// Wraps a string in quotes.
     /// </summary>
-    private static string WrapStringInQuotes(string str)
+    public static string WrapStringInQuotes(string str)
     {
         return $@"$""{str}""";
     }
@@ -1140,7 +1140,7 @@ public class MtTransformer
     /// <summary>
     /// Takes the contents of double curly braces in a string and wraps them into something else. The second Argument takes a string-argument and returns the newly wrapped string.
     /// </summary>
-    private static string ReplaceCurlyBraces(string value, Func<string, string> curlyContentWrapper)
+    public static string ReplaceCurlyBraces(string value, Func<string, string> curlyContentWrapper)
     {
         var matches = TemplateInterpolationRegex.Match(value);
         var output = value;
