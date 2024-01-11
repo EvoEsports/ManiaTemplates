@@ -101,4 +101,24 @@ public class ManialinkEngineTest
         var template = _maniaTemplateEngine.RenderAsync("SlotRecursionInner", new{}, assemblies).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
+
+    [Fact]
+    public async void Should_Pass_Properties_To_Components_And_Slots()
+    {
+        var propertyTestTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/property-test.mt");
+        var testWrapperTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");
+        var testComponentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/property-test.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+        
+        _maniaTemplateEngine.AddTemplateFromString("PropertyTest", propertyTestTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("Wrapper", testWrapperTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("TestComponent", testComponentTemplate);
+        
+        var template = _maniaTemplateEngine.RenderAsync("PropertyTest", new
+        {
+            testVariable = "integration"
+        }, assemblies).Result;
+        Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
 }

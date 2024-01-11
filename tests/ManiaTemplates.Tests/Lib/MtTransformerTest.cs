@@ -10,9 +10,9 @@ namespace ManiaTemplates.Tests.Lib;
 public class MtTransformerTest
 {
     private readonly ITestOutputHelper _testOutputHelper;
+    private readonly MtTransformer _transformer;
     private readonly ManiaTemplateEngine _maniaTemplateEngine = new();
     private readonly Regex _hashCodePattern = new("[0-9]{6,10}");
-
     private readonly MtComponent _testComponent = new()
     {
         Namespaces = new() { "namespace" },
@@ -46,8 +46,6 @@ public class MtTransformerTest
                                 </Frame>
                             </Frame>"
     };
-
-    private readonly MtTransformer _transformer;
 
     public MtTransformerTest(ITestOutputHelper testOutputHelper)
     {
@@ -90,9 +88,9 @@ public class MtTransformerTest
         var expected = File.ReadAllText("Lib/expected.tt");
         var result = _transformer.BuildManialink(_testComponent, "expected");
         var generalizedResult = TransformCodeToOrderNumber(result);
-        
+
         _testOutputHelper.WriteLine(generalizedResult);
-        
+
         Assert.Equal(expected, generalizedResult, ignoreLineEndingDifferences: true);
     }
 
@@ -118,15 +116,33 @@ public class MtTransformerTest
     {
         var assemblies = new List<Assembly>();
         assemblies.Add(Assembly.GetExecutingAssembly());
-        
+
         _maniaTemplateEngine.AddTemplateFromString("Embeddable", "<component><template><el/></template></component>");
-        _maniaTemplateEngine.AddTemplateFromString("RecursionElement", "<component><import component='Embeddable' as='Comp' /><template><Comp/></template></component>");
-        _maniaTemplateEngine.AddTemplateFromString("RecursionRoot", "<component><import component='RecursionElement' as='REL' /><template><REL/></template></component>");
-        
-        var output = _maniaTemplateEngine.RenderAsync("RecursionRoot", new {}, assemblies).Result;
-        Assert.Equal( @$"<manialink version=""3"" id=""MtRecursionRoot"" name=""EvoSC#-MtRecursionRoot"">
+        _maniaTemplateEngine.AddTemplateFromString("RecursionElement",
+            "<component><import component='Embeddable' as='Comp' /><template><Comp/></template></component>");
+        _maniaTemplateEngine.AddTemplateFromString("RecursionRoot",
+            "<component><import component='RecursionElement' as='REL' /><template><REL/></template></component>");
+
+        var output = _maniaTemplateEngine.RenderAsync("RecursionRoot", new { }, assemblies).Result;
+        Assert.Equal(@$"<manialink version=""3"" id=""MtRecursionRoot"" name=""EvoSC#-MtRecursionRoot"">
 <el />
 </manialink>
 ", output, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public void Should_Replace_Curly_Braces_Correctly()
+    {
+        Assert.Equal("abcd", MtTransformer.ReplaceCurlyBraces("{{a}}{{ b }}{{c }}{{  d}}", s => s));
+        Assert.Equal("x y z", MtTransformer.ReplaceCurlyBraces("{{x}} {{ y }} {{z }}", s => s));
+        Assert.Equal("unittest", MtTransformer.ReplaceCurlyBraces("{{ unit }}test", s => s));
+        Assert.Equal("#unit#test", MtTransformer.ReplaceCurlyBraces("{{ unit }}test", s => $"#{s}#"));
+        Assert.Equal("#{ unit#}test", MtTransformer.ReplaceCurlyBraces("{{{ unit }}}test", s => $"#{s}#"));
+    }
+
+    [Fact]
+    public void Should_Wrap_Strings_In_Quotes()
+    {
+        Assert.Equal(@"$""unit test""", MtTransformer.WrapStringInQuotes("unit test"));
     }
 }
