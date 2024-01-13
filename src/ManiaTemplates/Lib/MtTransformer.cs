@@ -29,6 +29,7 @@ public class MtTransformer
 
     private static readonly Regex TemplateFeatureControlRegex = new(@"#>\s*<#\+");
     private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
+    private static readonly Regex TemplateInterpolationRecursionRegex = new(@"\{\{\s*(.+?)\s*\}\}");
     private static readonly Regex JoinScriptBlocksRegex = new(@"(?s)-->.+?<!--");
 
     private static readonly Regex ManiaScriptIncludeRegex = new(@"#Include\s+""(.+?)""\s+as\s+([_a-zA-Z]+)");
@@ -527,7 +528,7 @@ public class MtTransformer
                         renderComponentCall.Append(
                             $", __slotRenderer_{parentSlotName}: __slotRenderer_{parentSlotName}");
                     }
-                    
+
                     foreach (var propertyName in parentComponent.Properties.Keys)
                     {
                         renderComponentCall.Append($",{propertyName}: {propertyName}");
@@ -541,7 +542,7 @@ public class MtTransformer
                             $", __slotRenderer_{parentSlotName}: () => DoNothing()");
                     }
                 }
-                
+
                 renderComponentCall.Append(')');
 
                 i++;
@@ -554,7 +555,7 @@ public class MtTransformer
 
         return renderComponentCall.ToString();
     }
-    
+
     /// <summary>
     /// Creates the method which renders the contents of a component.
     /// </summary>
@@ -775,7 +776,7 @@ public class MtTransformer
     }
 
     /// <summary>
-    /// Checks the attribute list for if-condition and returns it, else null.
+    /// Checks the attribute list for if-condition and if found removes & returns it, else null.
     /// </summary>
     private string? GetIfConditionFromNodeAttributes(MtComponentAttributes attributeList)
     {
@@ -783,7 +784,7 @@ public class MtTransformer
     }
 
     /// <summary>
-    /// Checks the attribute list for name and returns it, else "default".
+    /// Checks the attribute list for name and if found removes & returns it, else "default".
     /// </summary>
     private string GetNameFromNodeAttributes(MtComponentAttributes attributeList)
     {
@@ -922,7 +923,7 @@ public class MtTransformer
     /// <summary>
     /// Parses the attributes of a XmlNode to an MtComponentAttributes-instance.
     /// </summary>
-    private static MtComponentAttributes GetXmlNodeAttributes(XmlNode node)
+    public static MtComponentAttributes GetXmlNodeAttributes(XmlNode node)
     {
         var attributeList = new MtComponentAttributes();
         if (node.Attributes == null) return attributeList;
@@ -940,6 +941,8 @@ public class MtTransformer
     /// </summary>
     private string BuildManiaScripts(MtComponent rootComponent)
     {
+        //TODO: check if method can be removed
+        
         var maniaScripts = rootComponent.Scripts.ToDictionary(script => script.ContentHash());
         foreach (var (key, value) in _maniaScripts)
         {
@@ -1005,7 +1008,7 @@ public class MtTransformer
     /// Returns C# code representation of the type.
     /// </summary>
     /// <param name="type">The type.</param>
-    private static string GetFormattedName(Type type)
+    public static string GetFormattedName(Type type)
     {
         if (type.IsSubclassOf(typeof(DynamicObject)))
         {
@@ -1081,7 +1084,7 @@ public class MtTransformer
     /// name = Shown in in-game debugger.
     /// version = Version for the markup language of Trackmania.
     /// </summary>
-    private static string ManiaLinkStart(string name, int version = 3, string? displayLayer = null)
+    public static string ManiaLinkStart(string name, int version = 3, string? displayLayer = null)
     {
         var layer = "";
         if (displayLayer != null)
@@ -1103,7 +1106,7 @@ public class MtTransformer
     /// <summary>
     /// Creates a xml opening tag for the given string and attribute list.
     /// </summary>
-    private string CreateXmlOpeningTag(string tag, MtComponentAttributes attributeList, bool hasChildren)
+    public string CreateXmlOpeningTag(string tag, MtComponentAttributes attributeList, bool hasChildren)
     {
         var output = $"<{tag}";
 
@@ -1132,7 +1135,7 @@ public class MtTransformer
     /// <summary>
     /// Converts any valid XML-string into an XmlNode-element.
     /// </summary>
-    private static XmlNode XmlStringToNode(string content)
+    public static XmlNode XmlStringToNode(string content)
     {
         var doc = new XmlDocument();
         doc.LoadXml($"<doc>{content}</doc>");
@@ -1145,6 +1148,8 @@ public class MtTransformer
     /// </summary>
     public static string ReplaceCurlyBraces(string value, Func<string, string> curlyContentWrapper)
     {
+        CheckInterpolationRecursion(value);
+
         var matches = TemplateInterpolationRegex.Match(value);
         var output = value;
 
@@ -1162,9 +1167,58 @@ public class MtTransformer
     }
 
     /// <summary>
+    /// Checks whether double interpolation exists ({{ {{ a }} {{ b }} }}) and throws exception if so.
+    /// </summary>
+    public static void CheckInterpolationRecursion(string value)
+    {
+        var openCurlyBraces = 0;
+        foreach (var character in value.ToCharArray())
+        {
+            if (character == '{')
+            {
+                openCurlyBraces++;
+
+                if (openCurlyBraces >= 4)
+                {
+                    throw new InterpolationRecursionException(
+                        $"Double interpolation found in: {value}. You must not use double curly braces inside other double curly braces.");
+                }
+            }
+            else if (character == '}')
+            {
+                openCurlyBraces--;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Checks whether double interpolation exists ({{ {{ a }} {{ b }} }}) and throws exception if so.
+    /// </summary>
+    public static void CheckForCurlyBraceCountMismatch(string value)
+    {
+        var openCurlyBraces = 0;
+        foreach (var character in value.ToCharArray())
+        {
+            if (character == '{')
+            {
+                openCurlyBraces++;
+            }
+            else if (character == '}')
+            {
+                openCurlyBraces--;
+            }
+        }
+
+        if (openCurlyBraces != 0)
+        {
+            throw new CurlyBraceCountMismatchException($"Found curly brace count mismatch in: {value}.");
+        }
+    }
+
+    /// <summary>
     /// Joins consecutive feature blocks to reduce generated code.
     /// </summary>
-    private static string JoinFeatureBlocks(string manialink)
+    public static string JoinFeatureBlocks(string manialink)
     {
         var match = TemplateFeatureControlRegex.Match(manialink);
         var output = new Snippet();
