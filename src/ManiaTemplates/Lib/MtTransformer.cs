@@ -29,7 +29,6 @@ public class MtTransformer
 
     private static readonly Regex TemplateFeatureControlRegex = new(@"#>\s*<#\+");
     private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
-    private static readonly Regex TemplateInterpolationRecursionRegex = new(@"\{\{\s*(.+?)\s*\}\}");
     private static readonly Regex JoinScriptBlocksRegex = new(@"(?s)-->.+?<!--");
 
     private static readonly Regex ManiaScriptIncludeRegex = new(@"#Include\s+""(.+?)""\s+as\s+([_a-zA-Z]+)");
@@ -87,7 +86,7 @@ public class MtTransformer
     /// </summary>
     private string CreateDoNothingMethod()
     {
-        return _maniaTemplateLanguage.FeatureBlock(@"string DoNothing(){return """";}").ToString();
+        return _maniaTemplateLanguage.FeatureBlock("""string DoNothing(){ return ""; }""").ToString();
     }
 
     /// <summary>
@@ -120,7 +119,7 @@ public class MtTransformer
         bodyRenderMethod.AppendLine($"var __data = {renderBodyArguments};");
 
         //Root mania script block
-        string rootScriptBlock = "";
+        var rootScriptBlock = "";
         if (rootComponent.Scripts.Count > 0)
         {
             rootScriptBlock = CreateManiaScriptBlock(rootComponent);
@@ -385,7 +384,14 @@ public class MtTransformer
                 continue;
             }
 
+            //Get the name from the slot attribute, or default if not found.
             var slotName = childNode.Attributes?["slot"]?.Value.ToLower() ?? "default";
+
+            if (slotName.Trim().Length == 0)
+            {
+                throw new EmptyNodeAttributeException(
+                    $"There's a template tag with empty slot name in <{componentNode.Name}></>.");
+            }
 
             if (slotName == "default")
             {
@@ -942,7 +948,7 @@ public class MtTransformer
     private string BuildManiaScripts(MtComponent rootComponent)
     {
         //TODO: check if method can be removed
-        
+
         var maniaScripts = rootComponent.Scripts.ToDictionary(script => script.ContentHash());
         foreach (var (key, value) in _maniaScripts)
         {
@@ -1148,6 +1154,7 @@ public class MtTransformer
     /// </summary>
     public static string ReplaceCurlyBraces(string value, Func<string, string> curlyContentWrapper)
     {
+        CheckForCurlyBraceCountMismatch(value);
         CheckInterpolationRecursion(value);
 
         var matches = TemplateInterpolationRegex.Match(value);
