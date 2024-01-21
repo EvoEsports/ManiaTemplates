@@ -1,16 +1,16 @@
 ﻿<manialink version="3" id="MtPropertyTest" name="EvoSC#-MtPropertyTest">
-<frame size="15 11">
+<frame size="15 11" width="15">
 <label size="15 3" text="integrationtest" />
 </frame>
-<frame size="15 11">
+<frame size="15 11" width="15">
 <label size="15 3" text="integrationintegration" />
 </frame>
-<frame size="15 11">
+<frame size="15 11" width="15">
 <label size="15 3" text="test" />
 </frame>
 <label text="integration" />
-<frame size="123 11">
-<frame size="77 11">
+<frame size="123 11" width="123">
+<frame size="77 11" width="77">
 <label text="integration" />
 </frame>
 </frame>

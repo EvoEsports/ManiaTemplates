@@ -88,17 +88,20 @@ public class ManialinkEngineTest
     [Fact]
     public async void Should_Render_Component_Without_Content_For_Slot()
     {
-        var slotRecursionOuterTwoTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-outer-two.mt");
-        var slotRecursionOuterTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-outer.mt");
-        var slotRecursionInnerTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-inner.mt");
+        var slotRecursionOuterTwoTemplate =
+            await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-outer-two.mt");
+        var slotRecursionOuterTemplate =
+            await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-outer.mt");
+        var slotRecursionInnerTemplate =
+            await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-inner.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/single-slot-unfilled.xml");
         var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
-        
+
         _maniaTemplateEngine.AddTemplateFromString("SlotRecursionOuterTwo", slotRecursionOuterTwoTemplate);
         _maniaTemplateEngine.AddTemplateFromString("SlotRecursionOuter", slotRecursionOuterTemplate);
         _maniaTemplateEngine.AddTemplateFromString("SlotRecursionInner", slotRecursionInnerTemplate);
-        
-        var template = _maniaTemplateEngine.RenderAsync("SlotRecursionInner", new{}, assemblies).Result;
+
+        var template = _maniaTemplateEngine.RenderAsync("SlotRecursionInner", new { }, assemblies).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 
@@ -110,15 +113,45 @@ public class ManialinkEngineTest
         var testComponentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/property-test.xml");
         var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
-        
+
         _maniaTemplateEngine.AddTemplateFromString("PropertyTest", propertyTestTemplate);
         _maniaTemplateEngine.AddTemplateFromString("Wrapper", testWrapperTemplate);
         _maniaTemplateEngine.AddTemplateFromString("TestComponent", testComponentTemplate);
-        
+
         var template = _maniaTemplateEngine.RenderAsync("PropertyTest", new
         {
             testVariable = "integration"
         }, assemblies).Result;
+        Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public async void Should_Append_Parent_Attributes_To_Single_Component_Child()
+    {
+        var fallthroughComponent = await File.ReadAllTextAsync("IntegrationTests/templates/fallthrough-component.mt");
+        var fallthroughWrapper = await File.ReadAllTextAsync("IntegrationTests/templates/fallthrough-wrapper.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/fallthrough.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("FallthroughComponent", fallthroughComponent);
+        _maniaTemplateEngine.AddTemplateFromString("FallthroughWrapper", fallthroughWrapper);
+
+        var template = _maniaTemplateEngine.RenderAsync("FallthroughWrapper", new { }, assemblies).Result;
+        Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public async void Should_Not_Append_Parent_Attributes_To_Multiple_Component_Children()
+    {
+        var fallthroughComponent = await File.ReadAllTextAsync("IntegrationTests/templates/fallthrough-component-multi-child.mt");
+        var fallthroughWrapper = await File.ReadAllTextAsync("IntegrationTests/templates/fallthrough-wrapper.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/fallthrough-multi-child.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("FallthroughComponent", fallthroughComponent);
+        _maniaTemplateEngine.AddTemplateFromString("FallthroughWrapper", fallthroughWrapper);
+
+        var template = _maniaTemplateEngine.RenderAsync("FallthroughWrapper", new { }, assemblies).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.CodeDom;
+using System.Diagnostics;
 using System.Dynamic;
 using System.Globalization;
 using System.Text;
@@ -270,7 +271,7 @@ public class MtTransformer
     /// Process a ManiaTemplate node.
     /// </summary>
     private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents, MtDataContext context,
-        MtComponent? parentComponent = null)
+        MtComponent? parentComponent = null, MtComponentAttributes? parentAttributes = null)
     {
         Snippet snippet = new();
 
@@ -296,9 +297,7 @@ public class MtTransformer
             {
                 //Node is a component
                 var component = _engine.GetComponent(availableMtComponents[tag].TemplateKey);
-                var slotContents =
-                    GetSlotContentsBySlotName(childNode, component, availableMtComponents, currentContext);
-
+                var slotContents = GetSlotContentsBySlotName(childNode, component, availableMtComponents, currentContext);
                 var componentRenderMethodCall = ProcessComponentNode(
                     context != currentContext,
                     childNode.GetHashCode(),
@@ -309,7 +308,8 @@ public class MtTransformer
                         XmlStringToNode(component.TemplateContent),
                         availableMtComponents.Overload(component.ImportedComponents),
                         currentContext,
-                        component
+                        component,
+                        attributeList
                     ),
                     slotContents,
                     parentComponent
@@ -340,12 +340,19 @@ public class MtTransformer
                     default:
                     {
                         var hasChildren = childNode.HasChildNodes;
+                        if (node.ChildNodes.Count == 1 && parentAttributes != null)
+                        {
+                            foreach (var attribute in parentAttributes)
+                            {
+                                attributeList.TryAdd(attribute.Key, attribute.Value);
+                            }
+                        }
+
                         subSnippet.AppendLine(CreateXmlOpeningTag(tag, attributeList, hasChildren));
 
                         if (hasChildren)
                         {
-                            subSnippet.AppendLine(1,
-                                ProcessNode(childNode, availableMtComponents, currentContext));
+                            subSnippet.AppendLine(1, ProcessNode(childNode, availableMtComponents, currentContext));
                             subSnippet.AppendLine(CreateXmlClosingTag(tag));
                         }
 
