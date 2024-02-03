@@ -57,7 +57,8 @@ public class MtTransformer
         var body = ProcessNode(
             XmlStringToNode(rootComponent.TemplateContent),
             _engine.BaseMtComponents.Overload(rootComponent.ImportedComponents),
-            rootContext
+            rootContext,
+            isRootNode:true
         );
 
         var template = new Snippet
@@ -270,7 +271,7 @@ public class MtTransformer
     /// Process a ManiaTemplate node.
     /// </summary>
     private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents, MtDataContext context,
-        MtComponent? parentComponent = null)
+        MtComponent? parentComponent = null, bool isRootNode = false)
     {
         Snippet snippet = new();
 
@@ -312,7 +313,8 @@ public class MtTransformer
                         component
                     ),
                     slotContents,
-                    parentComponent
+                    parentComponent,
+                    isRootNode
                 );
 
                 subSnippet.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
@@ -420,7 +422,8 @@ public class MtTransformer
         MtComponentAttributes attributeList,
         string componentBody,
         IReadOnlyDictionary<string, string> slotContents,
-        MtComponent? parentComponent = null
+        MtComponent? parentComponent = null,
+        bool isRootNode = false
     )
     {
         foreach (var slotName in component.Slots)
@@ -537,8 +540,16 @@ public class MtTransformer
                 {
                     foreach (var parentSlotName in component.Slots)
                     {
-                        renderComponentCall.Append(
-                            $", __slotRenderer_{parentSlotName}: () => DoNothing()");
+                        if (isRootNode)
+                        {
+                            renderComponentCall.Append(
+                                $", __slotRenderer_{parentSlotName}: () => DoNothing()");
+                        }
+                        else
+                        {
+                            renderComponentCall.Append(
+                                $", __slotRenderer_{parentSlotName}: __slotRenderer_{parentSlotName}");
+                        }
                     }
                 }
                 

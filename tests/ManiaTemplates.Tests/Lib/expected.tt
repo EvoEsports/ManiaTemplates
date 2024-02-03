@@ -118,6 +118,6 @@ Render_Component_MtContext6(__data: __data, arg3: (new test()));
 void Render_Slot_4_default(CRoot __data,Action __slotRenderer_default) {
 var numbers = __data.numbers;
 var enabled = __data.enabled;
-Render_Component_MtContext2(__data: __data, __slotRenderer_default: () => Render_Slot_8_default(__data: __data, __slotRenderer_default: () => DoNothing()));
+Render_Component_MtContext2(__data: __data, __slotRenderer_default: () => Render_Slot_8_default(__data: __data, __slotRenderer_default: __slotRenderer_default));
 }
 #>
