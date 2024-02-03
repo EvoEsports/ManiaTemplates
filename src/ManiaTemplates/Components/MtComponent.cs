@@ -258,6 +258,6 @@ public class MtComponent
 
     public string Id()
     {
-        return "MtContext" + GetHashCode().ToString().Replace("-", "N");
+        return GetHashCode().ToString().Replace("-", "N");
     }
 }

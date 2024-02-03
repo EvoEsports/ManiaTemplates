@@ -210,11 +210,11 @@ public class MtTransformer
     /// <summary>
     /// Creates the slot-render method for a given data context.
     /// </summary>
-    private string CreateSlotRenderMethod(MtComponent component, int scope, MtDataContext context, string slotName,
+    private string CreateSlotRenderMethod(string nodeName, MtComponent component, int scope, MtDataContext context, string slotName,
         string? slotContent = null, MtComponent? parentComponent = null)
     {
         var variablesInherited = new List<string>();
-        var methodName = GetSlotRenderMethodName(scope, slotName);
+        var methodName = GetSlotRenderMethodName(nodeName, scope, slotName, context);
 
         var methodArguments = new List<string>
         {
@@ -299,6 +299,7 @@ public class MtTransformer
                 var component = _engine.GetComponent(availableMtComponents[tag].TemplateKey);
                 var slotContents = GetSlotContentsBySlotName(childNode, component, availableMtComponents, currentContext);
                 var componentRenderMethodCall = ProcessComponentNode(
+                    childNode.Name,
                     context != currentContext,
                     childNode.GetHashCode(),
                     component,
@@ -340,9 +341,12 @@ public class MtTransformer
                     default:
                     {
                         var hasChildren = childNode.HasChildNodes;
-                        if (node.ChildNodes.Count == 1 && parentAttributes != null)
+                        if (node.ChildNodes.Count == 1 && parentAttributes != null && parentComponent != null)
                         {
-                            foreach (var attribute in parentAttributes)
+                            var attributesThatArentProperties = parentAttributes.Where(attribute =>
+                                !parentComponent.Properties.ContainsKey(attribute.Key));
+                            
+                            foreach (var attribute in attributesThatArentProperties)
                             {
                                 attributeList.TryAdd(attribute.Key, attribute.Value);
                             }
@@ -427,6 +431,7 @@ public class MtTransformer
     /// Process a node that has been identified as an component.
     /// </summary>
     private string ProcessComponentNode(
+        string nodeName,
         bool newScopeCreated,
         int scope,
         MtComponent component,
@@ -451,6 +456,7 @@ public class MtTransformer
                 Context = currentContext,
                 Name = slotName,
                 RenderMethodT4 = CreateSlotRenderMethod(
+                    nodeName,
                     component,
                     scope,
                     currentContext,
@@ -461,12 +467,12 @@ public class MtTransformer
             });
         }
 
-        var renderMethodName = GetComponentRenderMethodName(component);
+        var renderMethodName = GetComponentRenderMethodName(nodeName, component, currentContext);
         if (!_renderMethods.ContainsKey(renderMethodName))
         {
             _renderMethods.Add(
                 renderMethodName,
-                CreateComponentRenderMethod(component, renderMethodName, componentBody)
+                CreateComponentRenderMethod(component, renderMethodName, componentBody, currentContext)
             );
         }
 
@@ -475,23 +481,19 @@ public class MtTransformer
 
         //Create available arguments
         var renderArguments = new List<string> { "" };
+        
+        //Attach variables from current context, that are not mapped to properties of component
+        renderArguments.AddRange(from variableName in currentContext.Keys where !attributeList.ContainsKey(variableName) select $"{variableName}: {variableName}");
 
         //Attach attributes to render method call
         foreach (var (attributeName, attributeValue) in attributeList)
         {
-            if (component.Properties.TryGetValue(attributeName, out var value))
-            {
-                if (IsStringType(value))
-                {
-                    renderArguments.Add(
-                        $"{attributeName}: {WrapIfString(value, ReplaceCurlyBraces(attributeValue, s => $@"{{({s})}}"))}");
-                }
-                else
-                {
-                    renderArguments.Add(
-                        $"{attributeName}: {ReplaceCurlyBraces(attributeValue, s => $"({s})")}");
-                }
-            }
+            if (!component.Properties.TryGetValue(attributeName, out var value)) continue;
+
+            renderArguments.Add(
+                IsStringType(value)
+                    ? $"{attributeName}: {WrapStringInQuotes(ReplaceCurlyBraces(attributeValue, s => $"{{({s})}}"))}"
+                    : $"{attributeName}: {ReplaceCurlyBraces(attributeValue, s => $"({s})")}");
         }
 
         renderComponentCall.Append(string.Join(", ", renderArguments));
@@ -509,7 +511,7 @@ public class MtTransformer
 
                 renderComponentCall.Append($"__slotRenderer_{slotName}: ")
                     .Append("() => ")
-                    .Append(GetSlotRenderMethodName(scope, slotName));
+                    .Append(GetSlotRenderMethodName(nodeName, scope, slotName, currentContext));
 
                 if (newScopeCreated)
                 {
@@ -572,7 +574,7 @@ public class MtTransformer
     /// <summary>
     /// Creates the method which renders the contents of a component.
     /// </summary>
-    private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody)
+    private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody, MtDataContext currentContext)
     {
         var renderMethod = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
             .Append("void ")
@@ -587,6 +589,15 @@ public class MtTransformer
 
         //add slot render methods
         AppendSlotRenderArgumentsToList(arguments, component);
+        
+        //Add fallthrough properties
+        foreach (var (variableName, variableType) in currentContext)
+        {
+            if (!component.Properties.ContainsKey(variableName))
+            {
+                arguments.Add($"{variableType} {variableName}");
+            }
+        }
 
         //add component properties as arguments with defaults
         AppendComponentPropertiesToMethodArgumentsList(component, arguments);
@@ -1045,9 +1056,9 @@ public class MtTransformer
     /// <summary>
     /// Returns the method name that renders the given component.
     /// </summary>
-    private string GetComponentRenderMethodName(MtComponent component)
+    private string GetComponentRenderMethodName(string nodeName, MtComponent component, MtDataContext dataContext)
     {
-        return $"Render_Component_{component.Id()}";
+        return $"Component_{nodeName}_{dataContext}_{component.Id()}";
     }
 
     /// <summary>
@@ -1055,15 +1066,15 @@ public class MtTransformer
     /// </summary>
     private string GetComponentScriptsRenderMethodName(MtComponent component)
     {
-        return $"Render_ComponentScript_{component.Id()}";
+        return $"ComponentScript_{component.Id()}";
     }
 
     /// <summary>
     /// Returns the name of the method that renders the slot contents.
     /// </summary>
-    private static string GetSlotRenderMethodName(int scope, string name)
+    private static string GetSlotRenderMethodName(string nodeName, int scope, string name, MtDataContext context)
     {
-        return $"Render_Slot_{scope.GetHashCode()}_{name}";
+        return $"Slot_{name}_of_{nodeName}_in_{context}_{scope.GetHashCode()}";
     }
 
     /// <summary>

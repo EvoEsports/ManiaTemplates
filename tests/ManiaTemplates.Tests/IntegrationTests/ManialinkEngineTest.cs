@@ -136,7 +136,11 @@ public class ManialinkEngineTest
         _maniaTemplateEngine.AddTemplateFromString("FallthroughComponent", fallthroughComponent);
         _maniaTemplateEngine.AddTemplateFromString("FallthroughWrapper", fallthroughWrapper);
 
-        var template = _maniaTemplateEngine.RenderAsync("FallthroughWrapper", new { }, assemblies).Result;
+        var template = _maniaTemplateEngine.RenderAsync("FallthroughWrapper", new
+        {
+            testString = "unit",
+            index = -1
+        }, assemblies).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 

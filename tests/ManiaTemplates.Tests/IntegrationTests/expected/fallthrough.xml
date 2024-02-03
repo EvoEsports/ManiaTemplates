@@ -1,3 +1,5 @@
 ﻿<manialink version="3" id="MtFallthroughWrapper" name="EvoSC#-MtFallthroughWrapper">
-<label text="test" data-test="unit" />
+<label text="test" i="1" data-index="1" data-test="unit" />
+<label text="test" i="2" data-index="2" data-test="unit" />
+<label text="test" i="3" data-index="3" data-test="unit" />
 </manialink>
