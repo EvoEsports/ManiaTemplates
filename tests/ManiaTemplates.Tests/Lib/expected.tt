@@ -39,11 +39,11 @@ var __outerIndex1 = 0;
 foreach (int i in numbers) {
 var __index = __outerIndex1;
 if (enabled) {
-Render_Component_MtContext2(__data: __data, x: (20 * __index), __slotRenderer_default: () => Render_Slot_3_default(__data: new CRoot_ForEachLoop1(__data){__index = __index, i = i}, __slotRenderer_default: () => DoNothing()));
+Render_Component_MtContext2(__data: __data, x: (20 * __index), __slotRenderer_default: () => Render_Slot_3_default(__data: new CRoot_ForEachLoop1(__data){__index = __index, i = i},numbers: numbers,enabled: enabled));
 }
 __outerIndex1++;
 }
-Render_Component_MtContext2(__data: __data, __slotRenderer_default: () => Render_Slot_4_default(__data: __data, __slotRenderer_default: () => DoNothing()));
+Render_Component_MtContext2(__data: __data, __slotRenderer_default: () => Render_Slot_4_default(__data: __data,numbers: numbers,enabled: enabled));
 foreach(var maniaScriptRenderMethod in __maniaScriptRenderMethods){ maniaScriptRenderMethod(); }
 #>
 <script>scriptText1
@@ -90,9 +90,7 @@ __insertedOneTimeManiaScripts.Add("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU="
 </script>
 <#+
 }
-void Render_Slot_3_default(CRoot_ForEachLoop1 __data,Action __slotRenderer_default) {
-var numbers = __data.numbers;
-var enabled = __data.enabled;
+void Render_Slot_3_default(CRoot_ForEachLoop1 __data,List<int> numbers,boolean enabled = true) {
 var __index = __data.__index;
 var i = __data.i;
 var __outerIndex7 = 0;
@@ -115,9 +113,7 @@ Render_Component_MtContext6(__data: __data, arg3: (new test()));
 </test>
 <#+
 }
-void Render_Slot_4_default(CRoot __data,Action __slotRenderer_default) {
-var numbers = __data.numbers;
-var enabled = __data.enabled;
-Render_Component_MtContext2(__data: __data, __slotRenderer_default: () => Render_Slot_8_default(__data: __data, __slotRenderer_default: __slotRenderer_default));
+void Render_Slot_4_default(CRoot __data,List<int> numbers,boolean enabled = true) {
+Render_Component_MtContext2(__data: __data, __slotRenderer_default: () => Render_Slot_8_default(__data: __data, __slotRenderer_default: () => DoNothing()));
 }
 #>

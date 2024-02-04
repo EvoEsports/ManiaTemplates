@@ -88,17 +88,20 @@ public class ManialinkEngineTest
     [Fact]
     public async void Should_Render_Component_Without_Content_For_Slot()
     {
-        var slotRecursionOuterTwoTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-outer-two.mt");
-        var slotRecursionOuterTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-outer.mt");
-        var slotRecursionInnerTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-inner.mt");
+        var slotRecursionOuterTwoTemplate =
+            await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-outer-two.mt");
+        var slotRecursionOuterTemplate =
+            await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-outer.mt");
+        var slotRecursionInnerTemplate =
+            await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-inner.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/single-slot-unfilled.xml");
         var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
-        
+
         _maniaTemplateEngine.AddTemplateFromString("SlotRecursionOuterTwo", slotRecursionOuterTwoTemplate);
         _maniaTemplateEngine.AddTemplateFromString("SlotRecursionOuter", slotRecursionOuterTemplate);
         _maniaTemplateEngine.AddTemplateFromString("SlotRecursionInner", slotRecursionInnerTemplate);
-        
-        var template = _maniaTemplateEngine.RenderAsync("SlotRecursionInner", new{}, assemblies).Result;
+
+        var template = _maniaTemplateEngine.RenderAsync("SlotRecursionInner", new { }, assemblies).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 
@@ -110,15 +113,32 @@ public class ManialinkEngineTest
         var testComponentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/property-test.xml");
         var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
-        
+
         _maniaTemplateEngine.AddTemplateFromString("PropertyTest", propertyTestTemplate);
         _maniaTemplateEngine.AddTemplateFromString("Wrapper", testWrapperTemplate);
         _maniaTemplateEngine.AddTemplateFromString("TestComponent", testComponentTemplate);
-        
+
         var template = _maniaTemplateEngine.RenderAsync("PropertyTest", new
         {
             testVariable = "integration"
         }, assemblies).Result;
+        Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public async void Should_Fill_All_Slots()
+    {
+        var baseTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slots/base.mt");
+        var containerTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slots/container.mt");
+        var windowTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slots/window.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/slots/manialink.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("Base", baseTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("Container", containerTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("Window", windowTemplate);
+
+        var template = _maniaTemplateEngine.RenderAsync("Base", new { }, assemblies).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 }

@@ -58,7 +58,8 @@ public class MtTransformer
             XmlStringToNode(rootComponent.TemplateContent),
             _engine.BaseMtComponents.Overload(rootComponent.ImportedComponents),
             rootContext,
-            isRootNode:true
+            parentComponent: rootComponent,
+            isRootNode: true
         );
 
         var template = new Snippet
@@ -235,12 +236,12 @@ public class MtTransformer
 
         if (context.ParentContext != null)
         {
-            output.AppendLine(CreateLocalVariablesFromContext(context.ParentContext));
+            output.AppendLine(CreateLocalVariablesFromContext(context.ParentContext, parentComponent?.Properties.Keys));
             variablesInherited.AddRange(context.ParentContext.Keys);
         }
 
         output
-            .AppendLine(CreateLocalVariablesFromContext(context, variablesInherited))
+            .AppendLine(CreateLocalVariablesFromContext(context, parentComponent?.Properties.Keys))
             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
             .AppendLine(slotContent)
             .AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
@@ -347,7 +348,8 @@ public class MtTransformer
                         if (hasChildren)
                         {
                             subSnippet.AppendLine(1,
-                                ProcessNode(childNode, availableMtComponents, currentContext));
+                                ProcessNode(childNode, availableMtComponents, currentContext,
+                                    parentComponent: parentComponent));
                             subSnippet.AppendLine(CreateXmlClosingTag(tag));
                         }
 
@@ -530,7 +532,7 @@ public class MtTransformer
                         renderComponentCall.Append(
                             $", __slotRenderer_{parentSlotName}: __slotRenderer_{parentSlotName}");
                     }
-                    
+
                     foreach (var propertyName in parentComponent.Properties.Keys)
                     {
                         renderComponentCall.Append($",{propertyName}: {propertyName}");
@@ -540,19 +542,10 @@ public class MtTransformer
                 {
                     foreach (var parentSlotName in component.Slots)
                     {
-                        if (isRootNode)
-                        {
-                            renderComponentCall.Append(
-                                $", __slotRenderer_{parentSlotName}: () => DoNothing()");
-                        }
-                        else
-                        {
-                            renderComponentCall.Append(
-                                $", __slotRenderer_{parentSlotName}: __slotRenderer_{parentSlotName}");
-                        }
+                        renderComponentCall.Append($", __slotRenderer_{parentSlotName}: () => DoNothing()");
                     }
                 }
-                
+
                 renderComponentCall.Append(')');
 
                 i++;
@@ -565,7 +558,7 @@ public class MtTransformer
 
         return renderComponentCall.ToString();
     }
-    
+
     /// <summary>
     /// Creates the method which renders the contents of a component.
     /// </summary>
