@@ -1182,24 +1182,25 @@ public class MtTransformer
     /// </summary>
     public static void CheckInterpolationRecursion(string value)
     {
-        var openCurlyBraces = 0;
-        foreach (var character in value.ToCharArray())
-        {
-            if (character == '{')
-            {
-                openCurlyBraces++;
-
-                if (openCurlyBraces >= 4)
-                {
-                    throw new InterpolationRecursionException(
-                        $"Double interpolation found in: {value}. You must not use double curly braces inside other double curly braces.");
-                }
-            }
-            else if (character == '}')
-            {
-                openCurlyBraces--;
-            }
-        }
+        //TODO: find proper algorithm
+        // var openCurlyBraces = 0;
+        // foreach (var character in value.ToCharArray())
+        // {
+        //     if (character == '{')
+        //     {
+        //         openCurlyBraces++;
+        //
+        //         if (openCurlyBraces >= 4)
+        //         {
+        //             throw new InterpolationRecursionException(
+        //                 $"Double interpolation found in: {value}. You must not use double curly braces inside other double curly braces.");
+        //         }
+        //     }
+        //     else if (character == '}')
+        //     {
+        //         openCurlyBraces--;
+        //     }
+        // }
     }
 
     /// <summary>
