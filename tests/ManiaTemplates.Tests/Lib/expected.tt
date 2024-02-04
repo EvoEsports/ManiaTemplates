@@ -32,7 +32,7 @@ i = data.i;
 }
 List<string> __insertedOneTimeManiaScripts = new List<string>();
 List<Action> __maniaScriptRenderMethods = new List<Action>();
-string DoNothing(){return "";}
+string DoNothing(){ return ""; }
 void RenderBody() {
 var __data = new CRoot { numbers = numbers,enabled = enabled };
 var __outerIndex1 = 0;
