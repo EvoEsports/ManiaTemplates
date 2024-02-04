@@ -1,6 +1,8 @@
 ﻿using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Xml;
 using ManiaTemplates.Components;
+using ManiaTemplates.Exceptions;
 using ManiaTemplates.Languages;
 using ManiaTemplates.Lib;
 using Xunit.Abstractions;
@@ -13,6 +15,7 @@ public class MtTransformerTest
     private readonly MtTransformer _transformer;
     private readonly ManiaTemplateEngine _maniaTemplateEngine = new();
     private readonly Regex _hashCodePattern = new("[0-9]{6,10}");
+
     private readonly MtComponent _testComponent = new()
     {
         Namespaces = new() { "namespace" },
@@ -131,7 +134,25 @@ public class MtTransformerTest
     }
 
     [Fact]
-    public void Should_Replace_Curly_Braces_Correctly()
+    public void Should_Throw_Interpolation_Recursion_Exception()
+    {
+        Assert.Throws<InterpolationRecursionException>(() =>
+            MtTransformer.CheckInterpolationRecursion("{{ {{ a }} {{ b }} }}"));
+        Assert.Throws<InterpolationRecursionException>(() =>
+            MtTransformer.CheckInterpolationRecursion("{{ {{ b }} }}"));
+    }
+
+    [Fact]
+    public void Should_Throw_Curly_Brace_Count_Mismatch_Exception()
+    {
+        Assert.Throws<CurlyBraceCountMismatchException>(() => MtTransformer.CheckForCurlyBraceCountMismatch("{{ { }}"));
+        Assert.Throws<CurlyBraceCountMismatchException>(() => MtTransformer.CheckForCurlyBraceCountMismatch("{{ } }}"));
+        Assert.Throws<CurlyBraceCountMismatchException>(() => MtTransformer.CheckForCurlyBraceCountMismatch("{"));
+        Assert.Throws<CurlyBraceCountMismatchException>(() => MtTransformer.CheckForCurlyBraceCountMismatch("}}"));
+    }
+
+    [Fact]
+    public void Should_Replace_Curly_Braces()
     {
         Assert.Equal("abcd", MtTransformer.ReplaceCurlyBraces("{{a}}{{ b }}{{c }}{{  d}}", s => s));
         Assert.Equal("x y z", MtTransformer.ReplaceCurlyBraces("{{x}} {{ y }} {{z }}", s => s));
@@ -144,5 +165,69 @@ public class MtTransformerTest
     public void Should_Wrap_Strings_In_Quotes()
     {
         Assert.Equal(@"$""unit test""", MtTransformer.WrapStringInQuotes("unit test"));
+        Assert.Equal(@"$""""", MtTransformer.WrapStringInQuotes(""));
+    }
+
+    [Fact]
+    public void Should_Join_Feature_Blocks()
+    {
+        Assert.Equal("<#+\n unittest \n#>",
+            MtTransformer.JoinFeatureBlocks("<#+#><#+\n #> <#+ unittest \n#><#+ \n\n\n#>"));
+    }
+
+    [Fact]
+    public void Should_Convert_String_To_Xml_Node()
+    {
+        var node = MtTransformer.XmlStringToNode("<unit>test</unit>");
+        Assert.IsAssignableFrom<XmlNode>(node);
+        Assert.Equal("test", node.InnerText);
+        Assert.Equal("<unit>test</unit>", node.InnerXml);
+        Assert.Equal("<doc><unit>test</unit></doc>", node.OuterXml);
+    }
+
+    [Fact]
+    public void Should_Create_Xml_Opening_Tag()
+    {
+        var attributeList = new MtComponentAttributes();
+        Assert.Equal("<test />", _transformer.CreateXmlOpeningTag("test", attributeList, false));
+        Assert.Equal("<test>", _transformer.CreateXmlOpeningTag("test", attributeList, true));
+
+        attributeList["prop"] = "value";
+        Assert.Equal("""<test prop="value" />""", _transformer.CreateXmlOpeningTag("test", attributeList, false));
+        Assert.Equal("""<test prop="value">""", _transformer.CreateXmlOpeningTag("test", attributeList, true));
+    }
+
+    [Fact]
+    public void Should_Create_ManiaLink_Opening_Tag()
+    {
+        Assert.Equal("""<manialink version="99" id="Test" name="EvoSC#-Test">""",
+            MtTransformer.ManiaLinkStart("Test", 99));
+        Assert.Equal("""<manialink version="99" id="Test" name="EvoSC#-Test" layer="SomeLayer">""",
+            MtTransformer.ManiaLinkStart("Test", 99, "SomeLayer"));
+    }
+
+    [Fact]
+    public void Should_Convert_Xml_Node_Arguments_To_MtComponentAttributes_Instance()
+    {
+        var node = MtTransformer.XmlStringToNode("""<testNode arg1="test1" arg2="test2">testContent</testNode>""");
+        if (node.FirstChild == null) return;
+
+        var attributes = MtTransformer.GetXmlNodeAttributes(node.FirstChild);
+        Assert.Equal(2, attributes.Count);
+        Assert.Equal("test1", attributes["arg1"]);
+        Assert.Equal("test2", attributes["arg2"]);
+    }
+
+    [Fact]
+    public void Should_Detect_Correct_Type_String_For_CSharp_Scripting()
+    {
+        Assert.Equal("int", MtTransformer.GetFormattedName(0.GetType()));
+        Assert.Equal("double", MtTransformer.GetFormattedName(0.0.GetType()));
+        Assert.Equal("string", MtTransformer.GetFormattedName("test".GetType()));
+        Assert.Equal("System.Collections.Generic.List<string>",
+            MtTransformer.GetFormattedName(new List<string>().GetType()));
+        Assert.Equal("System.Collections.Generic.HashSet<string>",
+            MtTransformer.GetFormattedName(new HashSet<string>().GetType()));
+        Assert.Equal("dynamic", MtTransformer.GetFormattedName(new TestDynamicObject().GetType()));
     }
 }
