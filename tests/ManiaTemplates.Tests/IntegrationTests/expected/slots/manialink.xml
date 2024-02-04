@@ -1,0 +1,10 @@
+<manialink version="3" id="MtBase" name="EvoSC#-MtBase">
+<Theme />
+<frame>
+<label text="labelBefore" />
+<frame id="evosc_container" pos="5 -5" size="200 130" scale="0" hidden="0">
+<label text="Next element should be TextInput" />
+<TextInput name="Search" />
+</frame>
+</frame>
+</manialink>
