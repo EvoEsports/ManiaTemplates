@@ -236,7 +236,6 @@ public class MtTransformer
             .AppendLine("void " + CreateMethodCall(methodName, string.Join(',', methodArguments), "") + " {");
 
         output
-            // .AppendLine(CreateLocalVariablesFromContext(context, parentComponent?.Properties.Keys))
             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
             .AppendLine(slotContent)
             .AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
