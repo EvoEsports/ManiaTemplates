@@ -10,40 +10,19 @@ RenderBody();
 <#+
 public List<int> numbers { get; init; }
 public boolean enabled { get; init; } = true;
-class CRoot {
-public List<int> numbers { get; set; }
-public boolean enabled { get; set; }
-}
-class CRoot_ForEachLoop1: CRoot {
-public int __index { get; set; }
-public int i { get; set; }
-internal CRoot_ForEachLoop1(CRoot data) {
-numbers = data.numbers;
-enabled = data.enabled;
-}
-}
-class CRoot_ForEachLoop1_ForEachLoop1: CRoot_ForEachLoop1 {
-public int __index { get; set; }
-public int j { get; set; }
-internal CRoot_ForEachLoop1_ForEachLoop1(CRoot_ForEachLoop1 data) : base(data) {
-__index = data.__index;
-i = data.i;
-}
-}
 List<string> __insertedOneTimeManiaScripts = new List<string>();
 List<Action> __maniaScriptRenderMethods = new List<Action>();
 string DoNothing(){ return ""; }
 void RenderBody() {
-var __data = new CRoot { numbers = numbers,enabled = enabled };
 var __outerIndex1 = 0;
 foreach (int i in numbers) {
 var __index = __outerIndex1;
 if (enabled) {
-Render_Component_MtContext2(__data: __data, x: (20 * __index), __slotRenderer_default: () => Render_Slot_3_default(__data: new CRoot_ForEachLoop1(__data){__index = __index, i = i},numbers: numbers,enabled: enabled));
+Render_Component_MtContext2(x: (20 * __index), __slotRenderer_default: () => Render_Slot_3_default(__index: __index, i: i));
 }
 __outerIndex1++;
 }
-Render_Component_MtContext2(__data: __data, __slotRenderer_default: () => Render_Slot_4_default(__data: __data,numbers: numbers,enabled: enabled));
+Render_Component_MtContext2(__slotRenderer_default: () => Render_Slot_4_default());
 foreach(var maniaScriptRenderMethod in __maniaScriptRenderMethods){ maniaScriptRenderMethod(); }
 #>
 <script>scriptText1
@@ -59,21 +38,21 @@ scriptText3
 </script>
 <#+
 }
-void Render_Component_MtContext5(CRoot __data, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = $"left", string valign = $"center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = $"", string url = $"", string manialink = $"", string style = $"", string textfont = $"GameFont", double textsize = 1.0, string textcolor = $"", string focusareacolor1 = $"", string focusareacolor2 = $"", string text = $"", string textprefix = $"", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = $"", string id = $"") {
+void Render_Component_MtContext5(double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = $"left", string valign = $"center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = $"", string url = $"", string manialink = $"", string style = $"", string textfont = $"GameFont", double textsize = 1.0, string textcolor = $"", string focusareacolor1 = $"", string focusareacolor2 = $"", string text = $"", string textprefix = $"", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = $"", string id = $"") {
 #>
 <label pos="<#= (x) #> <#= (y) #>" size="<#= (w) #> <#= (h) #>" halign="<#= (halign) #>" valign="<#= (valign) #>" opacity="<#= (opacity) #>" z-index="<#= (zIndex) #>" ScriptEvents="<#= (events) #>" action="<#= (action) #>" url="<#= (url) #>" manialink="<#= (manialink) #>" style="<#= (style) #>" textfont="<#= (textfont) #>" textsize="<#= (textsize) #>" textcolor="<#= (textcolor) #>" focusareacolor1="<#= (focusareacolor1) #>" focusareacolor2="<#= (focusareacolor2) #>" text="<#= (text) #>" textprefix="<#= (textprefix) #>" textemboss="<#= (bold) #>" autonewline="<#= (autonewline) #>" maxline="<#= (maxline) #>" translate="<#= (translate) #>" textid="<#= (textid) #>" id="<#= (id) #>" />
 <#+
 }
-void Render_Component_MtContext2(CRoot __data, Action __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
+void Render_Component_MtContext2(int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, Action __slotRenderer_default = null) {
 #>
 <frame pos="<#= (x) #> <#= (y) #>" size="<#= (w) #> <#= (h) #>" z-index="<#= (zIndex) #>">
 <#+
-__slotRenderer_default();
+__slotRenderer_default?.Invoke();
 #>
 </frame>
 <#+
 }
-void Render_Component_MtContext6(CRoot __data, test arg3, string arg1 = $"", int arg2 = 0) {
+void Render_Component_MtContext6(test arg3, string arg1 = $"", int arg2 = 0) {
 __maniaScriptRenderMethods.Add(() => Render_ComponentScript_MtContext6(arg3,arg1,arg2));
 }
 void Render_ComponentScript_MtContext6(test arg3, string arg1 = $"", int arg2 = 0) {
@@ -90,30 +69,26 @@ __insertedOneTimeManiaScripts.Add("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU="
 </script>
 <#+
 }
-void Render_Slot_3_default(CRoot_ForEachLoop1 __data,List<int> numbers,boolean enabled = true) {
-var __index = __data.__index;
-var i = __data.i;
+void Render_Slot_3_default(int __index,int i) {
 var __outerIndex7 = 0;
 foreach (int j in numbers.GetRange(0, i)) {
 var __index2 = __outerIndex7;
 if (i < numbers.Count) {
-Render_Component_MtContext5(__data: __data, text: $"{(i)}, {(j)} at index {(__index)}, {(__index2)}");
+Render_Component_MtContext5(text: $"{(i)}, {(j)} at index {(__index)}, {(__index2)}");
 }
 __outerIndex7++;
 }
 }
-void Render_Slot_8_default(CRoot __data,Action __slotRenderer_default) {
-var numbers = __data.numbers;
-var enabled = __data.enabled;
+void Render_Slot_8_default(Action __slotRenderer_default = null) {
 #>
 <test>
 <#+
-Render_Component_MtContext6(__data: __data, arg3: (new test()));
+Render_Component_MtContext6(arg3: (new test()));
 #>
 </test>
 <#+
 }
-void Render_Slot_4_default(CRoot __data,List<int> numbers,boolean enabled = true) {
-Render_Component_MtContext2(__data: __data, __slotRenderer_default: () => Render_Slot_8_default(__data: __data, __slotRenderer_default: () => DoNothing()));
+void Render_Slot_4_default() {
+Render_Component_MtContext2(__slotRenderer_default: () => Render_Slot_8_default());
 }
 #>
