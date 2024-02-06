@@ -1,4 +1,5 @@
 ﻿using System.CodeDom;
+using System.Diagnostics;
 using System.Dynamic;
 using System.Globalization;
 using System.Text;
@@ -45,13 +46,11 @@ public class MtTransformer
     {
         _namespaces.AddRange(rootComponent.Namespaces);
 
-        var renderBodyArguments =
-            string.Join(',', rootComponent.Slots.Select(slotName => "() => DoNothing()").ToList());
-
         var body = ProcessNode(
             XmlStringToNode(rootComponent.TemplateContent),
             _engine.BaseMtComponents.Overload(rootComponent.ImportedComponents),
             new MtDataContext(),
+            rootComponent,
             rootComponent
         );
 
@@ -62,7 +61,7 @@ public class MtTransformer
             CreateImportStatements(),
             ManiaLinkStart(className, version, rootComponent.DisplayLayer),
             "<#",
-            $"RenderBody({renderBodyArguments});",
+            "RenderBody();",
             "#>",
             ManiaLinkEnd(),
             CreateTemplatePropertiesBlock(rootComponent),
@@ -197,24 +196,41 @@ public class MtTransformer
     /// Creates the slot-render method for a given data context.
     /// </summary>
     private string CreateSlotRenderMethod(MtComponent component, int scope, MtDataContext context, string slotName,
-        string? slotContent = null, MtComponent? parentComponent = null)
+        MtComponent rootComponent, string slotContent, MtComponent? parentComponent = null)
     {
         var methodArguments = new List<string>();
         var methodName = GetSlotRenderMethodName(scope, slotName);
 
-        foreach (var (localVariableName, localVariableType) in context)
-        {
-            methodArguments.Add($"{localVariableType} {localVariableName}");
-        }
-
-        //Add slot render methods
-        AppendSlotRenderArgumentsToList(methodArguments, parentComponent ?? component);
 
         //Add component properties as arguments
         if (parentComponent != null)
         {
-            AppendComponentPropertiesToMethodArgumentsList(parentComponent, methodArguments);
+            foreach (var (localVariableName, localVariableType) in context)
+            {
+                if (!rootComponent.Properties.ContainsKey(localVariableName))
+                {
+                    methodArguments.Add($"{localVariableType} {localVariableName}");
+                }
+            }
+
+            if (parentComponent != rootComponent)
+            {
+                AppendComponentPropertiesToMethodArgumentsList(parentComponent, methodArguments);
+            }
         }
+        else
+        {
+            foreach (var (localVariableName, localVariableType) in context)
+            {
+                if (!rootComponent.Properties.ContainsKey(localVariableName))
+                {
+                    methodArguments.Add($"{localVariableType} {localVariableName}");
+                }
+            }
+        }
+
+        //Add slot render methods
+        AppendSlotRenderArgumentsToList(methodArguments, parentComponent ?? component);
 
         var output = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
             .AppendLine("void " + CreateMethodCall(methodName, string.Join(',', methodArguments), "") + " {");
@@ -234,6 +250,7 @@ public class MtTransformer
     /// Process a ManiaTemplate node.
     /// </summary>
     private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents, MtDataContext context,
+        MtComponent rootComponent,
         MtComponent? parentComponent = null)
     {
         Snippet snippet = new();
@@ -260,7 +277,8 @@ public class MtTransformer
                 //Node is a component
                 var component = _engine.GetComponent(availableMtComponents[tag].TemplateKey);
                 var slotContents =
-                    GetSlotContentsBySlotName(childNode, component, availableMtComponents, currentContext);
+                    GetSlotContentsBySlotName(childNode, component, availableMtComponents, currentContext,
+                        rootComponent);
 
                 var componentRenderMethodCall = ProcessComponentNode(
                     childNode.GetHashCode(),
@@ -271,10 +289,12 @@ public class MtTransformer
                         XmlStringToNode(component.TemplateContent),
                         availableMtComponents.Overload(component.ImportedComponents),
                         currentContext,
-                        component
+                        rootComponent: rootComponent,
+                        parentComponent: component
                     ),
                     slotContents,
-                    parentComponent
+                    rootComponent: rootComponent,
+                    parentComponent: parentComponent
                 );
 
                 subSnippet.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
@@ -295,7 +315,7 @@ public class MtTransformer
                     case "slot":
                         var slotName = GetNameFromNodeAttributes(attributeList);
                         subSnippet.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
-                            .AppendLine(CreateMethodCall($"__slotRenderer_{slotName.ToLower()}"))
+                            .AppendLine(CreateMethodCall($"__slotRenderer_{slotName.ToLower()}?.Invoke"))
                             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
                         break;
 
@@ -307,7 +327,7 @@ public class MtTransformer
                         if (hasChildren)
                         {
                             subSnippet.AppendLine(1,
-                                ProcessNode(childNode, availableMtComponents, currentContext,
+                                ProcessNode(childNode, availableMtComponents, currentContext, rootComponent,
                                     parentComponent: parentComponent));
                             subSnippet.AppendLine(CreateXmlClosingTag(tag));
                         }
@@ -336,7 +356,7 @@ public class MtTransformer
     }
 
     private Dictionary<string, string> GetSlotContentsBySlotName(XmlNode componentNode,
-        MtComponent component, MtComponentMap availableMtComponents, MtDataContext context)
+        MtComponent component, MtComponentMap availableMtComponents, MtDataContext context, MtComponent rootComponent)
     {
         var contentsByName = new Dictionary<string, XmlNode>();
 
@@ -375,7 +395,7 @@ public class MtTransformer
 
         return contentsByName.ToDictionary(
             kvp => kvp.Key,
-            kvp => ProcessNode(kvp.Value, availableMtComponents, context)
+            kvp => ProcessNode(kvp.Value, availableMtComponents, context, rootComponent)
         );
     }
 
@@ -389,6 +409,7 @@ public class MtTransformer
         MtComponentAttributes attributeList,
         string componentBody,
         IReadOnlyDictionary<string, string> slotContents,
+        MtComponent rootComponent,
         MtComponent? parentComponent = null
     )
     {
@@ -410,8 +431,9 @@ public class MtTransformer
                     scope,
                     currentContext,
                     slotName,
+                    rootComponent,
                     slotContent,
-                    parentComponent
+                    parentComponent: parentComponent
                 )
             });
         }
@@ -467,38 +489,31 @@ public class MtTransformer
                     .Append(GetSlotRenderMethodName(scope, slotName))
                     .Append('(');
 
-                if (parentComponent != null)
+                var slotArguments = new HashSet<string>();
+
+                //Add local variables
+                foreach (var localVariableName in currentContext.Keys)
                 {
-                    var slotArguments = parentComponent.Properties.Keys
-                        .Select(propertyName => $"{propertyName}: {propertyName}").ToList();
+                    slotArguments.Add(localVariableName);
+                }
 
-                    foreach (var localVariableName in currentContext.Keys)
+                //Pass slot renderers
+                if (parentComponent != null && parentComponent != rootComponent)
+                {
+                    foreach (var propertyName in parentComponent.Properties.Keys)
                     {
-                        slotArguments.Add($"{localVariableName}: {localVariableName}");
-                    }
-
-                    renderComponentCall.Append(string.Join(',', slotArguments));
-
-                    if (slotArguments.Count > 0 && parentComponent.Slots.Count > 0)
-                    {
-                        renderComponentCall.Append(", ");
+                        slotArguments.Add(propertyName);
                     }
 
                     foreach (var parentSlotName in parentComponent.Slots)
                     {
-                        renderComponentCall.Append(
-                            $"__slotRenderer_{parentSlotName}: __slotRenderer_{parentSlotName}");
-                    }
-                }
-                else
-                {
-                    foreach (var parentSlotName in component.Slots)
-                    {
-                        renderComponentCall.Append($"__slotRenderer_{parentSlotName}: () => DoNothing()");
+                        slotArguments.Add($"__slotRenderer_{parentSlotName}");
                     }
                 }
 
-                renderComponentCall.Append(')');
+                var joinedSlotArguments = slotArguments.Select(argument => $"{argument}: {argument}");
+
+                renderComponentCall.Append(string.Join(", ", joinedSlotArguments)).Append(')');
 
                 i++;
             }
@@ -524,11 +539,11 @@ public class MtTransformer
         //open method arguments
         var arguments = new List<string>();
 
-        //add slot render methods
-        AppendSlotRenderArgumentsToList(arguments, component);
-
         //add component properties as arguments with defaults
         AppendComponentPropertiesToMethodArgumentsList(component, arguments);
+
+        //add slot render methods
+        AppendSlotRenderArgumentsToList(arguments, component);
 
         //close method arguments
         renderMethod.Append(string.Join(", ", arguments))
@@ -577,7 +592,7 @@ public class MtTransformer
     /// </summary>
     private static void AppendSlotRenderArgumentsToList(List<string> arguments, MtComponent component)
     {
-        arguments.AddRange(component.Slots.Select(slotName => $"Action __slotRenderer_{slotName}"));
+        arguments.AddRange(component.Slots.Select(slotName => $"Action __slotRenderer_{slotName} = null"));
     }
 
     /// <summary>

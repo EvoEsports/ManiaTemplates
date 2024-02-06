@@ -18,11 +18,11 @@ var __outerIndex1 = 0;
 foreach (int i in numbers) {
 var __index = __outerIndex1;
 if (enabled) {
-Render_Component_MtContext2(x: (20 * __index), __slotRenderer_default: () => Render_Slot_3_default(numbers: numbers,enabled: enabled,__index: __index,i: i));
+Render_Component_MtContext2(x: (20 * __index), __slotRenderer_default: () => Render_Slot_3_default(__index: __index, i: i));
 }
 __outerIndex1++;
 }
-Render_Component_MtContext2(__slotRenderer_default: () => Render_Slot_4_default(numbers: numbers,enabled: enabled));
+Render_Component_MtContext2(__slotRenderer_default: () => Render_Slot_4_default());
 foreach(var maniaScriptRenderMethod in __maniaScriptRenderMethods){ maniaScriptRenderMethod(); }
 #>
 <script>scriptText1
@@ -43,11 +43,11 @@ void Render_Component_MtContext5(double x = 0.0, double y = 0.0, double w = 0.0,
 <label pos="<#= (x) #> <#= (y) #>" size="<#= (w) #> <#= (h) #>" halign="<#= (halign) #>" valign="<#= (valign) #>" opacity="<#= (opacity) #>" z-index="<#= (zIndex) #>" ScriptEvents="<#= (events) #>" action="<#= (action) #>" url="<#= (url) #>" manialink="<#= (manialink) #>" style="<#= (style) #>" textfont="<#= (textfont) #>" textsize="<#= (textsize) #>" textcolor="<#= (textcolor) #>" focusareacolor1="<#= (focusareacolor1) #>" focusareacolor2="<#= (focusareacolor2) #>" text="<#= (text) #>" textprefix="<#= (textprefix) #>" textemboss="<#= (bold) #>" autonewline="<#= (autonewline) #>" maxline="<#= (maxline) #>" translate="<#= (translate) #>" textid="<#= (textid) #>" id="<#= (id) #>" />
 <#+
 }
-void Render_Component_MtContext2(Action __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
+void Render_Component_MtContext2(int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, Action __slotRenderer_default = null) {
 #>
 <frame pos="<#= (x) #> <#= (y) #>" size="<#= (w) #> <#= (h) #>" z-index="<#= (zIndex) #>">
 <#+
-__slotRenderer_default();
+__slotRenderer_default?.Invoke();
 #>
 </frame>
 <#+
@@ -69,7 +69,7 @@ __insertedOneTimeManiaScripts.Add("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU="
 </script>
 <#+
 }
-void Render_Slot_3_default(int __index,int i,List<int> numbers,boolean enabled = true) {
+void Render_Slot_3_default(int __index,int i) {
 var __outerIndex7 = 0;
 foreach (int j in numbers.GetRange(0, i)) {
 var __index2 = __outerIndex7;
@@ -79,7 +79,7 @@ Render_Component_MtContext5(text: $"{(i)}, {(j)} at index {(__index)}, {(__index
 __outerIndex7++;
 }
 }
-void Render_Slot_8_default(Action __slotRenderer_default) {
+void Render_Slot_8_default(Action __slotRenderer_default = null) {
 #>
 <test>
 <#+
@@ -88,7 +88,7 @@ Render_Component_MtContext6(arg3: (new test()));
 </test>
 <#+
 }
-void Render_Slot_4_default(List<int> numbers,boolean enabled = true) {
-Render_Component_MtContext2(__slotRenderer_default: () => Render_Slot_8_default(__slotRenderer_default: () => DoNothing()));
+void Render_Slot_4_default() {
+Render_Component_MtContext2(__slotRenderer_default: () => Render_Slot_8_default());
 }
 #>
