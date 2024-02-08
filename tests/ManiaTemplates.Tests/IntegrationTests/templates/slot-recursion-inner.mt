@@ -7,5 +7,14 @@
             <label text="this is root content"/>
             <slot/>
         </SlotRecursionOuter>
+        
+        <SlotRecursionOuter>
+            <SlotRecursionOuter>
+                <SlotRecursionOuter>
+                    <label text="this is root2 content"/>
+                    <slot/>
+                </SlotRecursionOuter>
+            </SlotRecursionOuter>
+        </SlotRecursionOuter>
     </template>
 </component>

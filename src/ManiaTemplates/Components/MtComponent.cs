@@ -243,7 +243,7 @@ public class MtComponent
             {
                 foreach (var slotName in GetSlotNamesInTemplate(childNode))
                 {
-                    if (slotNames.Contains(slotName))
+                    if (slotNames.Contains(slotName) && slotName != "default")
                     {
                         throw new DuplicateSlotException($"""A slot with the name "{slotName}" already exists.""");
                     }
