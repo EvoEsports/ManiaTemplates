@@ -422,7 +422,6 @@ public class MtTransformer
             _slots.Add(new MtComponentSlot
             {
                 Scope = scope,
-                Context = currentContext,
                 Name = slotName,
                 RenderMethodT4 = CreateSlotRenderMethod(
                     component,
@@ -436,7 +435,7 @@ public class MtTransformer
             });
         }
 
-        var renderMethodName = GetComponentRenderMethodName(component);
+        var renderMethodName = GetComponentRenderMethodName(component, currentContext);
         if (!_renderMethods.ContainsKey(renderMethodName))
         {
             _renderMethods.Add(
@@ -514,20 +513,6 @@ public class MtTransformer
                 {
                     slotArguments.Add($"__slotRenderer_{parentSlotName}: __slotRenderer_{parentSlotName}");
                 }
-                // if (parentComponent != rootComponent)
-                // {
-                //     foreach (var parentSlotName in parentComponent.Slots)
-                //     {
-                //         slotArguments.Add($"__slotRenderer_{parentSlotName}: __slotRenderer_{parentSlotName}");
-                //     }
-                // }
-                // else
-                // {
-                //     foreach (var parentSlotName in parentComponent.Slots)
-                //     {
-                //         slotArguments.Add($"__slotRenderer_{parentSlotName}: DoNothing");
-                //     }
-                // }
 
                 renderComponentCall.Append(string.Join(", ", slotArguments)).Append(')');
 
@@ -882,9 +867,9 @@ public class MtTransformer
     /// <summary>
     /// Returns the method name that renders the given component.
     /// </summary>
-    private string GetComponentRenderMethodName(MtComponent component)
+    private string GetComponentRenderMethodName(MtComponent component, MtDataContext context)
     {
-        return $"Render_Component_{component.Id()}";
+        return $"Render_Component_{component.Id()}{context}";
     }
 
     /// <summary>
