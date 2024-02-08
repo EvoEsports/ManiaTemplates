@@ -441,7 +441,7 @@ public class MtTransformer
         {
             _renderMethods.Add(
                 renderMethodName,
-                CreateComponentRenderMethod(component, renderMethodName, componentBody)
+                CreateComponentRenderMethod(component, renderMethodName, componentBody, currentContext)
             );
         }
 
@@ -450,6 +450,12 @@ public class MtTransformer
 
         //Create available arguments
         var renderArguments = new List<string>();
+        
+        //Add local variables to component render method call
+        foreach (var localVariableName in currentContext.Keys)
+        {
+            renderArguments.Add($"{localVariableName}: {localVariableName}");
+        }
 
         //Attach attributes to render method call
         foreach (var (attributeName, attributeValue) in attributeList)
@@ -489,7 +495,7 @@ public class MtTransformer
 
                 var slotArguments = new HashSet<string>();
 
-                //Add local variables
+                //Add local variables to slot render call
                 foreach (var localVariableName in currentContext.Keys)
                 {
                     slotArguments.Add($"{localVariableName}: {localVariableName}");
@@ -539,7 +545,7 @@ public class MtTransformer
     /// <summary>
     /// Creates the method which renders the contents of a component.
     /// </summary>
-    private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody)
+    private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody, MtDataContext currentContext)
     {
         var renderMethod = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
             .Append("private void ")
@@ -548,6 +554,12 @@ public class MtTransformer
 
         //open method arguments
         var arguments = new List<string>();
+        
+        //Add local variables to component render method call
+        foreach (var (localVariableName, localVariableType) in currentContext)
+        {
+            arguments.Add($"{localVariableType} {localVariableName}");
+        }
 
         //add slot render methods
         AppendSlotRenderArgumentsToList(arguments, component);
