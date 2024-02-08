@@ -24,7 +24,6 @@ public class MtDataContext : Dictionary<string, string>
 
     public override string ToString()
     {
-        return $"C{_name}";
-        // return $"MtContext_{_name}_" + GetHashCode().ToString().Replace("-", "N");
+        return _name ?? "";
     }
 }
