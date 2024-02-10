@@ -64,7 +64,7 @@ __slotRenderer_default();
 </frame>
 <#+
 }
-void Render_ComponentScript_MtContext6(test arg3, string arg1 = $"", int arg2 = 0) {
+private void Render_ComponentScript_MtContext6(test arg3, string arg1 = $"", int arg2 = 0) {
 #>
 <script>GraphScript
 <#+
@@ -78,7 +78,7 @@ __insertedOneTimeManiaScripts.Add("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU="
 </script>
 <#+
 }
-private void Render_Slot_3_default(int __index,int i) {
+private void Render_Slot_3_default(int __index, int i) {
 const int zIndex = 0;
 const double x = 0.0;
 const double y = 0.0;
@@ -114,5 +114,4 @@ const double y = 0.0;
 const double w = 0.0;
 const double h = 0.0;
 Render_Component_MtContext2(__slotRenderer_default: () => Render_Slot_8_default());
-}
-#>
+}#>

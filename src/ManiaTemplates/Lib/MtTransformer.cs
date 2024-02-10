@@ -143,57 +143,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Creates the slot-render method for a given data context.
-    /// </summary>
-    private string CreateSlotRenderMethod(MtComponent component, int scope, MtDataContext context, string slotName,
-        MtComponent rootComponent, string slotContent, MtComponent parentComponent)
-    {
-        var methodArguments = new List<string>();
-        var methodName = GetSlotRenderMethodName(scope, slotName);
-
-        //Add slot render methods.
-        AppendSlotRenderArgumentsToList(methodArguments, parentComponent);
-
-        //Add component properties as arguments.
-        foreach (var (localVariableName, localVariableType) in context)
-        {
-            //Do not properties present in root component, because they're available everywhere.
-            if (!rootComponent.Properties.ContainsKey(localVariableName))
-            {
-                methodArguments.Add($"{localVariableType} {localVariableName}");
-            }
-        }
-
-        if (parentComponent != rootComponent)
-        {
-            AppendComponentPropertiesToMethodArgumentsList(parentComponent, methodArguments);
-        }
-
-        //Start slot render method declaration
-        var output = new StringBuilder(maniaTemplateLanguage.FeatureBlockStart())
-            .AppendLine($"private void {methodName}({string.Join(',', methodArguments)}) {{");
-
-        //Declare component default variables
-        foreach (var prop in component.Properties.Values)
-        {
-            if (prop.Default == null || (parentComponent.Properties.ContainsKey(prop.Name)))
-            {
-                continue;
-            }
-
-            output.AppendLine($"const {prop.ToMethodArgument()};");
-        }
-
-        return output
-            .AppendLine(maniaTemplateLanguage.FeatureBlockEnd())
-            .AppendLine(slotContent)
-            .AppendLine(maniaTemplateLanguage.FeatureBlockStart())
-            .AppendLine("}")
-            .AppendLine(maniaTemplateLanguage.FeatureBlockEnd())
-            .ToString();
-    }
-
-    /// <summary>
     /// Process a ManiaTemplate node.
     /// </summary>
     private string ProcessNode(XmlNode node, MtComponentMap componentMap, MtDataContext context,
@@ -412,14 +361,15 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         //Attach attributes to render method call
         foreach (var (attributeName, attributeValue) in attributeList)
         {
+            //Skip attributes that don't match component property name
             if (!component.Properties.TryGetValue(attributeName, out var componentProperty)) continue;
 
-            var methodArgumentValue = componentProperty.IsStringType()
+            var methodArgument = componentProperty.IsStringType()
                 ? IStringMethods.WrapStringInQuotes(
                     ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $"{{({s})}}"))
                 : ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $"({s})");
 
-            componentRenderArguments.Add(CreateMethodCallArgument(attributeName, methodArgumentValue));
+            componentRenderArguments.Add(CreateMethodCallArgument(attributeName, methodArgument));
         }
 
         renderComponentCall.Append(string.Join(", ", componentRenderArguments));
@@ -482,13 +432,9 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody,
         MtDataContext currentContext)
     {
-        var renderMethod = new StringBuilder(maniaTemplateLanguage.FeatureBlockStart())
-            .Append("private void ")
-            .Append(renderMethodName)
-            .Append('(');
-
         //open method arguments
         var arguments = new List<string>();
+        var body = new StringBuilder(componentBody);
 
         //Add local variables to component render method call
         foreach (var (localVariableName, localVariableType) in currentContext)
@@ -502,13 +448,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         //add component properties as arguments with defaults
         AppendComponentPropertiesToMethodArgumentsList(component, arguments);
 
-        //close method arguments
-        renderMethod.Append(string.Join(", ", arguments))
-            .AppendLine(") {")
-            .AppendLine(maniaTemplateLanguage.FeatureBlockEnd())
-            .AppendLine(componentBody);
-
-        //insert mania scripts
+        //Insert mania scripts
         if (component.Scripts.Count > 0)
         {
             var scriptRenderMethodName = GetComponentScriptsRenderMethodName(component);
@@ -521,13 +461,92 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             scriptArguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null)
                 .Select(property => property.Name));
 
-            renderMethod.AppendLine(maniaTemplateLanguage.FeatureBlockStart())
+            body.AppendLine(maniaTemplateLanguage.FeatureBlockStart())
                 .AppendLine(
                     $"__maniaScriptRenderMethods.Add(() => {scriptRenderMethodName}({string.Join(',', scriptArguments)}));")
                 .AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
         }
 
-        return renderMethod.AppendLine(maniaTemplateLanguage.FeatureBlockStart())
+        return CreateRenderMethod(renderMethodName, arguments, body.ToString());
+    }
+
+    /// <summary>
+    /// Creates the slot-render method for a given data context.
+    /// </summary>
+    private string CreateSlotRenderMethod(MtComponent component, int scope, MtDataContext context, string slotName,
+        MtComponent rootComponent, string slotContent, MtComponent parentComponent)
+    {
+        var methodArguments = new List<string>();
+        var methodName = GetSlotRenderMethodName(scope, slotName);
+        var localVariables = new List<string>();
+
+        //Add slot render methods.
+        AppendSlotRenderArgumentsToList(methodArguments, parentComponent);
+
+        //Add component properties as arguments.
+        foreach (var (localVariableName, localVariableType) in context)
+        {
+            //Do not properties present in root component, because they're available everywhere.
+            if (!rootComponent.Properties.ContainsKey(localVariableName))
+            {
+                methodArguments.Add($"{localVariableType} {localVariableName}");
+            }
+        }
+
+        if (parentComponent != rootComponent)
+        {
+            AppendComponentPropertiesToMethodArgumentsList(parentComponent, methodArguments);
+        }
+
+        //Declare component default variables
+        foreach (var prop in component.Properties.Values)
+        {
+            if (prop.Default == null || parentComponent.Properties.ContainsKey(prop.Name))
+            {
+                continue;
+            }
+
+            localVariables.Add(prop.ToLocalConstant());
+        }
+
+        return CreateRenderMethod(methodName, methodArguments, slotContent, localVariables);
+    }
+
+    /// <summary>
+    /// Creates the method which renders the contents of a component.
+    /// </summary>
+    private string CreateComponentScriptsRenderMethod(MtComponent component, string renderMethodName)
+    {
+        var arguments = new List<string>();
+
+        //Add method arguments with defaults
+        AppendComponentPropertiesToMethodArgumentsList(component, arguments);
+
+        return CreateRenderMethod(renderMethodName, arguments, _scriptTransformer.CreateManiaScriptBlock(component));
+    }
+
+    /// <summary>
+    /// Creates a method to render template contents.
+    /// </summary>
+    private string CreateRenderMethod(string name, IEnumerable<string> arguments, string body,
+        IEnumerable<string>? localVariableDeclarations = null)
+    {
+        var renderMethod = new StringBuilder(maniaTemplateLanguage.FeatureBlockStart())
+            .Append($"private void {name}(")
+            .Append(string.Join(", ", arguments))
+            .AppendLine(") {");
+
+        if (localVariableDeclarations != null)
+        {
+            foreach (var declaration in localVariableDeclarations)
+            {
+                renderMethod.AppendLine(declaration);
+            }
+        }
+
+        return renderMethod.AppendLine(maniaTemplateLanguage.FeatureBlockEnd())
+            .AppendLine(body)
+            .AppendLine(maniaTemplateLanguage.FeatureBlockStart())
             .Append('}')
             .AppendLine(maniaTemplateLanguage.FeatureBlockEnd())
             .ToString();
@@ -549,36 +568,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private static void AppendSlotRenderArgumentsToList(List<string> arguments, MtComponent component)
     {
         arguments.AddRange(component.Slots.Select(slotName => $"Action {GetSlotRendererVariableName(slotName)}"));
-    }
-
-    /// <summary>
-    /// Creates the method which renders the contents of a component.
-    /// </summary>
-    private string CreateComponentScriptsRenderMethod(MtComponent component, string renderMethodName)
-    {
-        var renderMethod = new StringBuilder(maniaTemplateLanguage.FeatureBlockStart())
-            .Append("void ")
-            .Append(renderMethodName)
-            .Append('(');
-
-        //open method arguments
-        var arguments = new List<string>();
-
-        //Add method arguments with defaults
-        AppendComponentPropertiesToMethodArgumentsList(component, arguments);
-
-        //close method arguments
-        renderMethod.Append(string.Join(", ", arguments))
-            .AppendLine(") {")
-            .AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
-
-        //insert body
-        renderMethod.AppendLine(_scriptTransformer.CreateManiaScriptBlock(component));
-
-        return renderMethod.AppendLine(maniaTemplateLanguage.FeatureBlockStart())
-            .Append('}')
-            .AppendLine(maniaTemplateLanguage.FeatureBlockEnd())
-            .ToString();
     }
 
     /// <summary>

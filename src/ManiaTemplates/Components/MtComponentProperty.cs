@@ -35,4 +35,12 @@ public class MtComponentProperty : IStringMethods
             ? $"{Type} {Name}"
             : $"{Type} {Name} = {GetDefaultWrapped()}";
     }
+
+    /// <summary>
+    /// Converts the property to constant for use in render methods.
+    /// </summary>
+    public string ToLocalConstant()
+    {
+        return $"const {ToMethodArgument()};";
+    }
 }
