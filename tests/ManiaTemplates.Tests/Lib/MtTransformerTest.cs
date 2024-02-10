@@ -135,8 +135,8 @@ public class MtTransformerTest
     [Fact]
     public void Should_Wrap_Strings_In_Quotes()
     {
-        Assert.Equal(@"$""unit test""", MtTransformer.WrapStringInQuotes("unit test"));
-        Assert.Equal(@"$""""", MtTransformer.WrapStringInQuotes(""));
+        Assert.Equal(@"$""unit test""", IStringMethods.WrapStringInQuotes("unit test"));
+        Assert.Equal(@"$""""", IStringMethods.WrapStringInQuotes(""));
     }
 
     [Fact]

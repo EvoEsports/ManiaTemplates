@@ -11,7 +11,7 @@ using Microsoft.CSharp;
 namespace ManiaTemplates.Lib;
 
 public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage maniaTemplateLanguage)
-    : IXmlMethods
+    : IXmlMethods, IStringMethods
 {
     private readonly MtScriptTransformer _scriptTransformer = new(maniaTemplateLanguage);
     private readonly List<string> _namespaces = new();
@@ -156,7 +156,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         {
             properties.AppendLine(maniaTemplateLanguage
                 .FeatureBlock(
-                    $"public {property.Type} {property.Name} {{ get; init; }}{(property.Default == null ? "" : $" = {WrapIfString(property, property.Default)};")}")
+                    $"public {property.Type} {property.Name} {{ get; init; }}{(property.Default == null ? "" : $" = {IStringMethods.WrapIfString(property, property.Default)};")}")
                 .ToString());
         }
 
@@ -214,7 +214,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 continue;
             }
 
-            output.AppendLine($"const {prop.Type} {prop.Name} = {WrapIfString(prop, prop.Default)};");
+            output.AppendLine($"const {prop.Type} {prop.Name} = {IStringMethods.WrapIfString(prop, prop.Default)};");
         }
 
         return output
@@ -452,8 +452,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             if (component.Properties.TryGetValue(attributeName, out var value))
             {
                 renderArguments.Add(
-                    IsStringType(value)
-                        ? $"{attributeName}: {WrapStringInQuotes(ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $@"{{({s})}}"))}"
+                    value.IsStringType()
+                        ? $"{attributeName}: {IStringMethods.WrapStringInQuotes(ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $@"{{({s})}}"))}"
                         : $"{attributeName}: {ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $"({s})")}");
             }
         }
@@ -576,7 +576,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null)
             .Select(property => property.Default == null
                 ? $"{property.Type} {property.Name}"
-                : $"{property.Type} {property.Name} = {WrapIfString(property, property.Default)}"));
+                : $"{property.Type} {property.Name} = {IStringMethods.WrapIfString(property, property.Default)}"));
     }
 
     /// <summary>
@@ -604,7 +604,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null).Select(property =>
             property.Default == null
                 ? $"{property.Type} {property.Name}"
-                : $"{property.Type} {property.Name} = {(WrapIfString(property, property.Default))}"));
+                : $"{property.Type} {property.Name} = {IStringMethods.WrapIfString(property, property.Default)}"));
 
         //close method arguments
         renderMethod.Append(string.Join(", ", arguments))
@@ -714,29 +714,5 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private static string GetSlotRenderMethodName(int scope, string name)
     {
         return $"Render_Slot_{scope.GetHashCode()}_{name}";
-    }
-
-    /// <summary>
-    /// Wrap the second argument in quotes, if the given property is a string type.
-    /// </summary>
-    private static string WrapIfString(MtComponentProperty property, string value)
-    {
-        return IsStringType(property) ? WrapStringInQuotes(value) : value;
-    }
-
-    /// <summary>
-    /// Determines whether a component property is a string type.
-    /// </summary>
-    private static bool IsStringType(MtComponentProperty property)
-    {
-        return property.Type.ToLower().Contains("string"); //TODO: find better way to determine string
-    }
-
-    /// <summary>
-    /// Wraps a string in quotes.
-    /// </summary>
-    public static string WrapStringInQuotes(string str)
-    {
-        return $@"$""{str}""";
     }
 }
