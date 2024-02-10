@@ -1,22 +1,16 @@
-﻿using ManiaTemplates.Components;
-
-namespace ManiaTemplates.Interfaces;
+﻿namespace ManiaTemplates.Interfaces;
 
 public interface IStringMethods
 {
     /// <summary>
-    /// Wrap the second argument in quotes, if the given property is a string type.
+    /// Determines whether a component property is a string type.
     /// </summary>
-    public static string WrapIfString(MtComponentProperty property, string value)
-    {
-        return property.IsStringType() ? WrapStringInQuotes(value) : value;
-    }
+    public static bool IsStringType(string typeString)
+        => typeString.ToLower().Contains("string"); //TODO: find better way to determine string
 
     /// <summary>
     /// Wraps a string in quotes.
     /// </summary>
     public static string WrapStringInQuotes(string str)
-    {
-        return $@"$""{str}""";
-    }
+        => $@"$""{str}""";
 }

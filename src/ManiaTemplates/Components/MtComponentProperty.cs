@@ -1,6 +1,8 @@
-﻿namespace ManiaTemplates.Components;
+﻿using ManiaTemplates.Interfaces;
 
-public class MtComponentProperty
+namespace ManiaTemplates.Components;
+
+public class MtComponentProperty: IStringMethods
 {
     public required string Type { get; init; }
     public required string Name { get; init; }
@@ -9,8 +11,18 @@ public class MtComponentProperty
     /// <summary>
     /// Determines whether a component property is a string type.
     /// </summary>
-    public bool IsStringType()
+    public bool IsStringType() => IStringMethods.IsStringType(Type);
+
+    /// <summary>
+    /// Gets the default value for this property and wraps it in quotes, if string type.
+    /// </summary>
+    public string? GetDefaultWrapped()
     {
-        return Type.ToLower().Contains("string"); //TODO: find better way to determine string
+        if (Default == null)
+        {
+            return null;
+        }
+        
+        return IsStringType() ? IStringMethods.WrapStringInQuotes(Default) : Default;
     }
 }

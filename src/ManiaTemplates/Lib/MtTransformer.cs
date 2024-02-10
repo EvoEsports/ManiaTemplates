@@ -135,7 +135,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         {
             properties.AppendLine(maniaTemplateLanguage
                 .FeatureBlock(
-                    $"public {property.Type} {property.Name} {{ get; init; }}{(property.Default == null ? "" : $" = {IStringMethods.WrapIfString(property, property.Default)};")}")
+                    $"public {property.Type} {property.Name} {{ get; init; }}{(property.Default == null ? "" : $" = {property.GetDefaultWrapped()};")}")
                 .ToString());
         }
 
@@ -181,7 +181,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 continue;
             }
 
-            output.AppendLine($"const {prop.Type} {prop.Name} = {IStringMethods.WrapIfString(prop, prop.Default)};");
+            output.AppendLine($"const {prop.Type} {prop.Name} = {prop.GetDefaultWrapped()};");
         }
 
         return output
@@ -541,7 +541,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null)
             .Select(property => property.Default == null
                 ? $"{property.Type} {property.Name}"
-                : $"{property.Type} {property.Name} = {IStringMethods.WrapIfString(property, property.Default)}"));
+                : $"{property.Type} {property.Name} = {property.GetDefaultWrapped()}"));
     }
 
     /// <summary>
@@ -569,7 +569,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null).Select(property =>
             property.Default == null
                 ? $"{property.Type} {property.Name}"
-                : $"{property.Type} {property.Name} = {IStringMethods.WrapIfString(property, property.Default)}"));
+                : $"{property.Type} {property.Name} = {property.GetDefaultWrapped()}"));
 
         //close method arguments
         renderMethod.Append(string.Join(", ", arguments))
