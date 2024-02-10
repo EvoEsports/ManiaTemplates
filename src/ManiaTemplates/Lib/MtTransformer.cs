@@ -275,7 +275,7 @@ public class MtTransformer
                 //Node is a component
                 var component = _engine.GetComponent(availableMtComponents[tag].TemplateKey);
                 var slotContents =
-                    GetSlotContentsBySlotName(childNode, component, availableMtComponents, currentContext,
+                    GetSlotContentsGroupedBySlotName(childNode, component, availableMtComponents, currentContext,
                         parentComponent, rootComponent);
 
                 var componentRenderMethodCall = ProcessComponentNode(
@@ -353,7 +353,14 @@ public class MtTransformer
         return snippet.ToString();
     }
 
-    private Dictionary<string, string> GetSlotContentsBySlotName(XmlNode componentNode,
+    /// <summary>
+    /// Recursively goes through all nodes in the components template and extracts the XML for each slot.
+    /// All XML that is not inside a named slot, is appended to the "default" slot.
+    /// </summary>
+    /// <returns>
+    /// A map of slot names and their contents.
+    /// </returns>
+    private Dictionary<string, string> GetSlotContentsGroupedBySlotName(XmlNode componentNode,
         MtComponent component, MtComponentMap availableMtComponents, MtDataContext context, MtComponent parentComponent, MtComponent rootComponent)
     {
         var contentsByName = new Dictionary<string, XmlNode>();
@@ -730,6 +737,9 @@ public class MtTransformer
         return output;
     }
 
+    /// <summary>
+    /// Inserts a block with ManiaScript, that contains directives like includes, constants and custom structs.
+    /// </summary>
     private string CreateManiaScriptDirectivesBlock()
     {
         if (_maniaScriptIncludes.Count + _maniaScriptStructs.Count + _maniaScriptConstants.Count == 0)
