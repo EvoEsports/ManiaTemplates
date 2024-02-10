@@ -14,10 +14,10 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     : IXmlMethods, IStringMethods
 {
     private readonly MtScriptTransformer _scriptTransformer = new(maniaTemplateLanguage);
-    private readonly List<string> _namespaces = new();
+    private readonly List<string> _namespaces = [];
+    private readonly List<MtComponentSlot> _slots = [];
     private readonly Dictionary<string, string> _renderMethods = new();
     private readonly Dictionary<string, string> _maniaScriptRenderMethods = new();
-    private readonly List<MtComponentSlot> _slots = new();
     private int _loopDepth;
 
     /// <summary>
@@ -55,27 +55,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         };
 
         return maniaTemplateLanguage.OptimizeOutput(template.ToString());
-    }
-
-    /// <summary>
-    /// Creates a dummy DoNothing() method that returns a empty string.
-    /// </summary>
-    private string CreateDoNothingMethod()
-    {
-        return maniaTemplateLanguage.FeatureBlock("private static void DoNothing(){}").ToString();
-    }
-
-    /// <summary>
-    /// Creates a dummy DoNothing() method that returns a empty string.
-    /// </summary>
-    private string CreateInsertedManiaScriptsList()
-    {
-        return new StringBuilder()
-            .AppendLine(maniaTemplateLanguage.FeatureBlockStart())
-            .AppendLine("private List<string> __insertedOneTimeManiaScripts = new List<string>();")
-            .AppendLine("private List<Action> __maniaScriptRenderMethods = new List<Action>();")
-            .AppendLine(maniaTemplateLanguage.FeatureBlockEnd())
-            .ToString();
     }
 
     /// <summary>
@@ -164,18 +143,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Creates a block containing all render methods used in the template.
-    /// </summary>
-    private string CreateRenderMethodsBlock()
-    {
-        return new StringBuilder()
-            .AppendJoin("\n", _renderMethods.Values)
-            .AppendJoin("\n", _maniaScriptRenderMethods.Values)
-            .AppendJoin("\n", _slots.Select(slot => slot.RenderMethodT4))
-            .ToString();
-    }
-
-    /// <summary>
     /// Creates the slot-render method for a given data context.
     /// </summary>
     private string CreateSlotRenderMethod(MtComponent component, int scope, MtDataContext context, string slotName,
@@ -204,7 +171,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
         //Start slot render method declaration
         var output = new StringBuilder(maniaTemplateLanguage.FeatureBlockStart())
-            .AppendLine("private void " + CreateMethodCall(methodName, string.Join(',', methodArguments), "") + " {");
+            .AppendLine($"private void {methodName}({string.Join(',', methodArguments)}) {{");
 
         //Declare component default variables
         foreach (var prop in component.Properties.Values)
@@ -232,7 +199,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private string ProcessNode(XmlNode node, MtComponentMap componentMap, MtDataContext context,
         MtComponent rootComponent, MtComponent parentComponent)
     {
-        Snippet snippet = new();
+        Snippet snippet = [];
 
         var nodeId = 1;
         foreach (XmlNode childNode in node.ChildNodes)
@@ -294,7 +261,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                     case "slot":
                         var slotName = attributeList.PullName().ToLower();
                         subSnippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart())
-                            .AppendLine(CreateMethodCall($"__slotRenderer_{slotName}"))
+                            .AppendLine($"{GetSlotRendererVariableName(slotName)}();")
                             .AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
                         break;
 
@@ -319,12 +286,12 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
             if (ifCondition != null)
             {
-                subSnippet = WrapInIfStatement(subSnippet, ifCondition);
+                subSnippet = CreateIfBlock(subSnippet, ifCondition);
             }
 
             if (forEachCondition != null)
             {
-                subSnippet = WrapInForeachLoop(subSnippet, forEachCondition);
+                subSnippet = CreateForEachBlock(subSnippet, forEachCondition);
                 _loopDepth--;
             }
 
@@ -438,27 +405,24 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         var renderComponentCall = new StringBuilder(renderMethodName + "(");
 
         //Create available arguments
-        var renderArguments = new List<string>();
-
-        //Add local variables to component render method call
-        foreach (var localVariableName in currentContext.Keys)
-        {
-            renderArguments.Add($"{localVariableName}: {localVariableName}");
-        }
+        var componentRenderArguments = currentContext.Keys
+            .Select(CreateMethodCallArgument)
+            .ToList();
 
         //Attach attributes to render method call
         foreach (var (attributeName, attributeValue) in attributeList)
         {
-            if (component.Properties.TryGetValue(attributeName, out var value))
-            {
-                renderArguments.Add(
-                    value.IsStringType()
-                        ? $"{attributeName}: {IStringMethods.WrapStringInQuotes(ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $@"{{({s})}}"))}"
-                        : $"{attributeName}: {ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $"({s})")}");
-            }
+            if (!component.Properties.TryGetValue(attributeName, out var componentProperty)) continue;
+
+            var methodArgumentValue = componentProperty.IsStringType()
+                ? IStringMethods.WrapStringInQuotes(
+                    ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $"{{({s})}}"))
+                : ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $"({s})");
+
+            componentRenderArguments.Add(CreateMethodCallArgument(attributeName, methodArgumentValue));
         }
 
-        renderComponentCall.Append(string.Join(", ", renderArguments));
+        renderComponentCall.Append(string.Join(", ", componentRenderArguments));
 
         //Append slot render calls
         if (component.Slots.Count > 0)
@@ -466,13 +430,12 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             var i = 0;
             foreach (var slotName in component.Slots)
             {
-                if (renderArguments.Count > 0 || i > 0)
+                if (componentRenderArguments.Count > 0 || i > 0)
                 {
                     renderComponentCall.Append(", ");
                 }
 
-                renderComponentCall.Append($"__slotRenderer_{slotName}: ")
-                    .Append("() => ")
+                renderComponentCall.Append($"{GetSlotRendererVariableName(slotName)}: () => ")
                     .Append(GetSlotRenderMethodName(scope, slotName))
                     .Append('(');
 
@@ -481,24 +444,26 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 //Add local variables to slot render call
                 foreach (var localVariableName in currentContext.Keys)
                 {
-                    slotArguments.Add($"{localVariableName}: {localVariableName}");
+                    slotArguments.Add(CreateMethodCallArgument(localVariableName));
                 }
 
-                //Pass slot renderers
+                //Add parent properties as arguments
                 if (parentComponent != rootComponent)
                 {
                     foreach (var propertyName in parentComponent.Properties.Keys)
                     {
-                        slotArguments.Add($"{propertyName}: {propertyName}");
+                        slotArguments.Add(CreateMethodCallArgument(propertyName));
                     }
                 }
 
-                foreach (var parentSlotName in parentComponent.Slots)
+                //Pass slot renderers
+                foreach (var slotRenderVariable in parentComponent.Slots.Select(GetSlotRendererVariableName))
                 {
-                    slotArguments.Add($"__slotRenderer_{parentSlotName}: __slotRenderer_{parentSlotName}");
+                    slotArguments.Add(CreateMethodCallArgument(slotRenderVariable));
                 }
 
-                renderComponentCall.Append(string.Join(", ", slotArguments)).Append(')');
+                renderComponentCall.Append(string.Join(", ", slotArguments))
+                    .Append(')');
 
                 i++;
             }
@@ -584,7 +549,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// </summary>
     private static void AppendSlotRenderArgumentsToList(List<string> arguments, MtComponent component)
     {
-        arguments.AddRange(component.Slots.Select(slotName => $"Action __slotRenderer_{slotName}"));
+        arguments.AddRange(component.Slots.Select(slotName => $"Action {GetSlotRendererVariableName(slotName)}"));
     }
 
     /// <summary>
@@ -621,9 +586,42 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
+    /// Creates a dummy DoNothing() method that returns a empty string.
+    /// </summary>
+    private string CreateDoNothingMethod()
+    {
+        return maniaTemplateLanguage.FeatureBlock("private static void DoNothing(){}").ToString();
+    }
+
+    /// <summary>
+    /// Creates a dummy DoNothing() method that returns a empty string.
+    /// </summary>
+    private string CreateInsertedManiaScriptsList()
+    {
+        return new StringBuilder()
+            .AppendLine(maniaTemplateLanguage.FeatureBlockStart())
+            .AppendLine("private List<string> __insertedOneTimeManiaScripts = new List<string>();")
+            .AppendLine("private List<Action> __maniaScriptRenderMethods = new List<Action>();")
+            .AppendLine(maniaTemplateLanguage.FeatureBlockEnd())
+            .ToString();
+    }
+
+    /// <summary>
+    /// Creates a block containing all render methods used in the template.
+    /// </summary>
+    private string CreateRenderMethodsBlock()
+    {
+        return new StringBuilder()
+            .AppendJoin("\n", _renderMethods.Values)
+            .AppendJoin("\n", _maniaScriptRenderMethods.Values)
+            .AppendJoin("\n", _slots.Select(slot => slot.RenderMethodT4))
+            .ToString();
+    }
+
+    /// <summary>
     /// Wraps the snippet in a if-condition.
     /// </summary>
-    private Snippet WrapInIfStatement(Snippet input, string ifCondition)
+    private Snippet CreateIfBlock(Snippet input, string ifCondition)
     {
         var snippet = new Snippet();
         var ifContent = ICurlyBraceMethods.TemplateInterpolationRegex.Replace(ifCondition, "$1");
@@ -642,7 +640,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// <summary>
     /// Wraps the snippet in a foreach-loop.
     /// </summary>
-    private Snippet WrapInForeachLoop(Snippet input, MtForeach foreachLoop)
+    private Snippet CreateForEachBlock(Snippet input, MtForeach foreachLoop)
     {
         var outerIndexVariableName = "__outerIndex" + (new Random()).Next();
         var innerIndexVariableName = "__index";
@@ -684,15 +682,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Creates a method call in the target language.
-    /// </summary>
-    private static string CreateMethodCall(string methodName, string methodArguments = "",
-        string append = ";")
-    {
-        return $"{methodName}({methodArguments}){append}";
-    }
-
-    /// <summary>
     /// Returns the method name that renders the given component.
     /// </summary>
     private static string GetComponentRenderMethodName(MtComponent component, MtDataContext context)
@@ -714,5 +703,30 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private static string GetSlotRenderMethodName(int scope, string name)
     {
         return $"Render_Slot_{scope.GetHashCode()}_{name}";
+    }
+
+    /// <summary>
+    /// Returns the name of the variable that renders a slot.
+    /// </summary>
+    private static string GetSlotRendererVariableName(string slotName)
+    {
+        return $"__slotRenderer_{slotName}";
+    }
+
+    /// <summary>
+    /// Formats local variables to be passed to a render method.
+    /// </summary>
+    private static string CreateMethodCallArgument(string argumentName)
+    {
+        return CreateMethodCallArgument(argumentName, argumentName);
+    }
+
+    /// <summary>
+    /// Formats local variables to be passed to a render method.
+    /// It uses the argument name if no value is passed as second argument.
+    /// </summary>
+    private static string CreateMethodCallArgument(string argumentName, string argumentValue)
+    {
+        return $"{argumentName}: {argumentValue}";
     }
 }
