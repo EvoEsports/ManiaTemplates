@@ -9,15 +9,15 @@
 <!--  Section 2  -->
 <frame class="outer">
 <frame class="outer">
-<label text="test2" />
+<label text="abcd" />
 <frame class="inner">
-<label text="UnitTest_footer2" />
+<label text="qwer_UnitTest_footer2" />
 </frame>
 </frame>
 <frame class="inner">
-<label text="test3" />
+<label text="abcd_qwer" />
 <frame class="outer">
-<label text="test4" />
+<label text="asdf" />
 <frame class="inner">
 </frame>
 </frame>
