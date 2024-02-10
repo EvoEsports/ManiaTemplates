@@ -181,7 +181,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 continue;
             }
 
-            output.AppendLine($"const {prop.Type} {prop.Name} = {prop.GetDefaultWrapped()};");
+            output.AppendLine($"const {prop.ToMethodArgument()};");
         }
 
         return output
@@ -538,10 +538,9 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// </summary>
     private static void AppendComponentPropertiesToMethodArgumentsList(MtComponent component, List<string> arguments)
     {
-        arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null)
-            .Select(property => property.Default == null
-                ? $"{property.Type} {property.Name}"
-                : $"{property.Type} {property.Name} = {property.GetDefaultWrapped()}"));
+        arguments.AddRange(component.Properties.Values
+            .OrderBy(property => property.Default != null)
+            .Select(property => property.ToMethodArgument()));
     }
 
     /// <summary>
@@ -565,11 +564,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         //open method arguments
         var arguments = new List<string>();
 
-        //add method arguments with defaults
-        arguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null).Select(property =>
-            property.Default == null
-                ? $"{property.Type} {property.Name}"
-                : $"{property.Type} {property.Name} = {property.GetDefaultWrapped()}"));
+        //Add method arguments with defaults
+        AppendComponentPropertiesToMethodArgumentsList(component, arguments);
 
         //close method arguments
         renderMethod.Append(string.Join(", ", arguments))
