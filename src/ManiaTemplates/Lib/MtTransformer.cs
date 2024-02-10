@@ -11,7 +11,7 @@ using Microsoft.CSharp;
 namespace ManiaTemplates.Lib;
 
 public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage maniaTemplateLanguage)
-    : IXmlMethods, ICurlyBraceMethods
+    : IXmlMethods
 {
     private readonly MtScriptTransformer _scriptTransformer = new(maniaTemplateLanguage);
     private readonly List<string> _namespaces = new();
@@ -30,7 +30,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         var renderBodyArguments = string.Join(',', Enumerable.Repeat("DoNothing", rootComponent.Slots.Count));
 
         var body = ProcessNode(
-            IXmlMethods.XmlStringToNode(rootComponent.TemplateContent),
+            IXmlMethods.NodeFromString(rootComponent.TemplateContent),
             engine.BaseMtComponents.Overload(rootComponent.ImportedComponents),
             new MtDataContext(),
             rootComponent,
@@ -149,7 +149,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             var type = propertyValue.GetType();
 
             properties.AppendLine(maniaTemplateLanguage
-                .FeatureBlock($"public {GetFormattedName(type)} ?{propertyName} {{ get; init; }}").ToString());
+                .FeatureBlock($"public {GetFormattedTypeName(type)} ?{propertyName} {{ get; init; }}").ToString());
         }
 
         foreach (var property in mtComponent.Properties.Values)
@@ -229,7 +229,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// <summary>
     /// Process a ManiaTemplate node.
     /// </summary>
-    private string ProcessNode(XmlNode node, MtComponentMap availableMtComponents, MtDataContext context,
+    private string ProcessNode(XmlNode node, MtComponentMap componentMap, MtDataContext context,
         MtComponent rootComponent, MtComponent parentComponent)
     {
         Snippet snippet = new();
@@ -239,11 +239,11 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         {
             var subSnippet = new Snippet();
             var tag = childNode.Name;
-            var attributeList = GetXmlNodeAttributes(childNode);
+            var attributeList = IXmlMethods.GetAttributes(childNode);
             var currentContext = context;
 
-            var forEachCondition = GetForeachConditionFromNodeAttributes(attributeList, context, nodeId);
-            var ifCondition = GetIfConditionFromNodeAttributes(attributeList);
+            var forEachCondition = attributeList.PullForeachCondition(context, nodeId);
+            var ifCondition = attributeList.PullIfCondition();
 
             if (forEachCondition != null)
             {
@@ -251,12 +251,12 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 _loopDepth++;
             }
 
-            if (availableMtComponents.ContainsKey(tag))
+            if (componentMap.TryGetValue(tag, out var importedComponent))
             {
                 //Node is a component
-                var component = engine.GetComponent(availableMtComponents[tag].TemplateKey);
+                var component = engine.GetComponent(importedComponent.TemplateKey);
                 var slotContents =
-                    GetSlotContentsGroupedBySlotName(childNode, component, availableMtComponents, currentContext,
+                    GetSlotContentsGroupedBySlotName(childNode, component, componentMap, currentContext,
                         parentComponent, rootComponent);
 
                 var componentRenderMethodCall = ProcessComponentNode(
@@ -266,8 +266,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                     currentContext,
                     attributeList,
                     ProcessNode(
-                        IXmlMethods.XmlStringToNode(component.TemplateContent),
-                        availableMtComponents.Overload(component.ImportedComponents),
+                        IXmlMethods.NodeFromString(component.TemplateContent),
+                        componentMap.Overload(component.ImportedComponents),
                         currentContext,
                         rootComponent: rootComponent,
                         parentComponent: component
@@ -292,7 +292,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                         subSnippet.AppendLine($"<!-- {childNode.InnerText} -->");
                         break;
                     case "slot":
-                        var slotName = GetNameAttributeContentFromNode(attributeList).ToLower();
+                        var slotName = attributeList.PullName().ToLower();
                         subSnippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart())
                             .AppendLine(CreateMethodCall($"__slotRenderer_{slotName}"))
                             .AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
@@ -301,15 +301,15 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                     default:
                     {
                         var hasChildren = childNode.HasChildNodes;
-                        subSnippet.AppendLine(IXmlMethods.CreateXmlOpeningTag(tag, attributeList, hasChildren,
+                        subSnippet.AppendLine(IXmlMethods.CreateOpeningTag(tag, attributeList, hasChildren,
                             curlyContentWrapper: maniaTemplateLanguage.InsertResult));
 
                         if (hasChildren)
                         {
                             subSnippet.AppendLine(1,
-                                ProcessNode(childNode, availableMtComponents, currentContext, rootComponent,
+                                ProcessNode(childNode, componentMap, currentContext, rootComponent,
                                     parentComponent: parentComponent));
-                            subSnippet.AppendLine(IXmlMethods.CreateXmlClosingTag(tag));
+                            subSnippet.AppendLine(IXmlMethods.CreateClosingTag(tag));
                         }
 
                         break;
@@ -621,33 +621,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Checks the attribute list for if-condition and if found removes & returns it, else null.
-    /// </summary>
-    private string? GetIfConditionFromNodeAttributes(MtComponentAttributes attributeList)
-    {
-        return attributeList.ContainsKey("if") ? attributeList.Pull("if") : null;
-    }
-
-    /// <summary>
-    /// Checks the attribute list for name and if found removes & returns it, else "default".
-    /// </summary>
-    private string GetNameAttributeContentFromNode(MtComponentAttributes attributeList)
-    {
-        return attributeList.ContainsKey("name") ? attributeList.Pull("name") : "default";
-    }
-
-    /// <summary>
-    /// Checks the attribute list for loop-condition and returns it, else null.
-    /// </summary>
-    private MtForeach? GetForeachConditionFromNodeAttributes(MtComponentAttributes attributeList, MtDataContext context,
-        int nodeId)
-    {
-        return attributeList.ContainsKey("foreach")
-            ? MtForeach.FromString(attributeList.Pull("foreach"), context, nodeId)
-            : null;
-    }
-
-    /// <summary>
     /// Wraps the snippet in a if-condition.
     /// </summary>
     private Snippet WrapInIfStatement(Snippet input, string ifCondition)
@@ -695,26 +668,10 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Parses the attributes of a XmlNode to an MtComponentAttributes-instance.
-    /// </summary>
-    public static MtComponentAttributes GetXmlNodeAttributes(XmlNode node)
-    {
-        var attributeList = new MtComponentAttributes();
-        if (node.Attributes == null) return attributeList;
-
-        foreach (XmlAttribute attribute in node.Attributes)
-        {
-            attributeList.Add(attribute.Name, attribute.Value);
-        }
-
-        return attributeList;
-    }
-
-    /// <summary>
     /// Returns C# code representation of the type.
     /// </summary>
     /// <param name="type">The type.</param>
-    public static string GetFormattedName(Type type)
+    public static string GetFormattedTypeName(Type type)
     {
         if (type.IsSubclassOf(typeof(DynamicObject)))
         {
@@ -738,7 +695,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// <summary>
     /// Returns the method name that renders the given component.
     /// </summary>
-    private string GetComponentRenderMethodName(MtComponent component, MtDataContext context)
+    private static string GetComponentRenderMethodName(MtComponent component, MtDataContext context)
     {
         return $"Render_Component_{component.Id()}{context}";
     }
@@ -746,7 +703,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// <summary>
     /// Returns the method name that renders the scripts of a given component.
     /// </summary>
-    private string GetComponentScriptsRenderMethodName(MtComponent component)
+    private static string GetComponentScriptsRenderMethodName(MtComponent component)
     {
         return $"Render_ComponentScript_{component.Id()}";
     }

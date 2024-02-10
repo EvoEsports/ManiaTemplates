@@ -151,7 +151,7 @@ public class MtTransformerTest
     [Fact]
     public void Should_Convert_String_To_Xml_Node()
     {
-        var node = IXmlMethods.XmlStringToNode("<unit>test</unit>");
+        var node = IXmlMethods.NodeFromString("<unit>test</unit>");
         Assert.IsAssignableFrom<XmlNode>(node);
         Assert.Equal("test", node.InnerText);
         Assert.Equal("<unit>test</unit>", node.InnerXml);
@@ -163,12 +163,12 @@ public class MtTransformerTest
     {
         var attributeList = new MtComponentAttributes();
         var lang = new MtLanguageT4();
-        Assert.Equal("<test />", IXmlMethods.CreateXmlOpeningTag("test", attributeList, false, lang.InsertResult));
-        Assert.Equal("<test>", IXmlMethods.CreateXmlOpeningTag("test", attributeList, true, lang.InsertResult));
+        Assert.Equal("<test />", IXmlMethods.CreateOpeningTag("test", attributeList, false, lang.InsertResult));
+        Assert.Equal("<test>", IXmlMethods.CreateOpeningTag("test", attributeList, true, lang.InsertResult));
 
         attributeList["prop"] = "value";
-        Assert.Equal("""<test prop="value" />""", IXmlMethods.CreateXmlOpeningTag("test", attributeList, false, lang.InsertResult));
-        Assert.Equal("""<test prop="value">""", IXmlMethods.CreateXmlOpeningTag("test", attributeList, true, lang.InsertResult));
+        Assert.Equal("""<test prop="value" />""", IXmlMethods.CreateOpeningTag("test", attributeList, false, lang.InsertResult));
+        Assert.Equal("""<test prop="value">""", IXmlMethods.CreateOpeningTag("test", attributeList, true, lang.InsertResult));
     }
 
     [Fact]
@@ -183,10 +183,10 @@ public class MtTransformerTest
     [Fact]
     public void Should_Convert_Xml_Node_Arguments_To_MtComponentAttributes_Instance()
     {
-        var node = IXmlMethods.XmlStringToNode("""<testNode arg1="test1" arg2="test2">testContent</testNode>""");
+        var node = IXmlMethods.NodeFromString("""<testNode arg1="test1" arg2="test2">testContent</testNode>""");
         if (node.FirstChild == null) return;
 
-        var attributes = MtTransformer.GetXmlNodeAttributes(node.FirstChild);
+        var attributes = IXmlMethods.GetAttributes(node.FirstChild);
         Assert.Equal(2, attributes.Count);
         Assert.Equal("test1", attributes["arg1"]);
         Assert.Equal("test2", attributes["arg2"]);
@@ -195,13 +195,13 @@ public class MtTransformerTest
     [Fact]
     public void Should_Detect_Correct_Type_String_For_CSharp_Scripting()
     {
-        Assert.Equal("int", MtTransformer.GetFormattedName(0.GetType()));
-        Assert.Equal("double", MtTransformer.GetFormattedName(0.0.GetType()));
-        Assert.Equal("string", MtTransformer.GetFormattedName("test".GetType()));
+        Assert.Equal("int", MtTransformer.GetFormattedTypeName(0.GetType()));
+        Assert.Equal("double", MtTransformer.GetFormattedTypeName(0.0.GetType()));
+        Assert.Equal("string", MtTransformer.GetFormattedTypeName("test".GetType()));
         Assert.Equal("System.Collections.Generic.List<string>",
-            MtTransformer.GetFormattedName(new List<string>().GetType()));
+            MtTransformer.GetFormattedTypeName(new List<string>().GetType()));
         Assert.Equal("System.Collections.Generic.HashSet<string>",
-            MtTransformer.GetFormattedName(new HashSet<string>().GetType()));
-        Assert.Equal("dynamic", MtTransformer.GetFormattedName(new TestDynamicObject().GetType()));
+            MtTransformer.GetFormattedTypeName(new HashSet<string>().GetType()));
+        Assert.Equal("dynamic", MtTransformer.GetFormattedTypeName(new TestDynamicObject().GetType()));
     }
 }
