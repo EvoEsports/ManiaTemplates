@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using System.Xml;
 using ManiaTemplates.Components;
+using ManiaTemplates.Interfaces;
 using ManiaTemplates.Languages;
 using ManiaTemplates.Lib;
 using Xunit.Abstractions;
@@ -141,14 +142,16 @@ public class MtTransformerTest
     [Fact]
     public void Should_Join_Feature_Blocks()
     {
+        var language = new MtLanguageT4();
+        
         Assert.Equal("<#+\n unittest \n#>",
-            MtTransformer.JoinFeatureBlocks("<#+#><#+\n #> <#+ unittest \n#><#+ \n\n\n#>"));
+            language.OptimizeOutput("<#+#><#+\n #> <#+ unittest \n#><#+ \n\n\n#>"));
     }
 
     [Fact]
     public void Should_Convert_String_To_Xml_Node()
     {
-        var node = MtTransformer.XmlStringToNode("<unit>test</unit>");
+        var node = IXmlMethods.XmlStringToNode("<unit>test</unit>");
         Assert.IsAssignableFrom<XmlNode>(node);
         Assert.Equal("test", node.InnerText);
         Assert.Equal("<unit>test</unit>", node.InnerXml);
@@ -159,27 +162,28 @@ public class MtTransformerTest
     public void Should_Create_Xml_Opening_Tag()
     {
         var attributeList = new MtComponentAttributes();
-        Assert.Equal("<test />", _transformer.CreateXmlOpeningTag("test", attributeList, false));
-        Assert.Equal("<test>", _transformer.CreateXmlOpeningTag("test", attributeList, true));
+        var lang = new MtLanguageT4();
+        Assert.Equal("<test />", IXmlMethods.CreateXmlOpeningTag("test", attributeList, false, lang.InsertResult));
+        Assert.Equal("<test>", IXmlMethods.CreateXmlOpeningTag("test", attributeList, true, lang.InsertResult));
 
         attributeList["prop"] = "value";
-        Assert.Equal("""<test prop="value" />""", _transformer.CreateXmlOpeningTag("test", attributeList, false));
-        Assert.Equal("""<test prop="value">""", _transformer.CreateXmlOpeningTag("test", attributeList, true));
+        Assert.Equal("""<test prop="value" />""", IXmlMethods.CreateXmlOpeningTag("test", attributeList, false, lang.InsertResult));
+        Assert.Equal("""<test prop="value">""", IXmlMethods.CreateXmlOpeningTag("test", attributeList, true, lang.InsertResult));
     }
 
     [Fact]
     public void Should_Create_ManiaLink_Opening_Tag()
     {
         Assert.Equal("""<manialink version="99" id="Test" name="EvoSC#-Test">""",
-            MtTransformer.ManiaLinkStart("Test", 99));
+            ManiaLink.OpenTag("Test", 99));
         Assert.Equal("""<manialink version="99" id="Test" name="EvoSC#-Test" layer="SomeLayer">""",
-            MtTransformer.ManiaLinkStart("Test", 99, "SomeLayer"));
+            ManiaLink.OpenTag("Test", 99, "SomeLayer"));
     }
 
     [Fact]
     public void Should_Convert_Xml_Node_Arguments_To_MtComponentAttributes_Instance()
     {
-        var node = MtTransformer.XmlStringToNode("""<testNode arg1="test1" arg2="test2">testContent</testNode>""");
+        var node = IXmlMethods.XmlStringToNode("""<testNode arg1="test1" arg2="test2">testContent</testNode>""");
         if (node.FirstChild == null) return;
 
         var attributes = MtTransformer.GetXmlNodeAttributes(node.FirstChild);

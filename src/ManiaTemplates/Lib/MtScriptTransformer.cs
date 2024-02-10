@@ -7,9 +7,8 @@ using ManiaTemplates.Interfaces;
 
 namespace ManiaTemplates.Lib;
 
-public class MtScriptTransformer: CurlyBraceMethods
+public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICurlyBraceMethods
 {
-    private readonly IManiaTemplateLanguage _maniaTemplateLanguage;
     private readonly Dictionary<string, string> _maniaScriptIncludes = new();
     private readonly Dictionary<string, string> _maniaScriptConstants = new();
     private readonly Dictionary<string, string> _maniaScriptStructs = new();
@@ -17,11 +16,6 @@ public class MtScriptTransformer: CurlyBraceMethods
     private static readonly Regex ManiaScriptIncludeRegex = new(@"#Include\s+""(.+?)""\s+as\s+([_a-zA-Z]+)");
     private static readonly Regex ManiaScriptConstantRegex = new(@"#Const\s+([a-zA-Z_:]+)\s+.+");
     private static readonly Regex ManiaScriptStructRegex = new(@"(?s)#Struct\s+([_a-zA-Z]+)\s*\{.+?\}");
-
-    public MtScriptTransformer(IManiaTemplateLanguage templateLanguage)
-    {
-        _maniaTemplateLanguage = templateLanguage;
-    }
 
     public string CreateManiaScriptBlock(MtComponent component)
     {
@@ -31,20 +25,20 @@ public class MtScriptTransformer: CurlyBraceMethods
         {
             if (script.Once)
             {
-                renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+                renderMethod.AppendLine(templateLanguage.FeatureBlockStart())
                     .AppendLine($@"if(!__insertedOneTimeManiaScripts.Contains(""{script.ContentHash()}"")){{")
-                    .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
+                    .AppendLine(templateLanguage.FeatureBlockEnd());
             }
 
-            renderMethod.AppendLine(ReplaceCurlyBraces(ExtractManiaScriptDirectives(script.Content),
-                _maniaTemplateLanguage.InsertResult));
+            renderMethod.AppendLine(ICurlyBraceMethods.ReplaceCurlyBraces(ExtractManiaScriptDirectives(script.Content),
+                templateLanguage.InsertResult));
 
             if (script.Once)
             {
-                renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
+                renderMethod.AppendLine(templateLanguage.FeatureBlockStart())
                     .AppendLine($@"__insertedOneTimeManiaScripts.Add(""{script.ContentHash()}"");")
                     .AppendLine("}")
-                    .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
+                    .AppendLine(templateLanguage.FeatureBlockEnd());
             }
         }
 
