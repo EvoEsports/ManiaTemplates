@@ -1,6 +1,5 @@
 ﻿using System.CodeDom;
 using System.Dynamic;
-using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -12,30 +11,24 @@ using Microsoft.CSharp;
 
 namespace ManiaTemplates.Lib;
 
-public class MtTransformer
+public class MtTransformer : CurlyBraceMethods
 {
     private readonly ManiaTemplateEngine _engine;
     private readonly IManiaTemplateLanguage _maniaTemplateLanguage;
+    private readonly MtScriptTransformer _scriptTransformer;
     private readonly List<string> _namespaces = new();
     private readonly Dictionary<string, string> _renderMethods = new();
     private readonly Dictionary<string, string> _maniaScriptRenderMethods = new();
     private readonly List<MtComponentSlot> _slots = new();
-    private readonly Dictionary<string, string> _maniaScriptIncludes = new();
-    private readonly Dictionary<string, string> _maniaScriptConstants = new();
-    private readonly Dictionary<string, string> _maniaScriptStructs = new();
     private int _loopDepth;
 
     private static readonly Regex TemplateFeatureControlRegex = new(@"#>\s*<#\+");
-    private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
-
-    private static readonly Regex ManiaScriptIncludeRegex = new(@"#Include\s+""(.+?)""\s+as\s+([_a-zA-Z]+)");
-    private static readonly Regex ManiaScriptConstantRegex = new(@"#Const\s+([a-zA-Z_:]+)\s+.+");
-    private static readonly Regex ManiaScriptStructRegex = new(@"(?s)#Struct\s+([_a-zA-Z]+)\s*\{.+?\}");
 
     public MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage maniaTemplateLanguage)
     {
         _engine = engine;
         _maniaTemplateLanguage = maniaTemplateLanguage;
+        _scriptTransformer = new MtScriptTransformer(maniaTemplateLanguage);
     }
 
     /// <summary>
@@ -45,9 +38,8 @@ public class MtTransformer
     {
         _namespaces.AddRange(rootComponent.Namespaces);
 
-        var renderBodyArguments =
-            string.Join(',', rootComponent.Slots.Select(slotName => "DoNothing").ToList());
-        
+        var renderBodyArguments = string.Join(',', Enumerable.Repeat("DoNothing", rootComponent.Slots.Count));
+
         var body = ProcessNode(
             XmlStringToNode(rootComponent.TemplateContent),
             _engine.BaseMtComponents.Overload(rootComponent.ImportedComponents),
@@ -110,7 +102,7 @@ public class MtTransformer
         var rootScriptBlock = "";
         if (rootComponent.Scripts.Count > 0)
         {
-            rootScriptBlock = CreateManiaScriptBlock(rootComponent);
+            rootScriptBlock = _scriptTransformer.CreateManiaScriptBlock(rootComponent);
         }
 
         var subManiaScripts = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
@@ -121,7 +113,7 @@ public class MtTransformer
 
         //Render content
         bodyRenderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
-            .AppendLine(CreateManiaScriptDirectivesBlock())
+            .AppendLine(_scriptTransformer.CreateManiaScriptDirectivesBlock())
             .AppendLine(body)
             .AppendLine(subManiaScripts)
             .AppendLine(rootScriptBlock)
@@ -214,7 +206,7 @@ public class MtTransformer
                 methodArguments.Add($"{localVariableType} {localVariableName}");
             }
         }
-        
+
         if (parentComponent != rootComponent)
         {
             AppendComponentPropertiesToMethodArgumentsList(parentComponent, methodArguments);
@@ -231,10 +223,10 @@ public class MtTransformer
             {
                 continue;
             }
-            
+
             output.AppendLine($"const {prop.Type} {prop.Name} = {WrapIfString(prop, prop.Default)};");
         }
-        
+
         output
             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
             .AppendLine(slotContent)
@@ -361,7 +353,8 @@ public class MtTransformer
     /// A map of slot names and their contents.
     /// </returns>
     private Dictionary<string, string> GetSlotContentsGroupedBySlotName(XmlNode componentNode,
-        MtComponent component, MtComponentMap availableMtComponents, MtDataContext context, MtComponent parentComponent, MtComponent rootComponent)
+        MtComponent component, MtComponentMap availableMtComponents, MtDataContext context, MtComponent parentComponent,
+        MtComponent rootComponent)
     {
         var contentsByName = new Dictionary<string, XmlNode>();
 
@@ -456,7 +449,7 @@ public class MtTransformer
 
         //Create available arguments
         var renderArguments = new List<string>();
-        
+
         //Add local variables to component render method call
         foreach (var localVariableName in currentContext.Keys)
         {
@@ -537,7 +530,8 @@ public class MtTransformer
     /// <summary>
     /// Creates the method which renders the contents of a component.
     /// </summary>
-    private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody, MtDataContext currentContext)
+    private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody,
+        MtDataContext currentContext)
     {
         var renderMethod = new StringBuilder(_maniaTemplateLanguage.FeatureBlockStart())
             .Append("private void ")
@@ -546,7 +540,7 @@ public class MtTransformer
 
         //open method arguments
         var arguments = new List<string>();
-        
+
         //Add local variables to component render method call
         foreach (var (localVariableName, localVariableType) in currentContext)
         {
@@ -555,7 +549,7 @@ public class MtTransformer
 
         //add slot render methods
         AppendSlotRenderArgumentsToList(arguments, component);
-        
+
         //add component properties as arguments with defaults
         AppendComponentPropertiesToMethodArgumentsList(component, arguments);
 
@@ -634,129 +628,12 @@ public class MtTransformer
             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
 
         //insert body
-        renderMethod.AppendLine(CreateManiaScriptBlock(component));
+        renderMethod.AppendLine(_scriptTransformer.CreateManiaScriptBlock(component));
 
         return renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
             .Append('}')
             .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd())
             .ToString();
-    }
-
-    private string CreateManiaScriptBlock(MtComponent component)
-    {
-        var renderMethod = new StringBuilder("<script>");
-
-        foreach (var script in component.Scripts)
-        {
-            if (script.Once)
-            {
-                renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
-                    .AppendLine($@"if(!__insertedOneTimeManiaScripts.Contains(""{script.ContentHash()}"")){{")
-                    .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
-            }
-
-            renderMethod.AppendLine(ReplaceCurlyBraces(ExtractManiaScriptDirectives(script.Content),
-                _maniaTemplateLanguage.InsertResult));
-
-            if (script.Once)
-            {
-                renderMethod.AppendLine(_maniaTemplateLanguage.FeatureBlockStart())
-                    .AppendLine($@"__insertedOneTimeManiaScripts.Add(""{script.ContentHash()}"");")
-                    .AppendLine("}")
-                    .AppendLine(_maniaTemplateLanguage.FeatureBlockEnd());
-            }
-        }
-
-        return renderMethod.AppendLine("</script>").ToString();
-    }
-
-    private string ExtractManiaScriptDirectives(string maniaScriptSource)
-    {
-        var output = maniaScriptSource;
-
-        var includeMatcher = ManiaScriptIncludeRegex.Match(output);
-        while (includeMatcher.Success)
-        {
-            var match = includeMatcher.ToString();
-            var libraryToInclude = includeMatcher.Groups[1].Value;
-            var includedAs = includeMatcher.Groups[2].Value;
-
-            if (_maniaScriptIncludes.TryGetValue(includedAs, out var blockingLibrary))
-            {
-                if (blockingLibrary != libraryToInclude)
-                {
-                    throw new DuplicateManiaScriptIncludeException(
-                        $"Can't include {libraryToInclude} as {includedAs}, because another include ({blockingLibrary}) blocks it.");
-                }
-            }
-            else
-            {
-                _maniaScriptIncludes.Add(includedAs, libraryToInclude);
-            }
-
-            output = output.Replace(match, "");
-            includeMatcher = includeMatcher.NextMatch();
-        }
-
-        var constantMatcher = ManiaScriptConstantRegex.Match(output);
-        while (constantMatcher.Success)
-        {
-            var match = constantMatcher.ToString();
-            _maniaScriptConstants.TryAdd(constantMatcher.Groups[1].Value, match);
-            output = output.Replace(match, "");
-            //TODO: exceptions double constant
-
-            constantMatcher = constantMatcher.NextMatch();
-        }
-
-        var structMatcher = ManiaScriptStructRegex.Match(output);
-        while (structMatcher.Success)
-        {
-            var structName = structMatcher.Groups[1].Value;
-            var structDefinition = structMatcher.ToString().Trim();
-
-            if (_maniaScriptStructs.TryGetValue(structName, out var existingStructDefinition))
-            {
-                if (string.Compare(structDefinition, existingStructDefinition, CultureInfo.CurrentCulture,
-                        CompareOptions.IgnoreCase | CompareOptions.IgnoreSymbols) != 0)
-                {
-                    throw new DuplicateManiaScriptStructException(
-                        $"Can't redefine struct {structName}, because it is already defined as: {existingStructDefinition}.");
-                }
-            }
-            else
-            {
-                _maniaScriptStructs.Add(structName, structDefinition);
-            }
-
-            output = output.Replace(structDefinition, "");
-
-            structMatcher = structMatcher.NextMatch();
-        }
-
-        return output;
-    }
-
-    /// <summary>
-    /// Inserts a block with ManiaScript, that contains directives like includes, constants and custom structs.
-    /// </summary>
-    private string CreateManiaScriptDirectivesBlock()
-    {
-        if (_maniaScriptIncludes.Count + _maniaScriptStructs.Count + _maniaScriptConstants.Count == 0)
-        {
-            return "";
-        }
-
-        var output = new StringBuilder("<script><!--\n");
-
-        output.AppendJoin("\n",
-                _maniaScriptIncludes.Select(include => $@"#Include ""{include.Value}"" as {include.Key}"))
-            .AppendLine()
-            .AppendJoin("\n", _maniaScriptStructs.Values)
-            .AppendLine()
-            .AppendJoin("\n", _maniaScriptConstants.Values);
-
-        return output.AppendLine("\n--></script>").ToString();
     }
 
     /// <summary>
@@ -986,80 +863,6 @@ public class MtTransformer
         doc.LoadXml($"<doc>{content}</doc>");
 
         return doc.FirstChild!;
-    }
-
-    /// <summary>
-    /// Takes the contents of double curly braces in a string and wraps them into something else. The second Argument takes a string-argument and returns the newly wrapped string.
-    /// </summary>
-    public static string ReplaceCurlyBraces(string value, Func<string, string> curlyContentWrapper)
-    {
-        CheckForCurlyBraceCountMismatch(value);
-        CheckInterpolationRecursion(value);
-
-        var matches = TemplateInterpolationRegex.Match(value);
-        var output = value;
-
-        while (matches.Success)
-        {
-            var match = matches.Groups[0].Value.Trim();
-            var content = matches.Groups[1].Value.Trim();
-
-            output = output.Replace(match, curlyContentWrapper(content));
-
-            matches = matches.NextMatch();
-        }
-
-        return output;
-    }
-
-    /// <summary>
-    /// Checks whether double interpolation exists ({{ {{ a }} {{ b }} }}) and throws exception if so.
-    /// </summary>
-    public static void CheckInterpolationRecursion(string value)
-    {
-        //TODO: find proper algorithm
-        // var openCurlyBraces = 0;
-        // foreach (var character in value.ToCharArray())
-        // {
-        //     if (character == '{')
-        //     {
-        //         openCurlyBraces++;
-        //
-        //         if (openCurlyBraces >= 4)
-        //         {
-        //             throw new InterpolationRecursionException(
-        //                 $"Double interpolation found in: {value}. You must not use double curly braces inside other double curly braces.");
-        //         }
-        //     }
-        //     else if (character == '}')
-        //     {
-        //         openCurlyBraces--;
-        //     }
-        // }
-    }
-
-    /// <summary>
-    /// Checks whether double interpolation exists ({{ {{ a }} {{ b }} }}) and throws exception if so.
-    /// </summary>
-    public static void CheckForCurlyBraceCountMismatch(string value)
-    {
-        var openCurlyBraces = 0;
-        foreach (var character in value.ToCharArray())
-        {
-            if (character == '{')
-            {
-                openCurlyBraces++;
-            }
-            else if (character == '}')
-            {
-                openCurlyBraces--;
-            }
-        }
-
-        if (openCurlyBraces != 0)
-        {
-            throw new CurlyBraceCountMismatchException($"Found curly brace count mismatch in: {value}.");
-        }
     }
 
     /// <summary>

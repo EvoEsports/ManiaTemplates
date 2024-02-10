@@ -117,8 +117,7 @@ public class MtTransformerTest
     [Fact]
     public void Should_Import_Components_Recursively()
     {
-        var assemblies = new List<Assembly>();
-        assemblies.Add(Assembly.GetExecutingAssembly());
+        var assemblies = new List<Assembly> { Assembly.GetExecutingAssembly() };
 
         _maniaTemplateEngine.AddTemplateFromString("Embeddable", "<component><template><el/></template></component>");
         _maniaTemplateEngine.AddTemplateFromString("RecursionElement",
@@ -145,20 +144,20 @@ public class MtTransformerTest
     [Fact]
     public void Should_Throw_Curly_Brace_Count_Mismatch_Exception()
     {
-        Assert.Throws<CurlyBraceCountMismatchException>(() => MtTransformer.CheckForCurlyBraceCountMismatch("{{ { }}"));
-        Assert.Throws<CurlyBraceCountMismatchException>(() => MtTransformer.CheckForCurlyBraceCountMismatch("{{ } }}"));
-        Assert.Throws<CurlyBraceCountMismatchException>(() => MtTransformer.CheckForCurlyBraceCountMismatch("{"));
-        Assert.Throws<CurlyBraceCountMismatchException>(() => MtTransformer.CheckForCurlyBraceCountMismatch("}}"));
+        Assert.Throws<CurlyBraceCountMismatchException>(() => _transformer.PreventCurlyBraceCountMismatch("{{ { }}"));
+        Assert.Throws<CurlyBraceCountMismatchException>(() => _transformer.PreventCurlyBraceCountMismatch("{{ } }}"));
+        Assert.Throws<CurlyBraceCountMismatchException>(() => _transformer.PreventCurlyBraceCountMismatch("{"));
+        Assert.Throws<CurlyBraceCountMismatchException>(() => _transformer.PreventCurlyBraceCountMismatch("}}"));
     }
 
     [Fact]
     public void Should_Replace_Curly_Braces()
     {
-        Assert.Equal("abcd", MtTransformer.ReplaceCurlyBraces("{{a}}{{ b }}{{c }}{{  d}}", s => s));
-        Assert.Equal("x y z", MtTransformer.ReplaceCurlyBraces("{{x}} {{ y }} {{z }}", s => s));
-        Assert.Equal("unittest", MtTransformer.ReplaceCurlyBraces("{{ unit }}test", s => s));
-        Assert.Equal("#unit#test", MtTransformer.ReplaceCurlyBraces("{{ unit }}test", s => $"#{s}#"));
-        Assert.Equal("#{ unit#}test", MtTransformer.ReplaceCurlyBraces("{{{ unit }}}test", s => $"#{s}#"));
+        Assert.Equal("abcd", _transformer.ReplaceCurlyBraces("{{a}}{{ b }}{{c }}{{  d}}", s => s));
+        Assert.Equal("x y z", _transformer.ReplaceCurlyBraces("{{x}} {{ y }} {{z }}", s => s));
+        Assert.Equal("unittest", _transformer.ReplaceCurlyBraces("{{ unit }}test", s => s));
+        Assert.Equal("#unit#test", _transformer.ReplaceCurlyBraces("{{ unit }}test", s => $"#{s}#"));
+        Assert.Equal("#{ unit#}test", _transformer.ReplaceCurlyBraces("{{{ unit }}}test", s => $"#{s}#"));
     }
 
     [Fact]
