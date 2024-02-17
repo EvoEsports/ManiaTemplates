@@ -63,7 +63,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private string CreateBodyRenderMethod(string body, MtComponent rootComponent)
     {
         var methodArguments = new List<string>();
-        AppendSlotRenderArgumentsToList(methodArguments, rootComponent);
+        AppendSlotRenderArgumentsToList(rootComponent, methodArguments);
         var bodyRenderMethod = new StringBuilder($"private void RenderBody({string.Join(',', methodArguments)}) {{\n");
 
         //Root mania script block
@@ -443,10 +443,10 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         }
 
         //add slot render methods
-        AppendSlotRenderArgumentsToList(arguments, component);
+        AppendSlotRenderArgumentsToList(component, arguments);
 
         //add component properties as arguments with defaults
-        AppendComponentPropertiesToMethodArgumentsList(component, arguments);
+        AppendComponentPropertiesArgumentsList(component, arguments);
 
         //Insert mania scripts
         if (component.Scripts.Count > 0)
@@ -481,7 +481,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         var localVariables = new List<string>();
 
         //Add slot render methods.
-        AppendSlotRenderArgumentsToList(methodArguments, parentComponent);
+        AppendSlotRenderArgumentsToList(parentComponent, methodArguments);
 
         //Add component properties as arguments.
         foreach (var (localVariableName, localVariableType) in context)
@@ -495,18 +495,18 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
         if (parentComponent != rootComponent)
         {
-            AppendComponentPropertiesToMethodArgumentsList(parentComponent, methodArguments);
-        }
+            AppendComponentPropertiesArgumentsList(parentComponent, methodArguments);
 
-        //Declare component default variables
-        foreach (var prop in component.Properties.Values)
-        {
-            if (prop.Default == null || parentComponent.Properties.ContainsKey(prop.Name))
-            {
-                continue;
-            }
-
-            localVariables.Add(prop.ToLocalConstant());
+            //Declare component default variables
+            // foreach (var prop in parentComponent.Properties.Values)
+            // {
+            //     if (prop.Default == null)
+            //     {
+            //         continue;
+            //     }
+            //
+            //     localVariables.Add(prop.ToLocalConstant());
+            // }
         }
 
         return CreateRenderMethod(methodName, methodArguments, slotContent, localVariables);
@@ -520,7 +520,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         var arguments = new List<string>();
 
         //Add method arguments with defaults
-        AppendComponentPropertiesToMethodArgumentsList(component, arguments);
+        AppendComponentPropertiesArgumentsList(component, arguments);
 
         return CreateRenderMethod(renderMethodName, arguments, _scriptTransformer.CreateManiaScriptBlock(component));
     }
@@ -555,7 +555,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// <summary>
     /// Takes all available properties of a component and adds them to the given list of method arguments.
     /// </summary>
-    private static void AppendComponentPropertiesToMethodArgumentsList(MtComponent component, List<string> arguments)
+    private static void AppendComponentPropertiesArgumentsList(MtComponent component, List<string> arguments)
     {
         arguments.AddRange(component.Properties.Values
             .OrderBy(property => property.Default != null)
@@ -565,7 +565,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// <summary>
     /// Takes all available slots of a component and app ends the slot render arguments to the given list.
     /// </summary>
-    private static void AppendSlotRenderArgumentsToList(List<string> arguments, MtComponent component)
+    private static void AppendSlotRenderArgumentsToList(MtComponent component, List<string> arguments)
     {
         arguments.AddRange(component.Slots.Select(slotName => $"Action {GetSlotRendererVariableName(slotName)}"));
     }
