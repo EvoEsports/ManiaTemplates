@@ -32,4 +32,29 @@
 <label text="outer_1_0_2_1" />
 <label text="inner_100" />
 <label text="outer_1_1_2_2" />
+<!--  End Loop 3  -->
+<frame>
+<label text="inner_0_1" />
+<label text="outer_0_1" />
+</frame>
+<frame>
+<label text="inner_1_2" />
+<label text="outer_0_1" />
+</frame>
+<frame>
+<label text="inner_2_3" />
+<label text="outer_0_1" />
+</frame>
+<frame>
+<label text="inner_0_1" />
+<label text="outer_1_2" />
+</frame>
+<frame>
+<label text="inner_1_2" />
+<label text="outer_1_2" />
+</frame>
+<frame>
+<label text="inner_2_3" />
+<label text="outer_1_2" />
+</frame>
 </manialink>

@@ -156,10 +156,10 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             var subSnippet = new Snippet();
             var tag = childNode.Name;
             var attributeList = IXmlMethods.GetAttributes(childNode);
+            var currentContext = oldContext;
 
             var forEachCondition = attributeList.PullForeachCondition(oldContext, nodeId, _loopDepth);
             var ifCondition = attributeList.PullIfCondition();
-            var currentContext = oldContext;
 
             if (forEachCondition != null)
             {
@@ -167,7 +167,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 _loopDepth++;
             }
             
-            //TODO: find out why __index2 isn't attached to old context
+            //TODO: find out why __index2 isn't attache
 
             if (componentMap.TryGetValue(tag, out var importedComponent))
             {
@@ -176,6 +176,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 var slotContents = GetSlotContentsGroupedBySlotName(childNode, component, componentMap, currentContext,
                         parentComponent, rootComponent);
 
+                var oldLoopDepth = _loopDepth;
+                _loopDepth = 0;
                 var componentRenderMethodCall = ProcessComponentNode(
                     childNode.GetHashCode(),
                     component,
@@ -192,6 +194,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                     slotContents,
                     rootComponent: rootComponent
                 );
+                _loopDepth = oldLoopDepth;
 
                 subSnippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart())
                     .AppendLine(componentRenderMethodCall)
