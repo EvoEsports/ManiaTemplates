@@ -330,23 +330,23 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 Scope = scope,
                 Name = slotName,
                 RenderMethodT4 = CreateSlotRenderMethod(
-                    component,
                     scope,
                     currentContext,
                     slotName,
-                    rootComponent,
                     slotContent,
+                    rootComponent,
                     parentComponent
                 )
             });
         }
 
         var renderMethodName = GetComponentRenderMethodName(component, currentContext);
+        var contextAliasMap = new MtContextAlias(currentContext);
         if (!_renderMethods.ContainsKey(renderMethodName))
         {
             _renderMethods.Add(
                 renderMethodName,
-                CreateComponentRenderMethod(component, renderMethodName, componentBody, currentContext)
+                CreateComponentRenderMethod(component, renderMethodName, componentBody, contextAliasMap)
             );
         }
 
@@ -354,9 +354,13 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         var renderComponentCall = new StringBuilder(renderMethodName + "(");
 
         //Create available arguments
-        var componentRenderArguments = currentContext.Keys
-            .Select(CreateMethodCallArgument)
-            .ToList();
+        var componentRenderArguments = new List<string>();
+
+        //Add local variables with aliases
+        // foreach (var (alias, originalName) in contextAliasMap.Aliases)
+        // {
+        //     componentRenderArguments.Add(CreateMethodCallArgument(originalName, alias));
+        // }
 
         //Attach attributes to render method call
         foreach (var (attributeName, attributeValue) in attributeList)
@@ -391,7 +395,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
                 var slotArguments = new HashSet<string>();
 
-                //Add local variables to slot render call
+                //Add local variables to slot render call (passes loop index and fallthrough vars)
                 foreach (var localVariableName in currentContext.Keys)
                 {
                     slotArguments.Add(CreateMethodCallArgument(localVariableName));
@@ -430,17 +434,17 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// Creates the method which renders the contents of a component.
     /// </summary>
     private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody,
-        MtDataContext currentContext)
+        MtContextAlias contextAliasMap)
     {
         //open method arguments
         var arguments = new List<string>();
         var body = new StringBuilder(componentBody);
 
-        //Add local variables to component render method call
-        foreach (var (localVariableName, localVariableType) in currentContext)
-        {
-            arguments.Add($"{localVariableType} {localVariableName}");
-        }
+        //Add local variables to component render method call (loop index, fallthrough vars, ...)
+        // foreach (var (localVariableName, localVariableType) in contextAliasMap.Context)
+        // {
+        //     arguments.Add($"{localVariableType} {contextAliasMap.Aliases[localVariableName]}");
+        // }
 
         //add slot render methods
         AppendSlotRenderArgumentsToList(component, arguments);
@@ -473,8 +477,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// <summary>
     /// Creates the slot-render method for a given data context.
     /// </summary>
-    private string CreateSlotRenderMethod(MtComponent component, int scope, MtDataContext context, string slotName,
-        MtComponent rootComponent, string slotContent, MtComponent parentComponent)
+    private string CreateSlotRenderMethod(int scope, MtDataContext context, string slotName, string slotContent,
+        MtComponent rootComponent, MtComponent parentComponent)
     {
         var methodArguments = new List<string>();
         var methodName = GetSlotRenderMethodName(scope, slotName);
@@ -486,7 +490,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         //Add component properties as arguments.
         foreach (var (localVariableName, localVariableType) in context)
         {
-            //Do not properties present in root component, because they're available everywhere.
+            //Don't add properties present in root component, because they're available everywhere.
             if (!rootComponent.Properties.ContainsKey(localVariableName))
             {
                 methodArguments.Add($"{localVariableType} {localVariableName}");
@@ -496,17 +500,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         if (parentComponent != rootComponent)
         {
             AppendComponentPropertiesArgumentsList(parentComponent, methodArguments);
-
-            //Declare component default variables
-            // foreach (var prop in parentComponent.Properties.Values)
-            // {
-            //     if (prop.Default == null)
-            //     {
-            //         continue;
-            //     }
-            //
-            //     localVariables.Add(prop.ToLocalConstant());
-            // }
         }
 
         return CreateRenderMethod(methodName, methodArguments, slotContent, localVariables);

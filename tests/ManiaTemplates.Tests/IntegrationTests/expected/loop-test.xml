@@ -1,0 +1,11 @@
+﻿<manialink version="3" id="MtLoopTest" name="EvoSC#-MtLoopTest">
+<label text="inner_-1" />
+<label text="inner_10" />
+<label text="outer_1" />
+<label text="inner_-1" />
+<label text="inner_20" />
+<label text="outer_2" />
+<label text="inner_-1" />
+<label text="inner_30" />
+<label text="outer_3" />
+</manialink>
