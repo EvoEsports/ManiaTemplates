@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace ManiaTemplates.Components;
+﻿namespace ManiaTemplates.Components;
 
 public class MtComponentMap : Dictionary<string, MtComponentImport>
 {

@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-
-namespace ManiaTemplates.Lib;
+﻿namespace ManiaTemplates.Lib;
 
 public class Snippet : List<string>
 {

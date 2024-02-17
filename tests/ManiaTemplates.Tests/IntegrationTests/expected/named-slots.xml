@@ -1,8 +1,26 @@
 ﻿<manialink version="3" id="MtNamedSlots" name="EvoSC#-MtNamedSlots">
+<!--  Section 1  -->
 <frame class="outer">
 <label text="test" />
 <frame class="inner">
 <label text="UnitTest" />
+</frame>
+</frame>
+<!--  Section 2  -->
+<frame class="outer">
+<frame class="outer">
+<label text="abcd" />
+<frame class="inner">
+<label text="qwer_UnitTest_footer2" />
+</frame>
+</frame>
+<frame class="inner">
+<label text="abcd_qwer" />
+<frame class="outer">
+<label text="asdf" />
+<frame class="inner">
+</frame>
+</frame>
 </frame>
 </frame>
 </manialink>

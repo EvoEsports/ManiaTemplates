@@ -1,0 +1,60 @@
+﻿<manialink version="3" id="MtLoopTest" name="EvoSC#-MtLoopTest">
+<label text="inner_-1" />
+<label text="inner_10" />
+<label text="outer_1" />
+<label text="inner_-1" />
+<label text="inner_20" />
+<label text="outer_2" />
+<label text="inner_-1" />
+<label text="inner_30" />
+<label text="outer_3" />
+<!--  End Loop 1  -->
+<label text="inner_-1" />
+<label text="inner_1" />
+<label text="inner_-1" />
+<label text="outer" />
+<label text="inner_-1" />
+<label text="inner_2" />
+<label text="inner_-1" />
+<label text="outer" />
+<label text="inner_-1" />
+<label text="inner_3" />
+<label text="inner_-1" />
+<label text="outer" />
+<!--  End Loop 2  -->
+<label text="inner_0" />
+<label text="inner_0" />
+<label text="outer_0_0_1_1" />
+<label text="inner_100" />
+<label text="outer_0_1_1_2" />
+<label text="inner_1000" />
+<label text="inner_0" />
+<label text="outer_1_0_2_1" />
+<label text="inner_100" />
+<label text="outer_1_1_2_2" />
+<!--  End Loop 3  -->
+<frame>
+<label text="inner_0_1" />
+<label text="outer_0_1" />
+</frame>
+<frame>
+<label text="inner_1_2" />
+<label text="outer_0_1" />
+</frame>
+<frame>
+<label text="inner_2_3" />
+<label text="outer_0_1" />
+</frame>
+<frame>
+<label text="inner_0_1" />
+<label text="outer_1_2" />
+</frame>
+<frame>
+<label text="inner_1_2" />
+<label text="outer_1_2" />
+</frame>
+<frame>
+<label text="inner_2_3" />
+<label text="outer_1_2" />
+</frame>
+</manialink>

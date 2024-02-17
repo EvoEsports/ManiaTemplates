@@ -145,4 +145,30 @@ public class ManiaLink
 
         return type;
     }
+
+    /// <summary>
+    /// Creates ManiaLink opening tag with version, name and id.
+    /// 
+    /// id = Identifies the ManiaLink for overwrite/delete.
+    /// name = Shown in in-game debugger.
+    /// version = Version for the markup language of Trackmania.
+    /// </summary>
+    public static string OpenTag(string name, int version = 3, string? displayLayer = null)
+    {
+        var layer = "";
+        if (displayLayer != null)
+        {
+            layer += $@" layer=""{displayLayer}""";
+        }
+
+        return $@"<manialink version=""{version}"" id=""{name}"" name=""EvoSC#-{name}""{layer}>";
+    }
+
+    /// <summary>
+    /// Creates ManiaLink closing tag.
+    /// </summary>
+    public static string CloseTag()
+    {
+        return "</manialink>";
+    }
 }

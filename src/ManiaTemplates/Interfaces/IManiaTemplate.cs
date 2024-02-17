@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using ManiaTemplates.Components;
+﻿using ManiaTemplates.Components;
 
 namespace ManiaTemplates.Interfaces;
 

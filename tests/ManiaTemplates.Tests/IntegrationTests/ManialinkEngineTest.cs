@@ -141,4 +141,21 @@ public class ManialinkEngineTest
         var template = _maniaTemplateEngine.RenderAsync("Base", new { }, assemblies).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
+
+    [Fact]
+    public async void Component_Properties_Should_Not_Collide_With_Loop_Variables()
+    {
+        var testComponent = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test-component.mt");
+        var testComponentWithLoop = await File.ReadAllTextAsync("IntegrationTests/templates/component-with-loop.mt");
+        var containerTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/loop-test.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("TestComponent", testComponent);
+        _maniaTemplateEngine.AddTemplateFromString("TestComponentWithLoop", testComponentWithLoop);
+        _maniaTemplateEngine.AddTemplateFromString("LoopTest", containerTemplate);
+
+        var template = _maniaTemplateEngine.RenderAsync("LoopTest", new { }, assemblies).Result;
+        Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
 }

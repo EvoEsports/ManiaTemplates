@@ -16,7 +16,7 @@ public class MtForeach
     private static readonly Regex ForeachVariablesRegex = new(@"^\(?(.+?)(?:$|,\s*(.+)\))");
     private static readonly Regex ForeachVariablesTypeSplitterRegex = new(@"^(.+?)(?:$|\s+(.+)$)");
 
-    public static MtForeach FromString(string foreachAttributeValue, MtDataContext context, int nodeId)
+    public static MtForeach FromString(string foreachAttributeValue, MtDataContext context, int nodeId, int loopDepth)
     {
         //Match the value of the foreach-attribute of the XmlNode.
         //Split it into type, variables (var x, var (x,y), ...) and the source.
@@ -60,7 +60,6 @@ public class MtForeach
 
             if (nameOrEmpty.Length == 0)
             {
-                // Console.WriteLine($"add: {typeOrVariable.Value} -> {type}");
                 foundVariables.Add(new MtForeachVariable
                 {
                     Type = type,
@@ -75,7 +74,6 @@ public class MtForeach
                         "You may not use var in foreach loops, please specify type.");
                 }
 
-                // Console.WriteLine($"add: {variableOrEmpty.Value} -> {typeOrVariable.Value}");
                 foundVariables.Add(new MtForeachVariable
                 {
                     Type = typeOrName.Value,
@@ -90,9 +88,15 @@ public class MtForeach
             throw new ParsingForeachLoopFailedException("User defined variables must not start with __.");
         }
 
+        var indexVariable = "__index";
+        if (loopDepth > 0)
+        {
+            indexVariable += (loopDepth + 1);
+        }
+
         var newContext = new MtDataContext($"ForEachLoop{nodeId}")
         {
-            { "__index", "int" }
+            { indexVariable, "int" },
         };
 
         foreach (var variable in foundVariables)
@@ -104,7 +108,7 @@ public class MtForeach
         {
             Condition = foreachAttributeValue,
             Variables = foundVariables,
-            Context = context.NewContext(newContext)
+            Context = newContext.NewContext(context)
         };
     }
 }
