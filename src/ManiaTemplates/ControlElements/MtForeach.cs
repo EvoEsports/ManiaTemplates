@@ -60,7 +60,6 @@ public class MtForeach
 
             if (nameOrEmpty.Length == 0)
             {
-                // Console.WriteLine($"add: {typeOrVariable.Value} -> {type}");
                 foundVariables.Add(new MtForeachVariable
                 {
                     Type = type,
@@ -75,7 +74,6 @@ public class MtForeach
                         "You may not use var in foreach loops, please specify type.");
                 }
 
-                // Console.WriteLine($"add: {variableOrEmpty.Value} -> {typeOrVariable.Value}");
                 foundVariables.Add(new MtForeachVariable
                 {
                     Type = typeOrName.Value,
@@ -91,14 +89,14 @@ public class MtForeach
         }
 
         var indexVariable = "__index";
-        if (loopDepth > 1)
+        if (loopDepth > 0)
         {
-            indexVariable += loopDepth;
+            indexVariable += (loopDepth + 1);
         }
 
         var newContext = new MtDataContext($"ForEachLoop{nodeId}")
         {
-            { indexVariable, "int" }
+            { indexVariable, "int" },
         };
 
         foreach (var variable in foundVariables)
@@ -110,7 +108,7 @@ public class MtForeach
         {
             Condition = foreachAttributeValue,
             Variables = foundVariables,
-            Context = context.NewContext(newContext)
+            Context = newContext.NewContext(context)
         };
     }
 }
