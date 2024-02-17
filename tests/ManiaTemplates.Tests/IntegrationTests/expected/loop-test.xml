@@ -24,12 +24,12 @@
 <!--  End Loop 2  -->
 <label text="inner_0" />
 <label text="inner_0" />
-<label text="outer_1_1" />
-<label text="inner_1" />
-<label text="outer_1_2" />
-<label text="inner_1" />
+<label text="outer_0_0_1_1" />
+<label text="inner_100" />
+<label text="outer_0_1_1_2" />
+<label text="inner_1000" />
 <label text="inner_0" />
-<label text="outer_2_1" />
-<label text="inner_1" />
-<label text="outer_2_2" />
+<label text="outer_1_0_2_1" />
+<label text="inner_100" />
+<label text="outer_1_1_2_2" />
 </manialink>

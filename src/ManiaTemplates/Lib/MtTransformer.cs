@@ -156,16 +156,18 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             var subSnippet = new Snippet();
             var tag = childNode.Name;
             var attributeList = IXmlMethods.GetAttributes(childNode);
-            var currentContext = oldContext;
 
-            var forEachCondition = attributeList.PullForeachCondition(oldContext, nodeId);
+            var forEachCondition = attributeList.PullForeachCondition(oldContext, nodeId, _loopDepth);
             var ifCondition = attributeList.PullIfCondition();
+            var currentContext = oldContext;
 
             if (forEachCondition != null)
             {
                 currentContext = forEachCondition.Context;
                 _loopDepth++;
             }
+            
+            //TODO: find out why __index2 isn't attached to old context
 
             if (componentMap.TryGetValue(tag, out var importedComponent))
             {

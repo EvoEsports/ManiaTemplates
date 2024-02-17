@@ -15,10 +15,10 @@ public class MtComponentAttributes : Dictionary<string, string>
     /// <summary>
     /// Checks the attribute list for loop-condition and returns it, else null.
     /// </summary>
-    public MtForeach? PullForeachCondition(MtDataContext context, int nodeId)
+    public MtForeach? PullForeachCondition(MtDataContext context, int nodeId, int loopDepth)
     {
         return ContainsKey("foreach")
-            ? MtForeach.FromString(Pull("foreach"), context, nodeId)
+            ? MtForeach.FromString(Pull("foreach"), context, nodeId, loopDepth)
             : null;
     }
 
