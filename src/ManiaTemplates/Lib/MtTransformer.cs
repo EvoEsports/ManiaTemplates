@@ -167,8 +167,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 _loopDepth++;
             }
             
-            //TODO: find out why __index2 isn't attache
-
             if (componentMap.TryGetValue(tag, out var importedComponent))
             {
                 //Node is a component
