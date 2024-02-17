@@ -145,7 +145,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// <summary>
     /// Process a ManiaTemplate node.
     /// </summary>
-    private string ProcessNode(XmlNode node, MtComponentMap componentMap, MtDataContext context,
+    private string ProcessNode(XmlNode node, MtComponentMap componentMap, MtDataContext oldContext,
         MtComponent rootComponent, MtComponent parentComponent)
     {
         Snippet snippet = [];
@@ -156,9 +156,9 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             var subSnippet = new Snippet();
             var tag = childNode.Name;
             var attributeList = IXmlMethods.GetAttributes(childNode);
-            var currentContext = context;
+            var currentContext = oldContext;
 
-            var forEachCondition = attributeList.PullForeachCondition(context, nodeId);
+            var forEachCondition = attributeList.PullForeachCondition(oldContext, nodeId);
             var ifCondition = attributeList.PullIfCondition();
 
             if (forEachCondition != null)
@@ -171,8 +171,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             {
                 //Node is a component
                 var component = engine.GetComponent(importedComponent.TemplateKey);
-                var slotContents =
-                    GetSlotContentsGroupedBySlotName(childNode, component, componentMap, currentContext,
+                var slotContents = GetSlotContentsGroupedBySlotName(childNode, component, componentMap, currentContext,
                         parentComponent, rootComponent);
 
                 var componentRenderMethodCall = ProcessComponentNode(
@@ -184,7 +183,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                     ProcessNode(
                         IXmlMethods.NodeFromString(component.TemplateContent),
                         componentMap.Overload(component.ImportedComponents),
-                        currentContext,
+                        oldContext,
                         rootComponent: rootComponent,
                         parentComponent: component
                     ),

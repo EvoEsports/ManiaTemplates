@@ -8,4 +8,28 @@
 <label text="inner_-1" />
 <label text="inner_30" />
 <label text="outer_3" />
+<!--  End Loop 1  -->
+<label text="inner_-1" />
+<label text="inner_1" />
+<label text="inner_-1" />
+<label text="outer" />
+<label text="inner_-1" />
+<label text="inner_2" />
+<label text="inner_-1" />
+<label text="outer" />
+<label text="inner_-1" />
+<label text="inner_3" />
+<label text="inner_-1" />
+<label text="outer" />
+<!--  End Loop 2  -->
+<label text="inner_0" />
+<label text="inner_0" />
+<label text="outer_1_1" />
+<label text="inner_1" />
+<label text="outer_1_2" />
+<label text="inner_1" />
+<label text="inner_0" />
+<label text="outer_2_1" />
+<label text="inner_1" />
+<label text="outer_2_2" />
 </manialink>
