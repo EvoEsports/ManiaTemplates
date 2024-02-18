@@ -1,17 +1,11 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
-using ManiaTemplates.Components;
 
 namespace ManiaTemplates.Lib;
 
-public abstract partial class Helper
+public abstract class Helper
 {
     /// <summary>
     /// Gets the embedded resources contents of the given assembly.
@@ -22,38 +16,6 @@ public abstract partial class Helper
                                  throw new InvalidOperationException("Could not load contents of: " + path);
 
         return await new StreamReader(stream).ReadToEndAsync();
-    }
-
-    /// <summary>
-    /// Creates a hash from the given string with a fixed length.
-    /// </summary>
-    internal static string Hash(string input)
-    {
-        return input.GetHashCode().ToString().Replace('-', 'N');
-    }
-
-    /// <summary>
-    /// Creates random alpha-numeric string with given length.
-    /// </summary>
-    public static string RandomString(int length = 16)
-    {
-        var random = new Random();
-        const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        return new string(Enumerable.Repeat(chars, length)
-            .Select(s => s[random.Next(s.Length)]).ToArray());
-    }
-
-    /// <summary>
-    /// Determines whether a XML-node uses one of the given components.
-    /// </summary>
-    internal static bool UsesComponents(XmlNode node, MtComponentMap mtComponents)
-    {
-        foreach (XmlNode child in node.ChildNodes)
-        {
-            return UsesComponents(child, mtComponents);
-        }
-
-        return mtComponents.ContainsKey(node.Name);
     }
 
     /// <summary>
@@ -81,47 +43,4 @@ public abstract partial class Helper
 
         return stringBuilder.ToString();
     }
-
-    /// <summary>
-    /// Escape all type-Attributes on property-Nodes in the given XML.
-    /// </summary>
-    public static string EscapePropertyTypes(string inputXml)
-    {
-        var outputXml = inputXml;
-        var propertyMatcher = ComponentPropertyMatcher();
-        var match = propertyMatcher.Match(inputXml);
-
-        while (match.Success)
-        {
-            var unescapedAttribute = match.Groups[1].Value;
-            outputXml = outputXml.Replace(unescapedAttribute, EscapeXmlAttributeString(unescapedAttribute));
-
-            match = match.NextMatch();
-        }
-
-        return outputXml;
-    }
-
-    /// <summary>
-    /// Takes the value of a XML-attribute and escapes special chars, which would break the XML reader.
-    /// </summary>
-    private static string EscapeXmlAttributeString(string attributeValue)
-    {
-        return attributeValue.Replace("<", "&lt;")
-            .Replace(">", "&gt;")
-            .Replace("&", "&amp;");
-    }
-
-    /// <summary>
-    /// Takes the escaped value of a XML-attribute and converts it back into it's original form.
-    /// </summary>
-    public static string ReverseEscapeXmlAttributeString(string attributeValue)
-    {
-        return attributeValue.Replace("&lt;", "<")
-            .Replace("&gt;", ">")
-            .Replace("&amp;", "&");
-    }
-
-    [GeneratedRegex("<property.+type=[\"'](.+?)[\"'].+(?:\\s*\\/>|<\\/property>)")]
-    private static partial Regex ComponentPropertyMatcher();
 }

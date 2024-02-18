@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Security;
 using System.Xml;
 using ManiaTemplates.Exceptions;
 using ManiaTemplates.Lib;
@@ -88,7 +89,7 @@ public class MtComponent
     private static XmlNode FindComponentNode(string templateContent)
     {
         var doc = new XmlDocument();
-        doc.LoadXml(Helper.EscapePropertyTypes(templateContent));
+        doc.LoadXml(MtSpecialCharEscaper.EscapeXmlSpecialCharsInAttributes(templateContent));
 
         foreach (XmlNode node in doc.ChildNodes)
         {
@@ -184,7 +185,7 @@ public class MtComponent
                     break;
 
                 case "type":
-                    type = Helper.ReverseEscapeXmlAttributeString(attribute.Value);
+                    type = attribute.Value;
                     break;
 
                 case "default":
@@ -247,7 +248,7 @@ public class MtComponent
                     {
                         throw new DuplicateSlotException($"""A slot with the name "{slotName}" already exists.""");
                     }
-                    
+
                     slotNames.Add(slotName);
                 }
             }

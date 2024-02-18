@@ -5,7 +5,7 @@
     
     <template>
         <Frame if="enabled" foreach="int i in numbers" x="{{ 10 * __index }}">
-            <Label if="i &lt; numbers.Count" foreach="int j in numbers.GetRange(0, i)" text="{{ i }}, {{ j }} at index {{ __index }}, {{ __index2 }}"/>
+            <Label if="i < numbers.Count" foreach="int j in numbers.GetRange(0, i)" text="{{ i }}, {{ j }} at index {{ __index }}, {{ __index2 }}"/>
         </Frame>
         <Frame>
             <Frame>

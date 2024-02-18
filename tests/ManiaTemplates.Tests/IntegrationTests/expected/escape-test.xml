@@ -1,0 +1,5 @@
+﻿<manialink version="3" id="MtEscapeTest" name="EvoSC#-MtEscapeTest">
+<label text="2" data-cond="True" />
+<label text="3" data-cond="True" />
+<label text="0" data-cond="False" />
+</manialink>
