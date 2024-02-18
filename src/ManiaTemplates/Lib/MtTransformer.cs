@@ -358,12 +358,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         //Create available arguments
         var componentRenderArguments = new List<string>();
 
-        //Add local variables with aliases
-        // foreach (var (alias, originalName) in contextAliasMap.Aliases)
-        // {
-        //     componentRenderArguments.Add(CreateMethodCallArgument(originalName, alias));
-        // }
-
         //Attach attributes to render method call
         foreach (var (attributeName, attributeValue) in attributeList)
         {
