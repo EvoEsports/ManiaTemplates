@@ -88,13 +88,8 @@ public class MtComponent
     /// </summary>
     private static XmlNode FindComponentNode(string templateContent)
     {
-        // var escapedTemplateContent = Helper.EscapePropertyTypes(templateContent);
-        // escapedTemplateContent = MtSpecialCharEscaper.escapeXmlSpecialCharsInAttributes(escapedTemplateContent);
-
-        var escaped = MtSpecialCharEscaper.EscapeXmlSpecialCharsInAttributes(templateContent);
-
         var doc = new XmlDocument();
-        doc.LoadXml(escaped);
+        doc.LoadXml(MtSpecialCharEscaper.EscapeXmlSpecialCharsInAttributes(templateContent));
 
         foreach (XmlNode node in doc.ChildNodes)
         {
