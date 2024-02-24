@@ -1,6 +1,7 @@
 ﻿using System.CodeDom;
 using System.Dynamic;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml;
 using ManiaTemplates.Components;
 using ManiaTemplates.ControlElements;
@@ -146,7 +147,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// Process a ManiaTemplate node.
     /// </summary>
     private string ProcessNode(XmlNode node, MtComponentMap componentMap, MtDataContext oldContext,
-        MtComponent rootComponent, MtComponent parentComponent)
+        MtComponent rootComponent, MtComponent parentComponent,
+        Dictionary<string, string>? fallthroughAttributesMap = null)
     {
         Snippet snippet = [];
 
@@ -166,13 +168,13 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 currentContext = forEachCondition.Context;
                 _loopDepth++;
             }
-            
+
             if (componentMap.TryGetValue(tag, out var importedComponent))
             {
                 //Node is a component
                 var component = engine.GetComponent(importedComponent.TemplateKey);
                 var slotContents = GetSlotContentsGroupedBySlotName(childNode, component, componentMap, currentContext,
-                        parentComponent, rootComponent);
+                    parentComponent, rootComponent);
 
                 var oldLoopDepth = _loopDepth;
                 _loopDepth = 0;
@@ -181,16 +183,11 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                     component,
                     parentComponent,
                     currentContext,
+                    oldContext,
                     attributeList,
-                    ProcessNode(
-                        IXmlMethods.NodeFromString(component.TemplateContent),
-                        componentMap.Overload(component.ImportedComponents),
-                        oldContext,
-                        rootComponent: rootComponent,
-                        parentComponent: component
-                    ),
                     slotContents,
-                    rootComponent: rootComponent
+                    rootComponent,
+                    componentMap
                 );
                 _loopDepth = oldLoopDepth;
 
@@ -219,6 +216,26 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                     default:
                     {
                         var hasChildren = childNode.HasChildNodes;
+
+                        if (fallthroughAttributesMap != null && node.ChildNodes.Count == 1)
+                        {
+                            foreach (var (originalAttributeName, aliasAttributeName) in fallthroughAttributesMap)
+                            {
+                                if (attributeList.ContainsKey(originalAttributeName))
+                                {
+                                    //Overwrite existing attribute with fallthrough value
+                                    attributeList[originalAttributeName] =
+                                        maniaTemplateLanguage.InsertResult(aliasAttributeName);
+                                }
+                                else
+                                {
+                                    //Resolve alias on node
+                                    attributeList.Add(originalAttributeName,
+                                        maniaTemplateLanguage.InsertResult(aliasAttributeName));
+                                }
+                            }
+                        }
+
                         subSnippet.AppendLine(IXmlMethods.CreateOpeningTag(tag, attributeList, hasChildren,
                             curlyContentWrapper: maniaTemplateLanguage.InsertResult));
 
@@ -313,10 +330,11 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         MtComponent component,
         MtComponent parentComponent,
         MtDataContext currentContext,
+        MtDataContext oldContext,
         MtComponentAttributes attributeList,
-        string componentBody,
-        IReadOnlyDictionary<string, string> slotContents,
-        MtComponent rootComponent
+        Dictionary<string, string> slotContents,
+        MtComponent rootComponent,
+        MtComponentMap componentMap
     )
     {
         foreach (var slotName in component.Slots)
@@ -342,15 +360,9 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             });
         }
 
+        var templateContentNode = IXmlMethods.NodeFromString(component.TemplateContent);
         var renderMethodName = GetComponentRenderMethodName(component, currentContext);
-        var contextAliasMap = new MtContextAlias(currentContext);
-        if (!_renderMethods.ContainsKey(renderMethodName))
-        {
-            _renderMethods.Add(
-                renderMethodName,
-                CreateComponentRenderMethod(component, renderMethodName, componentBody, contextAliasMap)
-            );
-        }
+        var fallthroughAttributesAliasMap = new Dictionary<string, string>();
 
         //Create render call
         var renderComponentCall = new StringBuilder(renderMethodName + "(");
@@ -361,15 +373,34 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         //Attach attributes to render method call
         foreach (var (attributeName, attributeValue) in attributeList)
         {
-            //Skip attributes that don't match component property name
-            if (!component.Properties.TryGetValue(attributeName, out var componentProperty)) continue;
+            bool isStringType;
+            string attributeNameAlias;
 
-            var methodArgument = componentProperty.IsStringType()
+            //Skip attributes that don't match component property name
+            if (component.Properties.TryGetValue(attributeName, out var componentProperty))
+            {
+                isStringType = componentProperty.IsStringType();
+                attributeNameAlias = attributeName;
+            }
+            else
+            {
+                if (templateContentNode.ChildNodes.Count != 1)
+                {
+                    //Only add fallthrough attributes if the component template has only one root element
+                    continue;
+                }
+                
+                isStringType = true;
+                attributeNameAlias = GetFallthroughAttributeAlias(attributeName);
+                fallthroughAttributesAliasMap[attributeName] = attributeNameAlias;
+            }
+
+            var methodArgument = isStringType
                 ? IStringMethods.WrapStringInQuotes(
                     ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $"{{({s})}}"))
                 : ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $"({s})");
 
-            componentRenderArguments.Add(CreateMethodCallArgument(attributeName, methodArgument));
+            componentRenderArguments.Add(CreateMethodCallArgument(attributeNameAlias, methodArgument));
         }
 
         renderComponentCall.Append(string.Join(", ", componentRenderArguments));
@@ -423,6 +454,23 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
         _namespaces.AddRange(component.Namespaces);
 
+        if (!_renderMethods.ContainsKey(renderMethodName))
+        {
+            var componentBody = ProcessNode(
+                templateContentNode,
+                componentMap.Overload(component.ImportedComponents),
+                oldContext,
+                rootComponent: rootComponent,
+                parentComponent: component,
+                fallthroughAttributesMap: fallthroughAttributesAliasMap
+            );
+
+            _renderMethods.Add(
+                renderMethodName,
+                CreateComponentRenderMethod(component, renderMethodName, componentBody, fallthroughAttributesAliasMap)
+            );
+        }
+
         return renderComponentCall.ToString();
     }
 
@@ -430,17 +478,14 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// Creates the method which renders the contents of a component.
     /// </summary>
     private string CreateComponentRenderMethod(MtComponent component, string renderMethodName, string componentBody,
-        MtContextAlias contextAliasMap)
+        Dictionary<string, string> aliasMap)
     {
         //open method arguments
         var arguments = new List<string>();
         var body = new StringBuilder(componentBody);
 
-        //Add local variables to component render method call (loop index, fallthrough vars, ...)
-        // foreach (var (localVariableName, localVariableType) in contextAliasMap.Context)
-        // {
-        //     arguments.Add($"{localVariableType} {contextAliasMap.Aliases[localVariableName]}");
-        // }
+        //Add fallthrough variables to component render method call
+        arguments.AddRange(aliasMap.Values.Select(aliasAttributeName => $"string {aliasAttributeName}"));
 
         //add slot render methods
         AppendSlotRenderArgumentsToList(component, arguments);
@@ -661,6 +706,14 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private static string GetComponentRenderMethodName(MtComponent component, MtDataContext context)
     {
         return $"Render_Component_{component.Id()}{context}";
+    }
+
+    /// <summary>
+    /// Returns a valid variable name alias.
+    /// </summary>
+    private static string GetFallthroughAttributeAlias(string variableName)
+    {
+        return Regex.Replace(variableName, @"\W", "") + new Random().Next();
     }
 
     /// <summary>

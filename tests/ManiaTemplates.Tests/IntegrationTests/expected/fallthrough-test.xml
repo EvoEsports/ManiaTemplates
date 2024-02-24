@@ -1,0 +1,8 @@
+﻿<manialink version="3" id="MtFallthroughTest" name="EvoSC#-MtFallthroughTest">
+<frame size="20 11" data-test="unit0" datatest="1">
+</frame>
+<frame size="20 11" data-test="unit1" datatest="2">
+</frame>
+<frame size="20 11" data-test="unit2" datatest="3">
+</frame>
+</manialink>
