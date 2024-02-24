@@ -52,11 +52,9 @@ Pre-compiling to C# class allows very fast rendering (1-3ms).
 
 ````mermaid
 flowchart LR
-    components(component1.mt
-    component2.mt
-component3.mt) -->|combine & convert|t4(template.t4)
-t4 -->|pre compile|cs(template.cs)
-cs -->|render|out["`*XML string*`"]
+    components(component1.mt, \ncomponent2.mt, \ncomponent3.mt) -->|combine & convert|t4(template.t4)
+    t4 -->|pre compile|cs(template.cs)
+    cs -->|render|out["`*XML string*`"]
 ````
 
 ### List of included components
