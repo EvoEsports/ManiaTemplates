@@ -164,10 +164,12 @@ public class ManialinkEngineTest
     {
         var wrapperComponent = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");
         var fallthroughAttributesTestComponent = await File.ReadAllTextAsync("IntegrationTests/templates/fallthrough-attributes.mt");
+        var multiChildComponent = await File.ReadAllTextAsync("IntegrationTests/templates/component-multiple-elements.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/fallthrough-test.xml");
         var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
         
         _maniaTemplateEngine.AddTemplateFromString("Wrapper", wrapperComponent);
+        _maniaTemplateEngine.AddTemplateFromString("MultiChild", multiChildComponent);
         _maniaTemplateEngine.AddTemplateFromString("FallthroughTest", fallthroughAttributesTestComponent);
         
         var template = _maniaTemplateEngine.RenderAsync("FallthroughTest", new { }, assemblies).Result;
