@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using System.Security;
 using System.Xml;
 using ManiaTemplates.Exceptions;
 using ManiaTemplates.Lib;

@@ -158,4 +158,21 @@ public class ManialinkEngineTest
         var template = _maniaTemplateEngine.RenderAsync("LoopTest", new { }, assemblies).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
+
+    [Fact]
+    public async void Should_Pass_Unmapped_Node_Attributes_To_Component_Root_Element()
+    {
+        var wrapperComponent = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");
+        var fallthroughAttributesTestComponent = await File.ReadAllTextAsync("IntegrationTests/templates/fallthrough-attributes.mt");
+        var multiChildComponent = await File.ReadAllTextAsync("IntegrationTests/templates/component-multiple-elements.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/fallthrough-test.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+        
+        _maniaTemplateEngine.AddTemplateFromString("Wrapper", wrapperComponent);
+        _maniaTemplateEngine.AddTemplateFromString("MultiChild", multiChildComponent);
+        _maniaTemplateEngine.AddTemplateFromString("FallthroughTest", fallthroughAttributesTestComponent);
+        
+        var template = _maniaTemplateEngine.RenderAsync("FallthroughTest", new { }, assemblies).Result;
+        Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
 }

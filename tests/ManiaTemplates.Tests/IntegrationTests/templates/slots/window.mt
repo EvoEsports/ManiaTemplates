@@ -13,9 +13,6 @@
                        y="-{{ padding }}"
                        width="{{ width }}"
                        height="{{ height }}"
-
-                       pos="{{ padding }} -{{ padding }}"
-                       size="{{ width - padding * 2 }} {{ height - padding * 2 }}"
             >
                 <label text="Next element should be TextInput" />
                 <slot />
