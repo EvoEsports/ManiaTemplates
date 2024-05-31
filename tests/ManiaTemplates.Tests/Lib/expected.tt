@@ -1,6 +1,6 @@
 <#@ template language="C#" #>
 <#@ import namespace="System.Collections.Generic" #>
-<#@ import namespace="System.Security" #>
+<#@ import namespace="ManiaTemplates.Lib" #>
 <#@ import namespace="namespace" #>
 <#@ import namespace="GraphNamespace" #>
 <manialink version="3" id="expected" name="EvoSC#-expected">
@@ -26,7 +26,7 @@ __outerIndex1++;
 Render_Component_MtContext2(__slotRenderer_default: () => Render_Slot_4_default());
 foreach(var maniaScriptRenderMethod in __maniaScriptRenderMethods){ maniaScriptRenderMethod(); }
 #>
-<script>scriptText1
+<script><!--scriptText1
 <#+
 if(!__insertedOneTimeManiaScripts.Contains("0zU/AjjFBI5iWuZPX521w2ZluB8P21bd48fEgb65Qz4=")){
 #>
@@ -36,17 +36,17 @@ __insertedOneTimeManiaScripts.Add("0zU/AjjFBI5iWuZPX521w2ZluB8P21bd48fEgb65Qz4="
 }
 #>
 scriptText3
-</script>
+--></script>
 <#+
 }
 private void Render_Component_MtContext5ForEachLoop1_ForEachLoop1_(double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = $"left", string valign = $"center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = $"", string url = $"", string manialink = $"", string style = $"", string textfont = $"GameFont", double textsize = 1.0, string textcolor = $"", string focusareacolor1 = $"", string focusareacolor2 = $"", string text = $"", string textprefix = $"", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = $"", string id = $"") {
 #>
-<label pos="<#= SecurityElement.Escape(Convert.ToString(x)) #> <#= SecurityElement.Escape(Convert.ToString(y)) #>" size="<#= SecurityElement.Escape(Convert.ToString(w)) #> <#= SecurityElement.Escape(Convert.ToString(h)) #>" halign="<#= SecurityElement.Escape(Convert.ToString(halign)) #>" valign="<#= SecurityElement.Escape(Convert.ToString(valign)) #>" opacity="<#= SecurityElement.Escape(Convert.ToString(opacity)) #>" z-index="<#= SecurityElement.Escape(Convert.ToString(zIndex)) #>" ScriptEvents="<#= SecurityElement.Escape(Convert.ToString(events)) #>" action="<#= SecurityElement.Escape(Convert.ToString(action)) #>" url="<#= SecurityElement.Escape(Convert.ToString(url)) #>" manialink="<#= SecurityElement.Escape(Convert.ToString(manialink)) #>" style="<#= SecurityElement.Escape(Convert.ToString(style)) #>" textfont="<#= SecurityElement.Escape(Convert.ToString(textfont)) #>" textsize="<#= SecurityElement.Escape(Convert.ToString(textsize)) #>" textcolor="<#= SecurityElement.Escape(Convert.ToString(textcolor)) #>" focusareacolor1="<#= SecurityElement.Escape(Convert.ToString(focusareacolor1)) #>" focusareacolor2="<#= SecurityElement.Escape(Convert.ToString(focusareacolor2)) #>" text="<#= SecurityElement.Escape(Convert.ToString(text)) #>" textprefix="<#= SecurityElement.Escape(Convert.ToString(textprefix)) #>" textemboss="<#= SecurityElement.Escape(Convert.ToString(bold)) #>" autonewline="<#= SecurityElement.Escape(Convert.ToString(autonewline)) #>" maxline="<#= SecurityElement.Escape(Convert.ToString(maxline)) #>" translate="<#= SecurityElement.Escape(Convert.ToString(translate)) #>" textid="<#= SecurityElement.Escape(Convert.ToString(textid)) #>" id="<#= SecurityElement.Escape(Convert.ToString(id)) #>" />
+<label pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" halign="<#= Security.Escape(halign) #>" valign="<#= Security.Escape(valign) #>" opacity="<#= Security.Escape(opacity) #>" z-index="<#= Security.Escape(zIndex) #>" ScriptEvents="<#= Security.Escape(events) #>" action="<#= Security.Escape(action) #>" url="<#= Security.Escape(url) #>" manialink="<#= Security.Escape(manialink) #>" style="<#= Security.Escape(style) #>" textfont="<#= Security.Escape(textfont) #>" textsize="<#= Security.Escape(textsize) #>" textcolor="<#= Security.Escape(textcolor) #>" focusareacolor1="<#= Security.Escape(focusareacolor1) #>" focusareacolor2="<#= Security.Escape(focusareacolor2) #>" text="<#= Security.Escape(text) #>" textprefix="<#= Security.Escape(textprefix) #>" textemboss="<#= Security.Escape(bold) #>" autonewline="<#= Security.Escape(autonewline) #>" maxline="<#= Security.Escape(maxline) #>" translate="<#= Security.Escape(translate) #>" textid="<#= Security.Escape(textid) #>" id="<#= Security.Escape(id) #>" />
 <#+
 }
 private void Render_Component_MtContext2ForEachLoop1_(Action __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
 #>
-<frame pos="<#= SecurityElement.Escape(Convert.ToString(x)) #> <#= SecurityElement.Escape(Convert.ToString(y)) #>" size="<#= SecurityElement.Escape(Convert.ToString(w)) #> <#= SecurityElement.Escape(Convert.ToString(h)) #>" z-index="<#= SecurityElement.Escape(Convert.ToString(zIndex)) #>">
+<frame pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" z-index="<#= Security.Escape(zIndex) #>">
 <#+
 __slotRenderer_default();
 #>
@@ -58,7 +58,7 @@ __maniaScriptRenderMethods.Add(() => Render_ComponentScript_MtContext6(arg3,arg1
 }
 private void Render_Component_MtContext2(Action __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
 #>
-<frame pos="<#= SecurityElement.Escape(Convert.ToString(x)) #> <#= SecurityElement.Escape(Convert.ToString(y)) #>" size="<#= SecurityElement.Escape(Convert.ToString(w)) #> <#= SecurityElement.Escape(Convert.ToString(h)) #>" z-index="<#= SecurityElement.Escape(Convert.ToString(zIndex)) #>">
+<frame pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" z-index="<#= Security.Escape(zIndex) #>">
 <#+
 __slotRenderer_default();
 #>
@@ -67,7 +67,7 @@ __slotRenderer_default();
 }
 private void Render_ComponentScript_MtContext6(test arg3, string arg1 = $"", int arg2 = 0) {
 #>
-<script>GraphScript
+<script><!--GraphScript
 <#+
 if(!__insertedOneTimeManiaScripts.Contains("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU=")){
 #>
@@ -76,7 +76,7 @@ GraphScript
 __insertedOneTimeManiaScripts.Add("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU=");
 }
 #>
-</script>
+--></script>
 <#+
 }
 private void Render_Slot_3_default(int __index, int i) {

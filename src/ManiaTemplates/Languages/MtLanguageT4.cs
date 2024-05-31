@@ -1,5 +1,4 @@
-﻿using System.Security;
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using ManiaTemplates.Interfaces;
 using ManiaTemplates.Lib;
 
@@ -21,7 +20,7 @@ public class MtLanguageT4 : IManiaTemplateLanguage
 
     public string InsertResultEscaped(string content)
     {
-        return $"<#= SecurityElement.Escape(Convert.ToString({content})) #>";
+        return $"<#= Security.Escape({content}) #>";
     }
 
     public Snippet FeatureBlock(string content)

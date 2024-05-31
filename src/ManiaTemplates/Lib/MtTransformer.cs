@@ -42,7 +42,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         {
             maniaTemplateLanguage.Context(@"template language=""C#"""), //Might not be needed
             maniaTemplateLanguage.Context(@"import namespace=""System.Collections.Generic"""),
-            maniaTemplateLanguage.Context(@"import namespace=""System.Security"""),
+            maniaTemplateLanguage.Context(@"import namespace=""ManiaTemplates.Lib"""),
             CreateImportStatements(),
             ManiaLink.OpenTag(className, version, rootComponent.DisplayLayer),
             "<#",

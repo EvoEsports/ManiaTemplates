@@ -19,7 +19,7 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
 
     public string CreateManiaScriptBlock(MtComponent component)
     {
-        var renderMethod = new StringBuilder("<script>");
+        var renderMethod = new StringBuilder("<script><!--");
 
         foreach (var script in component.Scripts)
         {
@@ -31,9 +31,11 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
             }
 
             renderMethod.AppendLine(
-                ICurlyBraceMethods.ReplaceCurlyBraces(
-                    ExtractManiaScriptDirectives(script.Content),
-                    templateLanguage.InsertResultEscaped
+                Security.EscapeDoubleMinus(
+                    ICurlyBraceMethods.ReplaceCurlyBraces(
+                        ExtractManiaScriptDirectives(script.Content),
+                        templateLanguage.InsertResultEscaped
+                    )
                 )
             );
 
@@ -46,7 +48,7 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
             }
         }
 
-        return renderMethod.AppendLine("</script>").ToString();
+        return renderMethod.AppendLine("--></script>").ToString();
     }
 
     /// <summary>
