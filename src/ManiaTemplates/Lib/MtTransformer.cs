@@ -42,6 +42,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         {
             maniaTemplateLanguage.Context(@"template language=""C#"""), //Might not be needed
             maniaTemplateLanguage.Context(@"import namespace=""System.Collections.Generic"""),
+            maniaTemplateLanguage.Context(@"import namespace=""System.Security"""),
             CreateImportStatements(),
             ManiaLink.OpenTag(className, version, rootComponent.DisplayLayer),
             "<#",
@@ -237,7 +238,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                         }
 
                         subSnippet.AppendLine(IXmlMethods.CreateOpeningTag(tag, attributeList, hasChildren,
-                            curlyContentWrapper: maniaTemplateLanguage.InsertResult));
+                            curlyContentWrapper: maniaTemplateLanguage.InsertResultEscaped));
 
                         if (hasChildren)
                         {

@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Security;
+using System.Text.RegularExpressions;
 using ManiaTemplates.Interfaces;
 using ManiaTemplates.Lib;
 
@@ -7,7 +8,7 @@ namespace ManiaTemplates.Languages;
 public class MtLanguageT4 : IManiaTemplateLanguage
 {
     private static readonly Regex TemplateFeatureControlRegex = new(@"#>\s*<#\+");
-    
+
     public string Context(string content)
     {
         return $"<#@ {content} #>";
@@ -18,9 +19,9 @@ public class MtLanguageT4 : IManiaTemplateLanguage
         return $"<#= ({content}) #>";
     }
 
-    public string Code(string content)
+    public string InsertResultEscaped(string content)
     {
-        return $"<# {content} #>";
+        return $"<#= SecurityElement.Escape(Convert.ToString({content})) #>";
     }
 
     public Snippet FeatureBlock(string content)
