@@ -6,7 +6,7 @@ public interface IManiaTemplateLanguage
 {
     public string Context(string content);
     public string InsertResult(string content);
-    public string Code(string content);
+    public string InsertResultEscaped(string content);
     public Snippet FeatureBlock(string content);
     public string FeatureBlockStart();
     public string FeatureBlockEnd();

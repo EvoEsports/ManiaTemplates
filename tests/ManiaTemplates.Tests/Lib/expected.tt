@@ -1,5 +1,5 @@
-<#@ template language="C#" #>
 <#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="ManiaTemplates.Lib" #>
 <#@ import namespace="namespace" #>
 <#@ import namespace="GraphNamespace" #>
 <manialink version="3" id="expected" name="EvoSC#-expected">
@@ -40,12 +40,12 @@ scriptText3
 }
 private void Render_Component_MtContext5ForEachLoop1_ForEachLoop1_(double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = $"left", string valign = $"center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = $"", string url = $"", string manialink = $"", string style = $"", string textfont = $"GameFont", double textsize = 1.0, string textcolor = $"", string focusareacolor1 = $"", string focusareacolor2 = $"", string text = $"", string textprefix = $"", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = $"", string id = $"") {
 #>
-<label pos="<#= (x) #> <#= (y) #>" size="<#= (w) #> <#= (h) #>" halign="<#= (halign) #>" valign="<#= (valign) #>" opacity="<#= (opacity) #>" z-index="<#= (zIndex) #>" ScriptEvents="<#= (events) #>" action="<#= (action) #>" url="<#= (url) #>" manialink="<#= (manialink) #>" style="<#= (style) #>" textfont="<#= (textfont) #>" textsize="<#= (textsize) #>" textcolor="<#= (textcolor) #>" focusareacolor1="<#= (focusareacolor1) #>" focusareacolor2="<#= (focusareacolor2) #>" text="<#= (text) #>" textprefix="<#= (textprefix) #>" textemboss="<#= (bold) #>" autonewline="<#= (autonewline) #>" maxline="<#= (maxline) #>" translate="<#= (translate) #>" textid="<#= (textid) #>" id="<#= (id) #>" />
+<label pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" halign="<#= Security.Escape(halign) #>" valign="<#= Security.Escape(valign) #>" opacity="<#= Security.Escape(opacity) #>" z-index="<#= Security.Escape(zIndex) #>" ScriptEvents="<#= Security.Escape(events) #>" action="<#= Security.Escape(action) #>" url="<#= Security.Escape(url) #>" manialink="<#= Security.Escape(manialink) #>" style="<#= Security.Escape(style) #>" textfont="<#= Security.Escape(textfont) #>" textsize="<#= Security.Escape(textsize) #>" textcolor="<#= Security.Escape(textcolor) #>" focusareacolor1="<#= Security.Escape(focusareacolor1) #>" focusareacolor2="<#= Security.Escape(focusareacolor2) #>" text="<#= Security.Escape(text) #>" textprefix="<#= Security.Escape(textprefix) #>" textemboss="<#= Security.Escape(bold) #>" autonewline="<#= Security.Escape(autonewline) #>" maxline="<#= Security.Escape(maxline) #>" translate="<#= Security.Escape(translate) #>" textid="<#= Security.Escape(textid) #>" id="<#= Security.Escape(id) #>" />
 <#+
 }
 private void Render_Component_MtContext2ForEachLoop1_(Action __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
 #>
-<frame pos="<#= (x) #> <#= (y) #>" size="<#= (w) #> <#= (h) #>" z-index="<#= (zIndex) #>">
+<frame pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" z-index="<#= Security.Escape(zIndex) #>">
 <#+
 __slotRenderer_default();
 #>
@@ -57,7 +57,7 @@ __maniaScriptRenderMethods.Add(() => Render_ComponentScript_MtContext6(arg3,arg1
 }
 private void Render_Component_MtContext2(Action __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
 #>
-<frame pos="<#= (x) #> <#= (y) #>" size="<#= (w) #> <#= (h) #>" z-index="<#= (zIndex) #>">
+<frame pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" z-index="<#= Security.Escape(zIndex) #>">
 <#+
 __slotRenderer_default();
 #>

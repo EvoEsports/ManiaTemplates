@@ -145,7 +145,7 @@ public class MtTransformerTest
         var language = new MtLanguageT4();
         
         Assert.Equal("<#+\n unittest \n#>",
-            language.OptimizeOutput("<#+#><#+\n #> <#+ unittest \n#><#+ \n\n\n#>"));
+            language.OptimizeOutput("<#+#><#+\n #>\n<#+ unittest \n#><#+ \n\n\n#>"));
     }
 
     [Fact]
@@ -166,7 +166,7 @@ public class MtTransformerTest
         Assert.Equal("<test />", IXmlMethods.CreateOpeningTag("test", attributeList, false, lang.InsertResult));
         Assert.Equal("<test>", IXmlMethods.CreateOpeningTag("test", attributeList, true, lang.InsertResult));
 
-        attributeList["prop"] = "value";
+        attributeList["prop"] = new MtComponentAttribute{Value = "value"};
         Assert.Equal("""<test prop="value" />""", IXmlMethods.CreateOpeningTag("test", attributeList, false, lang.InsertResult));
         Assert.Equal("""<test prop="value">""", IXmlMethods.CreateOpeningTag("test", attributeList, true, lang.InsertResult));
     }
@@ -188,8 +188,8 @@ public class MtTransformerTest
 
         var attributes = IXmlMethods.GetAttributes(node.FirstChild);
         Assert.Equal(2, attributes.Count);
-        Assert.Equal("test1", attributes["arg1"]);
-        Assert.Equal("test2", attributes["arg2"]);
+        Assert.Equal("test1", attributes["arg1"].Value);
+        Assert.Equal("test2", attributes["arg2"].Value);
     }
 
     [Fact]

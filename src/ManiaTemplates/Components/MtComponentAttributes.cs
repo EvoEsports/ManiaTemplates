@@ -2,7 +2,7 @@
 
 namespace ManiaTemplates.Components;
 
-public class MtComponentAttributes : Dictionary<string, string>
+public class MtComponentAttributes : Dictionary<string, MtComponentAttribute>
 {
     /// <summary>
     /// Checks the attribute list for if-condition and if found removes & returns it, else null.
@@ -34,6 +34,6 @@ public class MtComponentAttributes : Dictionary<string, string>
     {
         var value = this[name];
         Remove(name);
-        return value;
+        return value.Value;
     }
 }

@@ -19,7 +19,7 @@ public abstract class MtSpecialCharEscaper
     public static readonly Regex XmlTagAttributeMatcherSingleQuote = new("[\\w-]+='(.+?)'");
 
     /// <summary>
-    /// Takes a XML string and escapes all special chars in node attributes.
+    /// Takes an XML string and escapes all special chars in node attributes.
     /// </summary>
     public static string EscapeXmlSpecialCharsInAttributes(string inputXmlString)
     {

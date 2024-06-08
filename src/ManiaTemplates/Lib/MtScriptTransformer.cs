@@ -30,8 +30,13 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
                     .AppendLine(templateLanguage.FeatureBlockEnd());
             }
 
-            renderMethod.AppendLine(ICurlyBraceMethods.ReplaceCurlyBraces(ExtractManiaScriptDirectives(script.Content),
-                templateLanguage.InsertResult));
+            renderMethod.AppendLine(
+                ICurlyBraceMethods.ReplaceCurlyBracesWithRawOutput(
+                    ExtractManiaScriptDirectives(script.Content),
+                    templateLanguage.InsertResultEscaped,
+                    templateLanguage.InsertResult
+                )
+            );
 
             if (script.Once)
             {

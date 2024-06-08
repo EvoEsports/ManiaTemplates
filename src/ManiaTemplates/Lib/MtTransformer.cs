@@ -40,8 +40,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
         var template = new Snippet
         {
-            maniaTemplateLanguage.Context(@"template language=""C#"""), //Might not be needed
-            maniaTemplateLanguage.Context(@"import namespace=""System.Collections.Generic"""),
+            maniaTemplateLanguage.Context("import namespace=\"System.Collections.Generic\""),
+            maniaTemplateLanguage.Context("import namespace=\"ManiaTemplates.Lib\""),
             CreateImportStatements(),
             ManiaLink.OpenTag(className, version, rootComponent.DisplayLayer),
             "<#",
@@ -224,20 +224,26 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                                 if (attributeList.ContainsKey(originalAttributeName))
                                 {
                                     //Overwrite existing attribute with fallthrough value
-                                    attributeList[originalAttributeName] =
-                                        maniaTemplateLanguage.InsertResult(aliasAttributeName);
+                                    attributeList[originalAttributeName] = new MtComponentAttribute
+                                    {
+                                        Value = maniaTemplateLanguage.InsertResultEscaped(aliasAttributeName)
+                                    };
                                 }
                                 else
                                 {
                                     //Resolve alias on node
-                                    attributeList.Add(originalAttributeName,
-                                        maniaTemplateLanguage.InsertResult(aliasAttributeName));
+                                    attributeList.Add(originalAttributeName, new MtComponentAttribute
+                                    {
+                                        Value = maniaTemplateLanguage.InsertResultEscaped(aliasAttributeName),
+                                        Alias = aliasAttributeName,
+                                        IsFallthroughAttribute = true
+                                    });
                                 }
                             }
                         }
 
                         subSnippet.AppendLine(IXmlMethods.CreateOpeningTag(tag, attributeList, hasChildren,
-                            curlyContentWrapper: maniaTemplateLanguage.InsertResult));
+                            curlyContentWrapper: maniaTemplateLanguage.InsertResultEscaped));
 
                         if (hasChildren)
                         {
@@ -371,7 +377,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         var componentRenderArguments = new List<string>();
 
         //Attach attributes to render method call
-        foreach (var (attributeName, attributeValue) in attributeList)
+        foreach (var (attributeName, attribute) in attributeList)
         {
             bool isStringType;
             string attributeNameAlias;
@@ -389,7 +395,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                     //Only add fallthrough attributes if the component template has only one root element
                     continue;
                 }
-                
+
                 isStringType = true;
                 attributeNameAlias = GetFallthroughAttributeAlias(attributeName);
                 fallthroughAttributesAliasMap[attributeName] = attributeNameAlias;
@@ -397,8 +403,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
             var methodArgument = isStringType
                 ? IStringMethods.WrapStringInQuotes(
-                    ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $"{{({s})}}"))
-                : ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $"({s})");
+                    ICurlyBraceMethods.ReplaceCurlyBraces(attribute.Value, s => $"{{({s})}}"))
+                : ICurlyBraceMethods.ReplaceCurlyBraces(attribute.Value, s => $"({s})");
 
             componentRenderArguments.Add(CreateMethodCallArgument(attributeNameAlias, methodArgument));
         }
@@ -484,14 +490,14 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         var arguments = new List<string>();
         var body = new StringBuilder(componentBody);
 
-        //Add fallthrough variables to component render method call
-        arguments.AddRange(aliasMap.Values.Select(aliasAttributeName => $"string {aliasAttributeName}"));
-
         //add slot render methods
         AppendSlotRenderArgumentsToList(component, arguments);
 
         //add component properties as arguments with defaults
         AppendComponentPropertiesArgumentsList(component, arguments);
+
+        //Add fallthrough variables to component render method call
+        arguments.AddRange(aliasMap.Values.Select(aliasAttributeName => $"string? {aliasAttributeName} = null"));
 
         //Insert mania scripts
         if (component.Scripts.Count > 0)
@@ -523,7 +529,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     {
         var methodArguments = new List<string>();
         var methodName = GetSlotRenderMethodName(scope, slotName);
-        var localVariables = new List<string>();
 
         //Add slot render methods.
         AppendSlotRenderArgumentsToList(parentComponent, methodArguments);
@@ -543,7 +548,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             AppendComponentPropertiesArgumentsList(parentComponent, methodArguments);
         }
 
-        return CreateRenderMethod(methodName, methodArguments, slotContent, localVariables);
+        return CreateRenderMethod(methodName, methodArguments, slotContent);
     }
 
     /// <summary>
@@ -713,7 +718,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// </summary>
     private static string GetFallthroughAttributeAlias(string variableName)
     {
-        return Regex.Replace(variableName, @"\W", "") + new Random().Next();
+        return "FT_" + Regex.Replace(variableName.Replace("-", "HYPH"), @"\W", "");
     }
 
     /// <summary>

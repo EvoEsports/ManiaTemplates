@@ -6,17 +6,40 @@ namespace ManiaTemplates.Interfaces;
 public interface ICurlyBraceMethods
 {
     protected static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
-    
+    protected static readonly Regex TemplateRawInterpolationRegex = new(@"\{!\s*(.+?)\s*!\}");
+
     /// <summary>
-    /// Takes the contents of double curly braces in a string and wraps them into something else. The second Argument takes a string-argument and returns the newly wrapped string.
+    /// Takes the contents of double curly braces in a string and wraps them into something else.
+    /// The second argument is a function that takes a string-argument and returns the newly wrapped string.
+    /// The third argument is a function that takes a string-argument and returns the newly wrapped (escaped) string.
     /// </summary>
-    public static string ReplaceCurlyBraces(string value, Func<string, string> curlyContentWrapper)
+    public static string ReplaceCurlyBracesWithRawOutput(
+        string value,
+        Func<string, string> curlyContentWrapper,
+        Func<string, string> curlyRawContentWrapper
+    )
+    {
+        var output = value;
+        output = ReplaceCurlyBraces(output, curlyRawContentWrapper, TemplateRawInterpolationRegex);
+        output = ReplaceCurlyBraces(output, curlyContentWrapper);
+
+        return output;
+    }
+
+    /// <summary>
+    /// Takes the contents of double curly braces in a string and wraps them into something else.
+    /// The second argument takes a string-argument and returns the newly wrapped string.
+    /// The third argument is an optional regex pattern to find substrings to replace.
+    /// </summary>
+    public static string ReplaceCurlyBraces(string value, Func<string, string> curlyContentWrapper,
+        Regex? interpolationPattern = null)
     {
         PreventCurlyBraceCountMismatch(value);
         PreventInterpolationRecursion(value);
 
-        var matches = TemplateInterpolationRegex.Match(value);
         var output = value;
+        var pattern = interpolationPattern ?? TemplateInterpolationRegex;
+        var matches = pattern.Match(value);
 
         while (matches.Success)
         {
