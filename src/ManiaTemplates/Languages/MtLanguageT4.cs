@@ -6,7 +6,7 @@ namespace ManiaTemplates.Languages;
 
 public class MtLanguageT4 : IManiaTemplateLanguage
 {
-    private static readonly Regex TemplateFeatureControlRegex = new(@"#>\s*<#\+");
+    private static readonly Regex TemplateFeatureControlRegex = new(@"#>[\n]*<#\+");
 
     public string Context(string content)
     {
