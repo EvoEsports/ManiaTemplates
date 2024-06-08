@@ -224,14 +224,20 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                                 if (attributeList.ContainsKey(originalAttributeName))
                                 {
                                     //Overwrite existing attribute with fallthrough value
-                                    attributeList[originalAttributeName] =
-                                        maniaTemplateLanguage.InsertResultEscaped(aliasAttributeName);
+                                    attributeList[originalAttributeName] = new MtComponentAttribute
+                                    {
+                                        Value = maniaTemplateLanguage.InsertResultEscaped(aliasAttributeName)
+                                    };
                                 }
                                 else
                                 {
                                     //Resolve alias on node
-                                    attributeList.Add(originalAttributeName,
-                                        maniaTemplateLanguage.InsertResultEscaped(aliasAttributeName));
+                                    attributeList.Add(originalAttributeName, new MtComponentAttribute
+                                    {
+                                        Value = maniaTemplateLanguage.InsertResultEscaped(aliasAttributeName),
+                                        Alias = aliasAttributeName,
+                                        IsFallthroughAttribute = true
+                                    });
                                 }
                             }
                         }
@@ -371,7 +377,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         var componentRenderArguments = new List<string>();
 
         //Attach attributes to render method call
-        foreach (var (attributeName, attributeValue) in attributeList)
+        foreach (var (attributeName, attribute) in attributeList)
         {
             bool isStringType;
             string attributeNameAlias;
@@ -397,8 +403,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
             var methodArgument = isStringType
                 ? IStringMethods.WrapStringInQuotes(
-                    ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $"{{({s})}}"))
-                : ICurlyBraceMethods.ReplaceCurlyBraces(attributeValue, s => $"({s})");
+                    ICurlyBraceMethods.ReplaceCurlyBraces(attribute.Value, s => $"{{({s})}}"))
+                : ICurlyBraceMethods.ReplaceCurlyBraces(attribute.Value, s => $"({s})");
 
             componentRenderArguments.Add(CreateMethodCallArgument(attributeNameAlias, methodArgument));
         }
@@ -523,7 +529,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     {
         var methodArguments = new List<string>();
         var methodName = GetSlotRenderMethodName(scope, slotName);
-        var localVariables = new List<string>();
 
         //Add slot render methods.
         AppendSlotRenderArgumentsToList(parentComponent, methodArguments);
@@ -543,7 +548,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             AppendComponentPropertiesArgumentsList(parentComponent, methodArguments);
         }
 
-        return CreateRenderMethod(methodName, methodArguments, slotContent, localVariables);
+        return CreateRenderMethod(methodName, methodArguments, slotContent);
     }
 
     /// <summary>
@@ -713,7 +718,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// </summary>
     private static string GetFallthroughAttributeAlias(string variableName)
     {
-        return "FT_" + Regex.Replace(variableName, @"\W", "");
+        return "FT_" + Regex.Replace(variableName.Replace("-", "HYPH"), @"\W", "");
     }
 
     /// <summary>

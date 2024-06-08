@@ -31,12 +31,10 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
             }
 
             renderMethod.AppendLine(
-                Security.EscapeDoubleMinus(
-                    ICurlyBraceMethods.ReplaceCurlyBracesWithRawOutput(
-                        ExtractManiaScriptDirectives(script.Content),
-                        templateLanguage.InsertResultEscaped,
-                        templateLanguage.InsertResult
-                    )
+                ICurlyBraceMethods.ReplaceCurlyBracesWithRawOutput(
+                    ExtractManiaScriptDirectives(script.Content),
+                    templateLanguage.InsertResultEscaped,
+                    templateLanguage.InsertResult
                 )
             );
 

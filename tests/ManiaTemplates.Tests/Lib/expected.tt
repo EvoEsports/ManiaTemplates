@@ -1,4 +1,3 @@
-<#@ template language="C#" #>
 <#@ import namespace="System.Collections.Generic" #>
 <#@ import namespace="ManiaTemplates.Lib" #>
 <#@ import namespace="namespace" #>
@@ -26,7 +25,7 @@ __outerIndex1++;
 Render_Component_MtContext2(__slotRenderer_default: () => Render_Slot_4_default());
 foreach(var maniaScriptRenderMethod in __maniaScriptRenderMethods){ maniaScriptRenderMethod(); }
 #>
-<script><!--scriptText1
+<script>scriptText1
 <#+
 if(!__insertedOneTimeManiaScripts.Contains("0zU/AjjFBI5iWuZPX521w2ZluB8P21bd48fEgb65Qz4=")){
 #>
@@ -36,7 +35,7 @@ __insertedOneTimeManiaScripts.Add("0zU/AjjFBI5iWuZPX521w2ZluB8P21bd48fEgb65Qz4="
 }
 #>
 scriptText3
---></script>
+</script>
 <#+
 }
 private void Render_Component_MtContext5ForEachLoop1_ForEachLoop1_(double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = $"left", string valign = $"center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = $"", string url = $"", string manialink = $"", string style = $"", string textfont = $"GameFont", double textsize = 1.0, string textcolor = $"", string focusareacolor1 = $"", string focusareacolor2 = $"", string text = $"", string textprefix = $"", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = $"", string id = $"") {
@@ -67,7 +66,7 @@ __slotRenderer_default();
 }
 private void Render_ComponentScript_MtContext6(test arg3, string arg1 = $"", int arg2 = 0) {
 #>
-<script><!--GraphScript
+<script>GraphScript
 <#+
 if(!__insertedOneTimeManiaScripts.Contains("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU=")){
 #>
@@ -76,7 +75,7 @@ GraphScript
 __insertedOneTimeManiaScripts.Add("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU=");
 }
 #>
---></script>
+</script>
 <#+
 }
 private void Render_Slot_3_default(int __index, int i) {

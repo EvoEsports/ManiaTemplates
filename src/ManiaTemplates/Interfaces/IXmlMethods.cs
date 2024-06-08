@@ -1,9 +1,10 @@
-﻿using System.Xml;
+﻿using System.Text;
+using System.Xml;
 using ManiaTemplates.Components;
 
 namespace ManiaTemplates.Interfaces;
 
-public interface IXmlMethods: ICurlyBraceMethods
+public interface IXmlMethods : ICurlyBraceMethods
 {
     /// <summary>
     /// Parses the attributes of a XmlNode to an MtComponentAttributes-instance.
@@ -15,30 +16,49 @@ public interface IXmlMethods: ICurlyBraceMethods
 
         foreach (XmlAttribute attribute in node.Attributes)
         {
-            attributeList.Add(attribute.Name, attribute.Value);
+            attributeList.Add(attribute.Name, new MtComponentAttribute
+            {
+                Value = attribute.Value
+            });
         }
 
         return attributeList;
     }
-    
+
     /// <summary>
     /// Creates a xml opening tag for the given string and attribute list.
     /// </summary>
-    public static string CreateOpeningTag(string tag, MtComponentAttributes attributeList, bool hasChildren, Func<string, string> curlyContentWrapper)
+    public static string CreateOpeningTag(string tag, MtComponentAttributes attributeList, bool hasChildren,
+        Func<string, string> curlyContentWrapper)
     {
-        var output = $"<{tag}";
-
-        foreach (var (attributeName, attributeValue) in attributeList)
+        var tagParts = new List<string>
         {
-            output += @$" {attributeName}=""{ReplaceCurlyBraces(attributeValue, curlyContentWrapper)}""";
+            $"<{tag}"
+        };
+
+        foreach (var (attributeName, attribute) in attributeList)
+        {
+            var newAttribute = @$"{attributeName}=""{ReplaceCurlyBraces(attribute.Value, curlyContentWrapper)}""";
+
+            if (!attribute.IsFallthroughAttribute)
+            {
+                tagParts.Add(newAttribute);
+                continue;
+            }
+
+            tagParts.Add(new StringBuilder()
+                .Append($"<#+ if({attribute.Alias} != null){{ #>")
+                .Append(newAttribute)
+                .Append("<#+ } #>")
+                .ToString());
         }
 
         if (!hasChildren)
         {
-            output += " /";
+            tagParts.Add("/");
         }
-
-        return output + ">";
+        
+        return string.Join(" ", tagParts) + ">";
     }
 
     /// <summary>

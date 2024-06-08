@@ -9,14 +9,14 @@ public class MtComponentAttributesTest
     [Fact]
     public void Should_Contain_Single_Attribute_Pair()
     {
-        _mtComponentAttributes["key"] = "value";
+        _mtComponentAttributes["key"] = new MtComponentAttribute{Value = "value"};
         Assert.Single(_mtComponentAttributes);
     }
 
     [Fact]
     public void Should_Remove_Existing()
     {
-        _mtComponentAttributes["key"] = "value";
+        _mtComponentAttributes["key"] = new MtComponentAttribute{Value = "value"};
         var result = _mtComponentAttributes.Pull("key");
 
         Assert.Equal("value", result);
