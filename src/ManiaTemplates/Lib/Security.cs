@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security;
 
 namespace ManiaTemplates.Lib;
@@ -9,7 +10,7 @@ public abstract class Security
     /// </summary>
     public static string Escape(dynamic input)
     {
-        return EscapeDoubleMinus(SecurityElement.Escape(Convert.ToString(input)));
+        return EscapeDoubleMinus(SecurityElement.Escape(Convert.ToString(input, CultureInfo.InvariantCulture)));
     }
 
     /// <summary>
@@ -18,6 +19,7 @@ public abstract class Security
     /// </summary>
     public static string EscapeDoubleMinus(string input)
     {
-        return input.Replace("--", "&#45;&#45;");
+        return input;
+        // return input.Replace("--", "&#45;&#45;");
     }
 }
