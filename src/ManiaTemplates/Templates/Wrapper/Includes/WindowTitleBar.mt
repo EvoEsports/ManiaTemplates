@@ -21,7 +21,7 @@
                id="window_close_button"
         />
         
-        <script><!--
+        <script>
             *** OnMouseClick ***
             ***
             if(Event.Control && Event.Control.ControlId == "window_close_button"){
@@ -29,6 +29,6 @@
                 return;
             }
             ***
-        --></script>
+        </script>
     </template>
 </component>
