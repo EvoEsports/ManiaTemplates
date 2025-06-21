@@ -14,7 +14,7 @@ public class MtComponentScript
     public int Depth { get; set; }
 
     private static readonly Regex DetectMainMethodRegex = new(@"(?s)main\(\).*\{.*\}");
-    
+
     /// <summary>
     /// Creates a MtComponentScript instance from a components script-node.
     /// </summary>
@@ -44,11 +44,17 @@ public class MtComponentScript
                 }
             }
         }
-        
+
         if (content == null)
         {
             throw new ManiaScriptSourceMissingException(
                 "Script tags need to either specify a body or resource-attribute.");
+        }
+
+        if (content.Contains("--"))
+        {
+            throw new ManiaScriptBodyInvalidSequenceException(
+                "Script tags cannot contain '--' (double hyphen) characters. Since manialinks are automatically surrounded by XML comments, please remove eventual XML comments in the script source.");
         }
 
         return new MtComponentScript

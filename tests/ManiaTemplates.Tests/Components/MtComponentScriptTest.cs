@@ -54,6 +54,16 @@ public class MtComponentScriptTest
         Assert.Throws<ManiaScriptSourceMissingException>(() =>
             MtComponentScript.FromNode(_templateEngine, document.DocumentElement!));
     }
+    
+    [Fact]
+    public void Should_Fail_To_Load_ManiaScript_With_XML_Comment_Sequence()
+    {
+        var document = new XmlDocument();
+        document.LoadXml("<script><!-- main() {} --></script>");
+
+        Assert.Throws<ManiaScriptBodyInvalidSequenceException>(() =>
+            MtComponentScript.FromNode(_templateEngine, document.DocumentElement!));
+    }
 
     [Fact]
     public void Should_Load_ManiaScript_With_Different_Hash_Codes()
