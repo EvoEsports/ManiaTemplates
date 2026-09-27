@@ -101,6 +101,11 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
         foreach (var propertyValue in engine.GlobalVariables.Values)
         {
+            if (propertyValue is null)
+            {
+                continue;
+            }
+
             var nameSpace = propertyValue.GetType().Namespace;
 
             if (nameSpace != "System")
@@ -126,6 +131,11 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
         foreach (var (propertyName, propertyValue) in engine.GlobalVariables)
         {
+            if (propertyValue is null)
+            {
+                continue;
+            }
+
             var type = propertyValue.GetType();
 
             properties.AppendLine(maniaTemplateLanguage

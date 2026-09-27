@@ -17,7 +17,7 @@ public class ManiaTemplateEngine
     private readonly Dictionary<string, string> _templates = new();
     private readonly Dictionary<string, string> _maniaScripts = new();
     private readonly ConcurrentDictionary<string, ManiaLink> _preProcessed = new();
-    public readonly ConcurrentDictionary<string, object> GlobalVariables = new();
+    public readonly ConcurrentDictionary<string, object?> GlobalVariables = new();
     protected internal MtComponentMap BaseMtComponents { get; }
 
     private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplates \{((?:.|\n)+)\}");
@@ -270,6 +270,9 @@ public class ManiaTemplateEngine
 
         _templates.Remove(name);
         _components.Remove(name);
+        // Drops the compiled template, which lives in the load context of the assemblies it was rendered
+        // against, so unloading that context isn't blocked by a cached reference.
+        _preProcessed.TryRemove(name, out _);
     }
 
     public void RemoveManiaScript(string name)
