@@ -6,15 +6,11 @@
         <Nullable>enable</Nullable>
 
         <IsPackable>false</IsPackable>
-
-        <!-- Newtonsoft.Json 9.0.1 arrives transitively via Microsoft.TestPlatform.ObjectModel -> NETStandard.Library
-             and is not being upgraded here, so the advisory for it is suppressed. -->
-        <NoWarn>$(NoWarn);NU1903</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="FluentAssertions" Version="6.10.0" />
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
         <PackageReference Include="xunit" Version="2.4.2" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
