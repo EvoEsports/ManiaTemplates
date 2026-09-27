@@ -17,7 +17,7 @@ public class ManiaTemplateEngine
     private readonly Dictionary<string, string> _templates = new();
     private readonly Dictionary<string, string> _maniaScripts = new();
     private readonly ConcurrentDictionary<string, ManiaLink> _preProcessed = new();
-    public readonly ConcurrentDictionary<string, object> GlobalVariables = new();
+    public readonly ConcurrentDictionary<string, object?> GlobalVariables = new();
     protected internal MtComponentMap BaseMtComponents { get; }
 
     private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplates \{((?:.|\n)+)\}");

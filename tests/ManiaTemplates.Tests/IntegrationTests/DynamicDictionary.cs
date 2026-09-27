@@ -5,13 +5,13 @@ namespace ManiaTemplates.Tests.IntegrationTests;
 public class DynamicDictionary : DynamicObject
 {
     // The inner dictionary.
-    Dictionary<string, object> dictionary
-        = new Dictionary<string, object>();
+    Dictionary<string, object?> dictionary
+        = new Dictionary<string, object?>();
 
     // If you try to get a value of a property
     // not defined in the class, this method is called.
     public override bool TryGetMember(
-        GetMemberBinder binder, out object result)
+        GetMemberBinder binder, out object? result)
     {
         // Converting the property name to lowercase
         // so that property names become case-insensitive.
@@ -26,7 +26,7 @@ public class DynamicDictionary : DynamicObject
     // If you try to set a value of a property that is
     // not defined in the class, this method is called.
     public override bool TrySetMember(
-        SetMemberBinder binder, object value)
+        SetMemberBinder binder, object? value)
     {
         // Converting the property name to lowercase
         // so that property names become case-insensitive.

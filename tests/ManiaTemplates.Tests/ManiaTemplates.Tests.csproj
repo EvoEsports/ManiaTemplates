@@ -6,6 +6,10 @@
         <Nullable>enable</Nullable>
 
         <IsPackable>false</IsPackable>
+
+        <!-- Newtonsoft.Json 9.0.1 arrives transitively via Microsoft.TestPlatform.ObjectModel -> NETStandard.Library
+             and is not being upgraded here, so the advisory for it is suppressed. -->
+        <NoWarn>$(NoWarn);NU1903</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
