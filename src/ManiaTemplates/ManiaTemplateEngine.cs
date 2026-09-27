@@ -270,6 +270,9 @@ public class ManiaTemplateEngine
 
         _templates.Remove(name);
         _components.Remove(name);
+        // Drops the compiled template, which lives in the load context of the assemblies it was rendered
+        // against, so unloading that context isn't blocked by a cached reference.
+        _preProcessed.TryRemove(name, out _);
     }
 
     public void RemoveManiaScript(string name)

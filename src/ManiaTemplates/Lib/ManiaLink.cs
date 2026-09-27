@@ -1,16 +1,12 @@
 ﻿using System.Dynamic;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Microsoft.CodeAnalysis.CSharp.Scripting;
-using Microsoft.CodeAnalysis.Scripting;
 
 namespace ManiaTemplates.Lib;
 
 public class ManiaLink
 {
     private readonly string _className;
-    private readonly string _preCompiledTemplate;
-    private readonly IEnumerable<Assembly> _assemblies;
     private readonly Type _textTransformer;
 
     private static readonly Regex ReplaceDefaultAttr =
@@ -23,10 +19,8 @@ public class ManiaLink
     /// </summary>
     public ManiaLink(string className, string preCompiledTemplate, IEnumerable<Assembly> assemblies)
     {
-        _preCompiledTemplate = preCompiledTemplate;
-        _assemblies = assemblies;
         _className = className;
-        _textTransformer = CompileCSharpScriptAsync().Result;
+        _textTransformer = TemplateCompiler.Compile(className, preCompiledTemplate, assemblies);
     }
 
     /// <summary>
@@ -119,31 +113,6 @@ public class ManiaLink
     public string Hide()
     {
         return @$"<manialink id=""{_className}""></manialink>";
-    }
-
-    /// <summary>
-    /// Compiles the template script that generates the output for given data.
-    /// </summary>
-    private async Task<Type> CompileCSharpScriptAsync()
-    {
-        var options = ScriptOptions.Default
-            .WithReferences(typeof(ManiaLink).Assembly)
-            .WithReferences(_assemblies);
-
-        var code = $"{_preCompiledTemplate} return typeof({_className});";
-        var script = CSharpScript.Create(code, options);
-        script.Compile();
-
-        var result = await script.RunAsync();
-        var type = result.ReturnValue as Type;
-        var method = type?.GetMethod("TransformText");
-
-        if (type == null || method == null)
-        {
-            throw new InvalidOperationException("Missing method 'TransformText' in compiled render script.");
-        }
-
-        return type;
     }
 
     /// <summary>
