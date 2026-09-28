@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using System.Reflection;
 using System.Runtime.Loader;
 using ManiaTemplates.Exceptions;
@@ -34,7 +35,9 @@ internal static class TemplateCompiler
 
     private static readonly ConcurrentDictionary<string, MetadataReference> FileReferenceCache = new();
 
-    private static readonly ConcurrentDictionary<AssemblyLoadContext, IReadOnlyList<MetadataReference>>
+    // Keyed weakly on purpose: a module's load context is collectible, and a strong key here would
+    // keep every module that ever compiled a template alive for the lifetime of the process.
+    private static readonly ConditionalWeakTable<AssemblyLoadContext, IReadOnlyList<MetadataReference>>
         ReferenceCache = new();
 
     /// <summary>
@@ -128,7 +131,7 @@ internal static class TemplateCompiler
     private static IReadOnlyList<MetadataReference> GetReferences(AssemblyLoadContext loadContext,
         IReadOnlyCollection<Assembly> templateAssemblies)
     {
-        return ReferenceCache.GetOrAdd(loadContext, context => BuildReferences(context, templateAssemblies));
+        return ReferenceCache.GetValue(loadContext, context => BuildReferences(context, templateAssemblies));
     }
 
     private static IReadOnlyList<MetadataReference> BuildReferences(AssemblyLoadContext loadContext,
