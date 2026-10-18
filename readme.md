@@ -61,8 +61,7 @@ on.
 `else-if` and `else` nodes must follow a node with an `if` or `else-if` attribute, only comments may be in between.
 
 A node can either have a loop or a condition, to make the evaluation order explicit, nest them instead.
-To group nodes without adding an element to the output, use a `<template>` fragment, which only renders its children
-and supports no attributes other than loops and conditions:
+To do so without adding an element to the output, use a [fragment](#fragments):
 
 ````xml
 <label if="maps.Count == 0" text="No maps found."/>
@@ -71,6 +70,59 @@ and supports no attributes other than loops and conditions:
     <label foreach="Map map in maps" text="{{ map.Name }}"/>
 </template>
 ````
+
+### Fragments
+
+A `<template>` node inside a template is a fragment: it only renders its children, without producing an element itself.
+Use it to group nodes for loops and conditions:
+
+````xml
+<template foreach="Player player in players">
+    <label text="{{ player.Name }}"/>
+    <label text="{{ player.Score }}"/>
+</template>
+````
+
+As fragments have no element of their own, they only support the loop and condition attributes, any other attribute
+throws an exception.
+A component whose template consists of a single fragment does not receive fallthrough attributes, as it may render
+multiple root elements.
+
+### Slots
+
+Components can define slots using `<slot/>` nodes, which are filled with content when using the component.
+Besides the unnamed default slot, a component can define named slots:
+
+````xml
+<!-- Panel.mt -->
+<component>
+    <template>
+        <frame>
+            <slot/>
+            <frame pos="0 -50">
+                <slot name="footer"/>
+            </frame>
+        </frame>
+    </template>
+</component>
+````
+
+All children of a component node fill the default slot.
+Named slots are filled using `<template slot="name">` nodes, which must be direct children of the component node.
+Templates for slots the component does not define are ignored.
+Slot templates are [fragments](#fragments), so loops and conditions can be applied to them:
+
+````xml
+<Panel>
+    <label text="Rendered in the default slot"/>
+
+    <template slot="footer" if="showFooter">
+        <label text="Rendered in the footer slot"/>
+    </template>
+</Panel>
+````
+
+Slot contents can use the properties and loop variables available where the component is used.
 
 ### How it works
 
