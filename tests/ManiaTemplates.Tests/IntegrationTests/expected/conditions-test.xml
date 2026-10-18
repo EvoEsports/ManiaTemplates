@@ -1,0 +1,21 @@
+<manialink version="3" id="MtConditionsTest" name="EvoSC#-MtConditionsTest">
+<frame>
+<label text="one" />
+</frame>
+<frame>
+<label text="two" />
+</frame>
+<frame>
+<label text="inner_3" />
+<label text="three" />
+</frame>
+<frame>
+<label text="other 4" />
+</frame>
+<!--  Else branches wrap the loop of their node  -->
+<label text="no entries" />
+<label text="entry 1 at 0" />
+<label text="entry 2 at 1" />
+<!--  Chain without matching branch, directly followed by a new chain  -->
+<label text="new chain" />
+</manialink>

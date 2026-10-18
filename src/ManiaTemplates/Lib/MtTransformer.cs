@@ -163,6 +163,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         Snippet snippet = [];
 
         var nodeId = 1;
+        MtCondition? previousCondition = null;
+        var previousHasLoop = false;
         foreach (XmlNode childNode in node.ChildNodes)
         {
             var subSnippet = new Snippet();
@@ -171,7 +173,12 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             var currentContext = oldContext;
 
             var loop = attributeList.PullLoop(oldContext, nodeId, _loopDepth + 1);
-            var ifCondition = attributeList.PullIfCondition();
+            var condition = attributeList.PullCondition();
+
+            if (condition is { Type: not MtConditionType.If })
+            {
+                EnsureConditionContinuesChain(tag, condition, previousCondition, previousHasLoop);
+            }
 
             if (loop != null)
             {
@@ -268,9 +275,9 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 }
             }
 
-            if (ifCondition != null)
+            if (condition is { IsEvaluatedPerLoopIteration: true })
             {
-                subSnippet = CreateIfBlock(subSnippet, ifCondition);
+                subSnippet = CreateConditionBlock(subSnippet, condition);
             }
 
             if (loop != null)
@@ -279,7 +286,14 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 _loopDepth--;
             }
 
+            if (condition is { IsEvaluatedPerLoopIteration: false })
+            {
+                subSnippet = CreateConditionBlock(subSnippet, condition);
+            }
+
             snippet.AppendSnippet(subSnippet);
+            previousCondition = condition;
+            previousHasLoop = loop != null;
             nodeId++;
         }
 
@@ -653,15 +667,40 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Wraps the snippet in a if-condition.
+    /// Throws if an else-if or else condition does not directly follow a node with an if or else-if condition.
     /// </summary>
-    private Snippet CreateIfBlock(Snippet input, string ifCondition)
+    private static void EnsureConditionContinuesChain(string tag, MtCondition condition,
+        MtCondition? previousCondition, bool previousHasLoop)
+    {
+        if (previousCondition is null or { Type: MtConditionType.Else })
+        {
+            throw new InvalidConditionException(
+                $"The {condition.AttributeName} attribute on <{tag}> must directly follow a node with an if or else-if attribute.");
+        }
+
+        if (previousCondition.IsEvaluatedPerLoopIteration && previousHasLoop)
+        {
+            throw new InvalidConditionException(
+                $"The {condition.AttributeName} attribute on <{tag}> must not follow a node combining if with a loop, because the if is evaluated for each iteration.");
+        }
+    }
+
+    /// <summary>
+    /// Wraps the snippet in an if, else-if or else block.
+    /// </summary>
+    private Snippet CreateConditionBlock(Snippet input, MtCondition condition)
     {
         var snippet = new Snippet();
-        var ifContent = ICurlyBraceMethods.TemplateInterpolationRegex.Replace(ifCondition, "$1");
+        var expression = ICurlyBraceMethods.TemplateInterpolationRegex.Replace(condition.Expression, "$1");
+        var header = condition.Type switch
+        {
+            MtConditionType.If => $"if ({expression})",
+            MtConditionType.ElseIf => $"else if ({expression})",
+            _ => "else"
+        };
 
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, $"if ({ifContent}) {{");
+        snippet.AppendLine(null, $"{header} {{");
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());

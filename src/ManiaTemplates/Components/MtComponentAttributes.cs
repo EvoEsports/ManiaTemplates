@@ -6,11 +6,46 @@ namespace ManiaTemplates.Components;
 public class MtComponentAttributes : Dictionary<string, MtComponentAttribute>
 {
     /// <summary>
-    /// Checks the attribute list for if-condition and if found removes & returns it, else null.
+    /// Checks the attribute list for a condition (if, else-if, else) and if found removes & returns it, else null.
     /// </summary>
-    public string? PullIfCondition()
+    public MtCondition? PullCondition()
     {
-        return ContainsKey("if") ? Pull("if") : null;
+        var conditions = new List<MtCondition>();
+
+        if (ContainsKey("if"))
+        {
+            conditions.Add(new MtCondition { Type = MtConditionType.If, Expression = Pull("if") });
+        }
+
+        if (ContainsKey("else-if"))
+        {
+            conditions.Add(new MtCondition { Type = MtConditionType.ElseIf, Expression = Pull("else-if") });
+        }
+
+        if (ContainsKey("else"))
+        {
+            if (Pull("else").Trim().Length > 0)
+            {
+                throw new InvalidConditionException(
+                    "The else attribute must not have a value, use else-if to add a condition.");
+            }
+
+            conditions.Add(new MtCondition { Type = MtConditionType.Else });
+        }
+
+        if (conditions.Count > 1)
+        {
+            throw new InvalidConditionException(
+                $"A node must only have one of the attributes {string.Join(", ", conditions.Select(c => c.AttributeName))}.");
+        }
+
+        var condition = conditions.SingleOrDefault();
+        if (condition is { Type: not MtConditionType.Else } && condition.Expression.Trim().Length == 0)
+        {
+            throw new EmptyNodeAttributeException($"The {condition.AttributeName} attribute must not be empty.");
+        }
+
+        return condition;
     }
 
     /// <summary>

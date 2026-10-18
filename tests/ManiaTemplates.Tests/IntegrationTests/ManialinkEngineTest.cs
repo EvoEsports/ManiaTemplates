@@ -198,6 +198,43 @@ public class ManialinkEngineTest
     }
 
     [Fact]
+    public async void Should_Render_Condition_Chains()
+    {
+        var testComponent = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test-component.mt");
+        var conditionsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/conditions-test.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/conditions-test.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("TestComponent", testComponent);
+        _maniaTemplateEngine.AddTemplateFromString("ConditionsTest", conditionsTemplate);
+
+        var template = _maniaTemplateEngine.RenderAsync("ConditionsTest", new
+        {
+            numbers = new List<int> { 1, 2, 3, 4 },
+            empty = new List<int>()
+        }, assemblies).Result;
+        Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
+
+    [Theory]
+    [InlineData("<label else=\"\"/>")]
+    [InlineData("<label if=\"true\"/><!-- comment --><label else=\"\"/>")]
+    [InlineData("<label if=\"true\"/><label else=\"\"/><label else=\"\"/>")]
+    [InlineData("<label if=\"true\"/><label/><label else-if=\"true\"/>")]
+    [InlineData("<label foreach=\"int i in list\" if=\"i > 0\"/><label else=\"\"/>")]
+    [InlineData("<label if=\"true\" else=\"\"/>")]
+    [InlineData("<label if=\"true\"/><label else=\"false\"/>")]
+    public async void Should_Throw_Exception_For_Invalid_Condition_Chain(string templateContent)
+    {
+        _maniaTemplateEngine.AddTemplateFromString("InvalidCondition",
+            $"<component><property type=\"List<int>\" name=\"list\"/><template>{templateContent}</template></component>");
+
+        await Assert.ThrowsAsync<InvalidConditionException>(() =>
+            _maniaTemplateEngine.RenderAsync("InvalidCondition", new { list = new List<int>() },
+                new[] { typeof(ManiaTemplateEngine).Assembly }));
+    }
+
+    [Fact]
     public async void Should_Pass_Unmapped_Node_Attributes_To_Component_Root_Element()
     {
         var wrapperComponent = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");
