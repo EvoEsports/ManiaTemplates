@@ -14,31 +14,20 @@ public abstract class MtSpecialCharEscaper
         { "&apos;", "§%apos%§" }
     };
 
-    public static readonly Regex XmlTagFinderRegex = new("<[\\w-]+(?:\\s+[\\w-]+=[\"'].+?[\"'])+\\s*\\/?>");
-    public static readonly Regex XmlTagAttributeMatcherDoubleQuote = new("[\\w-]+=\"(.+?)\"");
-    public static readonly Regex XmlTagAttributeMatcherSingleQuote = new("[\\w-]+='(.+?)'");
+    public static readonly Regex XmlTagFinderRegex = new("<[\\w-]+(?:\\s+[\\w-]+=(?:\"[^\"]*\"|'[^']*'))+\\s*\\/?>");
+    public static readonly Regex XmlTagAttributeMatcherDoubleQuote = new("[\\w-]+=\"([^\"]*)\"");
+    public static readonly Regex XmlTagAttributeMatcherSingleQuote = new("[\\w-]+='([^']*)'");
 
     /// <summary>
     /// Takes an XML string and escapes all special chars in node attributes.
     /// </summary>
     public static string EscapeXmlSpecialCharsInAttributes(string inputXmlString)
     {
-        var outputXml = inputXmlString;
-        var xmlTagMatcher = XmlTagFinderRegex;
-        var tagMatch = xmlTagMatcher.Match(inputXmlString);
-
-        while (tagMatch.Success)
+        return XmlTagFinderRegex.Replace(inputXmlString, tagMatch =>
         {
-            var unescapedXmlTag = tagMatch.Value;
-            var escapedXmlTag =
-                FindAndEscapeAttributes(unescapedXmlTag, XmlTagAttributeMatcherDoubleQuote);
-            escapedXmlTag = FindAndEscapeAttributes(escapedXmlTag, XmlTagAttributeMatcherSingleQuote);
-
-            outputXml = outputXml.Replace(unescapedXmlTag, escapedXmlTag);
-            tagMatch = tagMatch.NextMatch();
-        }
-
-        return outputXml;
+            var escapedXmlTag = FindAndEscapeAttributes(tagMatch.Value, XmlTagAttributeMatcherDoubleQuote);
+            return FindAndEscapeAttributes(escapedXmlTag, XmlTagAttributeMatcherSingleQuote);
+        });
     }
 
     /// <summary>
@@ -47,17 +36,16 @@ public abstract class MtSpecialCharEscaper
     /// </summary>
     public static string FindAndEscapeAttributes(string input, Regex attributeWithQuoteOrApostrophePattern)
     {
-        var outputXml = SubstituteStrings(input, _map);
-        var attributeMatch = attributeWithQuoteOrApostrophePattern.Match(outputXml);
-
-        while (attributeMatch.Success)
+        var outputXml = attributeWithQuoteOrApostrophePattern.Replace(SubstituteStrings(input, _map), attributeMatch =>
         {
-            var unescapedAttributeValue = attributeMatch.Groups[1].Value;
-            var escapedAttributeValue = SecurityElement.Escape(unescapedAttributeValue);
-            outputXml = outputXml.Replace(unescapedAttributeValue, escapedAttributeValue);
+            //Only escape the attribute value, keeping the attribute name and quotes
+            var value = attributeMatch.Groups[1];
+            var valueStart = value.Index - attributeMatch.Index;
 
-            attributeMatch = attributeMatch.NextMatch();
-        }
+            return attributeMatch.Value[..valueStart]
+                   + SecurityElement.Escape(value.Value)
+                   + attributeMatch.Value[(valueStart + value.Length)..];
+        });
 
         return SubstituteStrings(outputXml, FlipMapping(_map));
     }

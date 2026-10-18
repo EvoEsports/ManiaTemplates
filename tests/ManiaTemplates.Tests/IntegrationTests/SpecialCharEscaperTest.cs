@@ -43,6 +43,17 @@ public class SpecialCharEscaperTest
         Assert.Equal("<SomeNode attribute=\"test&gt;\"/>", processedDoubleQuotes);
     }
 
+    [Theory]
+    [InlineData("<SomeNode empty=\"\" other=\"a < b\"/>", "<SomeNode empty=\"\" other=\"a &lt; b\"/>")]
+    [InlineData("<SomeNode empty='' other='a < b'/>", "<SomeNode empty='' other='a &lt; b'/>")]
+    [InlineData("<SomeNode attribute=\"<\"/>", "<SomeNode attribute=\"&lt;\"/>")]
+    [InlineData("<SomeNode one=\"&amp; &\" two=\"it's\"/>", "<SomeNode one=\"&amp; &amp;\" two=\"it&apos;s\"/>")]
+    [InlineData("<a x=\"1 > 0\"/><b x=\"1 > 0\"/><c x=\"\"/>", "<a x=\"1 &gt; 0\"/><b x=\"1 &gt; 0\"/><c x=\"\"/>")]
+    public void Should_Only_Escape_Attribute_Values(string input, string expected)
+    {
+        Assert.Equal(expected, MtSpecialCharEscaper.EscapeXmlSpecialCharsInAttributes(input));
+    }
+
     [Fact]
     public async void Should_Escape_Special_Chars_In_Attributes()
     {
