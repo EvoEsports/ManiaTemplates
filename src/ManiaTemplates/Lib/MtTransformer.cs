@@ -315,7 +315,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     {
         var contentsByName = new Dictionary<string, XmlNode>();
 
-        foreach (XmlNode childNode in componentNode.ChildNodes)
+        //Iterate over a copy, as named slot templates are removed from the node
+        foreach (var childNode in componentNode.ChildNodes.Cast<XmlNode>().ToList())
         {
             if (childNode.Name != "template")
             {

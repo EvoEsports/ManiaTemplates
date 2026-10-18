@@ -72,6 +72,21 @@ public class ManialinkEngineTest
     }
 
     [Fact]
+    public async void Should_Fill_Consecutive_Named_Slots()
+    {
+        var componentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component-multi-slot.mt");
+        var namedSlotsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/consecutive-named-slots.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/consecutive-named-slots.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", componentTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("ConsecutiveNamedSlots", namedSlotsTemplate);
+
+        var result = _maniaTemplateEngine.RenderAsync("ConsecutiveNamedSlots", new { }, assemblies).Result;
+        Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
     public async void Should_Throw_Exception_For_Duplicate_Slot_In_Source_Template()
     {
         var namedSlotsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/named-slots.mt");
