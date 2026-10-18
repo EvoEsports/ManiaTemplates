@@ -1,4 +1,5 @@
 ﻿using ManiaTemplates.ControlElements;
+using ManiaTemplates.Exceptions;
 
 namespace ManiaTemplates.Components;
 
@@ -17,9 +18,20 @@ public class MtComponentAttributes : Dictionary<string, MtComponentAttribute>
     /// </summary>
     public MtLoop? PullLoop(MtDataContext context, int nodeId, int depth)
     {
-        return ContainsKey("foreach")
-            ? MtForeach.FromString(Pull("foreach"), context, nodeId, depth)
-            : null;
+        var hasForeach = ContainsKey("foreach");
+        var hasFor = ContainsKey("for");
+
+        if (hasForeach && hasFor)
+        {
+            throw new ParsingForLoopFailedException("A node must not have both a for and a foreach attribute.");
+        }
+
+        if (hasForeach)
+        {
+            return MtForeach.FromString(Pull("foreach"), context, nodeId, depth);
+        }
+
+        return hasFor ? MtFor.FromString(Pull("for"), context, nodeId, depth) : null;
     }
 
     /// <summary>

@@ -160,6 +160,25 @@ public class ManialinkEngineTest
     }
 
     [Fact]
+    public async void Should_Render_For_Loops()
+    {
+        var testComponent = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test-component.mt");
+        var forLoopTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/for-loop-test.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/for-loop-test.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("TestComponent", testComponent);
+        _maniaTemplateEngine.AddTemplateFromString("ForLoopTest", forLoopTemplate);
+
+        var template = _maniaTemplateEngine.RenderAsync("ForLoopTest", new
+        {
+            count = 3,
+            names = new List<string> { "a", "b" }
+        }, assemblies).Result;
+        Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
     public async void Should_Pass_Unmapped_Node_Attributes_To_Component_Root_Element()
     {
         var wrapperComponent = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");
