@@ -1,4 +1,4 @@
-﻿<component>
+<component>
     <using namespace="System.Collections.Generic"/>
 
     <import component="TestComponent" as="TestComponent"/>
@@ -9,6 +9,7 @@
     <template>
         <frame foreach="int n in numbers">
             <label if="n == 1" text="one"/>
+            <!-- Comments are allowed within a chain -->
             <label else-if="n == 2" text="two"/>
             <TestComponent else-if="{{ n == 3 }}" i="{{ n }}">
                 <label text="three"/>

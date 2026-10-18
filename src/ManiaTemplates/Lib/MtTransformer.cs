@@ -20,6 +20,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private readonly Dictionary<string, string> _renderMethods = new();
     private readonly Dictionary<string, string> _maniaScriptRenderMethods = new();
     private int _loopDepth;
+    private int _conditionChainCount;
 
     /// <summary>
     /// Creates the target language template, which can be pre-processed for faster rendering.
@@ -163,7 +164,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         Snippet snippet = [];
 
         var nodeId = 1;
-        MtCondition? previousCondition = null;
+        string? openConditionChainVariable = null;
         foreach (XmlNode childNode in node.ChildNodes)
         {
             var subSnippet = new Snippet();
@@ -180,10 +181,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                     $"The {condition.AttributeName} attribute on <{tag}> must not be combined with a {loop.Keyword} loop, put them on separate nodes instead.");
             }
 
-            if (condition is { Type: not MtConditionType.If })
-            {
-                EnsureConditionContinuesChain(tag, condition, previousCondition);
-            }
+            var conditionChainVariable = GetConditionChainVariable(childNode, tag, condition, openConditionChainVariable);
 
             if (loop != null)
             {
@@ -282,7 +280,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
             if (condition != null)
             {
-                subSnippet = CreateConditionBlock(subSnippet, condition);
+                subSnippet = CreateConditionBlock(subSnippet, condition, conditionChainVariable);
             }
 
             if (loop != null)
@@ -291,8 +289,13 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 _loopDepth--;
             }
 
+            //Comments may be placed between the nodes of a condition chain
+            if (childNode is not XmlComment)
+            {
+                openConditionChainVariable = condition?.Type == MtConditionType.Else ? null : conditionChainVariable;
+            }
+
             snippet.AppendSnippet(subSnippet);
-            previousCondition = condition;
             nodeId++;
         }
 
@@ -666,34 +669,78 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Throws if an else-if or else condition does not directly follow a node with an if or else-if condition.
+    /// Returns the name of the variable tracking whether a condition of the chain the node belongs to was met.
+    /// Returns null for nodes without condition and if-conditions not continued by an else-if or else.
     /// </summary>
-    private static void EnsureConditionContinuesChain(string tag, MtCondition condition,
-        MtCondition? previousCondition)
+    private string? GetConditionChainVariable(XmlNode node, string tag, MtCondition? condition,
+        string? openConditionChainVariable)
     {
-        if (previousCondition is null or { Type: MtConditionType.Else })
+        switch (condition?.Type)
         {
-            throw new InvalidConditionException(
-                $"The {condition.AttributeName} attribute on <{tag}> must directly follow a node with an if or else-if attribute.");
+            case null:
+                return null;
+
+            case MtConditionType.If:
+                return IsConditionChainContinued(node) ? $"__conditionChain{++_conditionChainCount}" : null;
+
+            default:
+                return openConditionChainVariable ?? throw new InvalidConditionException(
+                    $"The {condition.AttributeName} attribute on <{tag}> must follow a node with an if or else-if attribute, only comments may be in between.");
         }
     }
 
     /// <summary>
-    /// Wraps the snippet in an if, else-if or else block.
+    /// Checks whether the next sibling node, ignoring comments, continues a condition chain with else-if or else.
     /// </summary>
-    private Snippet CreateConditionBlock(Snippet input, MtCondition condition)
+    private static bool IsConditionChainContinued(XmlNode node)
+    {
+        var sibling = node.NextSibling;
+        while (sibling is XmlComment)
+        {
+            sibling = sibling.NextSibling;
+        }
+
+        return sibling?.Attributes?["else-if"] != null || sibling?.Attributes?["else"] != null;
+    }
+
+    /// <summary>
+    /// Wraps the snippet in a condition block.
+    /// Conditions of a chain are rendered as separate if-blocks sharing a variable that tracks whether a condition
+    /// was met, which allows rendering comments between them.
+    /// </summary>
+    private Snippet CreateConditionBlock(Snippet input, MtCondition condition, string? conditionChainVariable)
     {
         var snippet = new Snippet();
         var expression = ICurlyBraceMethods.TemplateInterpolationRegex.Replace(condition.Expression, "$1");
-        var header = condition.Type switch
-        {
-            MtConditionType.If => $"if ({expression})",
-            MtConditionType.ElseIf => $"else if ({expression})",
-            _ => "else"
-        };
 
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, $"{header} {{");
+
+        if (conditionChainVariable == null)
+        {
+            snippet.AppendLine(null, $"if ({expression}) {{");
+        }
+        else
+        {
+            switch (condition.Type)
+            {
+                case MtConditionType.If:
+                    snippet.AppendLine(null, $"var {conditionChainVariable} = false;");
+                    snippet.AppendLine(null, $"if ({expression}) {{");
+                    break;
+                case MtConditionType.ElseIf:
+                    snippet.AppendLine(null, $"if (!{conditionChainVariable} && ({expression})) {{");
+                    break;
+                default:
+                    snippet.AppendLine(null, $"if (!{conditionChainVariable}) {{");
+                    break;
+            }
+
+            if (condition.Type != MtConditionType.Else)
+            {
+                snippet.AppendLine(null, $"{conditionChainVariable} = true;");
+            }
+        }
+
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());

@@ -218,7 +218,7 @@ public class ManialinkEngineTest
 
     [Theory]
     [InlineData("<label else=\"\"/>")]
-    [InlineData("<label if=\"true\"/><!-- comment --><label else=\"\"/>")]
+    [InlineData("<label if=\"true\"/>text<label else=\"\"/>")]
     [InlineData("<label if=\"true\"/><label else=\"\"/><label else=\"\"/>")]
     [InlineData("<label if=\"true\"/><label/><label else-if=\"true\"/>")]
     [InlineData("<label foreach=\"int i in list\" if=\"i > 0\"/>")]
