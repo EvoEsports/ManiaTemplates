@@ -170,12 +170,12 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             var attributeList = IXmlMethods.GetAttributes(childNode);
             var currentContext = oldContext;
 
-            var forEachCondition = attributeList.PullForeachCondition(oldContext, nodeId, _loopDepth);
+            var loop = attributeList.PullLoop(oldContext, nodeId, _loopDepth + 1);
             var ifCondition = attributeList.PullIfCondition();
 
-            if (forEachCondition != null)
+            if (loop != null)
             {
-                currentContext = forEachCondition.Context;
+                currentContext = loop.Context;
                 _loopDepth++;
             }
 
@@ -273,9 +273,9 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 subSnippet = CreateIfBlock(subSnippet, ifCondition);
             }
 
-            if (forEachCondition != null)
+            if (loop != null)
             {
-                subSnippet = CreateForEachBlock(subSnippet, forEachCondition);
+                subSnippet = CreateLoopBlock(subSnippet, loop);
                 _loopDepth--;
             }
 
@@ -672,27 +672,21 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Wraps the snippet in a foreach-loop.
+    /// Wraps the snippet in a loop, exposing the zero-based iteration index to the loop body.
+    /// The surrounding block scopes the iteration counter, so sibling loops do not collide.
     /// </summary>
-    private Snippet CreateForEachBlock(Snippet input, MtForeach foreachLoop)
+    private Snippet CreateLoopBlock(Snippet input, MtLoop loop)
     {
-        var outerIndexVariableName = "__outerIndex" + (new Random()).Next();
-        var innerIndexVariableName = "__index";
-
-        if (_loopDepth > 1)
-        {
-            innerIndexVariableName += _loopDepth;
-        }
-
         var snippet = new Snippet();
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, $"var {outerIndexVariableName} = 0;");
-        snippet.AppendLine(null, $"foreach ({foreachLoop.Condition}) {{");
-        snippet.AppendLine(null, $"var {innerIndexVariableName} = {outerIndexVariableName};");
+        snippet.AppendLine(null, "{");
+        snippet.AppendLine(null, $"var {loop.CounterVariableName} = 0;");
+        snippet.AppendLine(null, $"{loop.Keyword} ({loop.Condition}) {{");
+        snippet.AppendLine(null, $"var {loop.IndexVariableName} = {loop.CounterVariableName}++;");
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, $"{outerIndexVariableName}++;");
+        snippet.AppendLine(null, "}");
         snippet.AppendLine(null, "}");
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockEnd());
 

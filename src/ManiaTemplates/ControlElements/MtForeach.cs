@@ -1,14 +1,11 @@
 ﻿using System.Text.RegularExpressions;
-using ManiaTemplates.Components;
 using ManiaTemplates.Exceptions;
 
 namespace ManiaTemplates.ControlElements;
 
-public class MtForeach
+public class MtForeach : MtLoop
 {
-    public required string Condition { get; init; }
-    public required List<MtForeachVariable> Variables { get; init; }
-    public required MtDataContext Context { get; init; }
+    public override string Keyword => "foreach";
 
     private static readonly Regex ForeachConditionRegex =
         new(@"^(?:ref\s+)?(?:readonly\s+)?(?:(T|V|var|[a-zA-Z].*?)\s+)?(.+?)\s+in\s(.+)$");
@@ -16,7 +13,7 @@ public class MtForeach
     private static readonly Regex ForeachVariablesRegex = new(@"^\(?(.+?)(?:$|,\s*(.+)\))");
     private static readonly Regex ForeachVariablesTypeSplitterRegex = new(@"^(.+?)(?:$|\s+(.+)$)");
 
-    public static MtForeach FromString(string foreachAttributeValue, MtDataContext context, int nodeId, int loopDepth)
+    public static MtForeach FromString(string foreachAttributeValue, MtDataContext context, int nodeId, int depth)
     {
         //Match the value of the foreach-attribute of the XmlNode.
         //Split it into type, variables (var x, var (x,y), ...) and the source.
@@ -42,7 +39,7 @@ public class MtForeach
             throw new ParsingForeachLoopFailedException("Failed to parse variables of foreach condition.");
         }
 
-        var foundVariables = new List<MtForeachVariable>();
+        var foundVariables = new List<MtLoopVariable>();
         foreach (var group in variablesMatch.Groups.Values.Skip(1))
         {
             if (group.Length == 0) continue;
@@ -60,7 +57,7 @@ public class MtForeach
 
             if (nameOrEmpty.Length == 0)
             {
-                foundVariables.Add(new MtForeachVariable
+                foundVariables.Add(new MtLoopVariable
                 {
                     Type = type,
                     Name = typeOrName.Value
@@ -74,7 +71,7 @@ public class MtForeach
                         "You may not use var in foreach loops, please specify type.");
                 }
 
-                foundVariables.Add(new MtForeachVariable
+                foundVariables.Add(new MtLoopVariable
                 {
                     Type = typeOrName.Value,
                     Name = nameOrEmpty.Value
@@ -83,32 +80,17 @@ public class MtForeach
         }
 
         //Prevent user defining __index variable
-        if (foundVariables.Any(variable => variable.Name.StartsWith("__")))
+        if (UsesReservedVariableName(foundVariables))
         {
             throw new ParsingForeachLoopFailedException("User defined variables must not start with __.");
-        }
-
-        var indexVariable = "__index";
-        if (loopDepth > 0)
-        {
-            indexVariable += (loopDepth + 1);
-        }
-
-        var newContext = new MtDataContext($"ForEachLoop{nodeId}")
-        {
-            { indexVariable, "int" },
-        };
-
-        foreach (var variable in foundVariables)
-        {
-            newContext[variable.Name] = variable.Type;
         }
 
         return new MtForeach
         {
             Condition = foreachAttributeValue,
             Variables = foundVariables,
-            Context = newContext.NewContext(context)
+            Depth = depth,
+            Context = CreateContext($"ForEachLoop{nodeId}", depth, foundVariables, context)
         };
     }
 }

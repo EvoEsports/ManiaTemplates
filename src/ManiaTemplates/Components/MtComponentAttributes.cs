@@ -13,12 +13,12 @@ public class MtComponentAttributes : Dictionary<string, MtComponentAttribute>
     }
 
     /// <summary>
-    /// Checks the attribute list for loop-condition and returns it, else null.
+    /// Checks the attribute list for loop-condition and if found removes & returns it, else null.
     /// </summary>
-    public MtForeach? PullForeachCondition(MtDataContext context, int nodeId, int loopDepth)
+    public MtLoop? PullLoop(MtDataContext context, int nodeId, int depth)
     {
         return ContainsKey("foreach")
-            ? MtForeach.FromString(Pull("foreach"), context, nodeId, loopDepth)
+            ? MtForeach.FromString(Pull("foreach"), context, nodeId, depth)
             : null;
     }
 
