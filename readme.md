@@ -43,6 +43,30 @@ a template with conditional rendering and loops.
 </component>
 ````
 
+### Loops and conditions
+
+Any node, including components, can be repeated or rendered conditionally using the following attributes.
+
+| Attribute | Example                             | Description                                                                 |
+|-----------|-------------------------------------|-----------------------------------------------------------------------------|
+| `foreach` | `foreach="int i in numbers"`        | Renders the node for each element. The type of the variables is required.   |
+| `for`     | `for="int i = 0; i < count; i++"`   | Renders the node like a C# for loop. The type of the variables is required. |
+| `if`      | `if="i > 1"`                        | Only renders the node if the condition is true.                             |
+| `else-if` | `else-if="i == 1"`                  | Continues the condition chain of the preceding node.                        |
+| `else`    | `else=""`                           | Renders the node if no condition of the chain was true.                     |
+
+Inside loops the zero-based iteration index is available as `__index`, nested loops use `__index2`, `__index3` and so
+on.
+
+When combining `if` with a loop on the same node, the condition is evaluated for each iteration.
+`else-if` and `else` nodes must directly follow a node with an `if` or `else-if` attribute (without comments in
+between), and their condition is evaluated once, before a loop on the same node:
+
+````xml
+<label if="maps.Count == 0" text="No maps found."/>
+<label else="" foreach="Map map in maps" text="{{ map.Name }}"/>
+````
+
 ### How it works
 
 Before rendering a template, all components are combined into a
