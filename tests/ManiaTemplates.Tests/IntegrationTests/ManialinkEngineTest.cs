@@ -179,6 +179,25 @@ public class ManialinkEngineTest
     }
 
     [Fact]
+    public async void Should_Pass_Foreach_Variables_To_Slots()
+    {
+        var testComponent = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test-component.mt");
+        var foreachTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/foreach-variables-test.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/foreach-variables-test.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("TestComponent", testComponent);
+        _maniaTemplateEngine.AddTemplateFromString("ForeachVariablesTest", foreachTemplate);
+
+        var template = _maniaTemplateEngine.RenderAsync("ForeachVariablesTest", new
+        {
+            scores = new Dictionary<string, int> { { "a", 1 }, { "b", 2 } },
+            entries = new List<(string, (int, bool))> { ("x", (5, true)), ("y", (7, false)) }
+        }, assemblies).Result;
+        Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
     public async void Should_Pass_Unmapped_Node_Attributes_To_Component_Root_Element()
     {
         var wrapperComponent = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");
