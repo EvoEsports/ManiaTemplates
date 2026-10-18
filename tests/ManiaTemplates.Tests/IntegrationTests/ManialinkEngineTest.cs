@@ -87,6 +87,44 @@ public class ManialinkEngineTest
     }
 
     [Fact]
+    public async void Should_Apply_Conditions_And_Loops_To_Slot_Templates()
+    {
+        var componentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component-multi-slot.mt");
+        var slotTemplates = await File.ReadAllTextAsync("IntegrationTests/templates/slot-templates.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/slot-templates.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", componentTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("SlotTemplates", slotTemplates);
+
+        var result = _maniaTemplateEngine.RenderAsync("SlotTemplates", new { show = false }, assemblies).Result;
+        Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public async void Should_Throw_Exception_For_Else_On_Named_Slot_Template()
+    {
+        var componentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component-multi-slot.mt");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", componentTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("ElseSlot", """
+            <component>
+                <import component="SlotsComponent" as="SlotsComponent"/>
+                <template>
+                    <SlotsComponent>
+                        <label if="true" text="default"/>
+                        <template slot="footer" else=""><label/></template>
+                    </SlotsComponent>
+                </template>
+            </component>
+            """);
+
+        await Assert.ThrowsAsync<InvalidConditionException>(() =>
+            _maniaTemplateEngine.RenderAsync("ElseSlot", new { }, assemblies));
+    }
+
+    [Fact]
     public async void Should_Throw_Exception_For_Duplicate_Slot_In_Source_Template()
     {
         var namedSlotsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/named-slots.mt");

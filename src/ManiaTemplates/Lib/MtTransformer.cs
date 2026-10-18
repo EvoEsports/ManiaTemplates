@@ -351,8 +351,14 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
             if (component.Slots.Contains(slotName))
             {
-                //Only add templates, if the component does have a fitting slot
-                contentsByName[slotName] = childNode.Clone();
+                //Only add templates, if the component does have a fitting slot.
+                //The template is rendered as fragment, so conditions and loops on it are applied.
+                var slotTemplate = (XmlElement)childNode.Clone();
+                slotTemplate.RemoveAttribute("slot");
+
+                var slotContent = childNode.OwnerDocument!.CreateElement("slot-content");
+                slotContent.AppendChild(slotTemplate);
+                contentsByName[slotName] = slotContent;
             }
 
             componentNode.RemoveChild(childNode);
