@@ -252,6 +252,39 @@ public class ManialinkEngineTest
     }
 
     [Fact]
+    public async void Should_Render_Fragment_Children_Only()
+    {
+        var slotsComponent = await File.ReadAllTextAsync("IntegrationTests/templates/component-multi-slot.mt");
+        var fragmentRootComponent = await File.ReadAllTextAsync("IntegrationTests/templates/component-fragment-root.mt");
+        var fragmentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/fragment-test.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/fragment-test.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", slotsComponent);
+        _maniaTemplateEngine.AddTemplateFromString("FragmentRoot", fragmentRootComponent);
+        _maniaTemplateEngine.AddTemplateFromString("FragmentTest", fragmentTemplate);
+
+        var template = _maniaTemplateEngine.RenderAsync("FragmentTest", new
+        {
+            numbers = new List<int> { 1, 2 }
+        }, assemblies).Result;
+        Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
+
+    [Theory]
+    [InlineData("<template pos=\"1 2\"><label/></template>")]
+    [InlineData("<frame><template slot=\"footer\"><label/></template></frame>")]
+    public async void Should_Throw_Exception_For_Fragment_Attributes(string templateContent)
+    {
+        _maniaTemplateEngine.AddTemplateFromString("InvalidFragment",
+            $"<component><template>{templateContent}</template></component>");
+
+        await Assert.ThrowsAsync<UnsupportedAttributeException>(() =>
+            _maniaTemplateEngine.RenderAsync("InvalidFragment", new { },
+                new[] { typeof(ManiaTemplateEngine).Assembly }));
+    }
+
+    [Fact]
     public async void Should_Pass_Unmapped_Node_Attributes_To_Component_Root_Element()
     {
         var wrapperComponent = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");

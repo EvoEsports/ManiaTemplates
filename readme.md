@@ -60,14 +60,16 @@ on.
 
 `else-if` and `else` nodes must follow a node with an `if` or `else-if` attribute, only comments may be in between.
 
-A node can either have a loop or a condition, to make the evaluation order explicit, nest them instead:
+A node can either have a loop or a condition, to make the evaluation order explicit, nest them instead.
+To group nodes without adding an element to the output, use a `<template>` fragment, which only renders its children
+and supports no attributes other than loops and conditions:
 
 ````xml
 <label if="maps.Count == 0" text="No maps found."/>
 <!-- List all maps otherwise -->
-<frame else="">
+<template else="">
     <label foreach="Map map in maps" text="{{ map.Name }}"/>
-</frame>
+</template>
 ````
 
 ### How it works

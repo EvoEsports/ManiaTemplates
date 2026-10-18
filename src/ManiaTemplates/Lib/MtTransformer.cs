@@ -23,6 +23,11 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private int _conditionChainCount;
 
     /// <summary>
+    /// Tag of nodes that only render their children, without producing an element themselves.
+    /// </summary>
+    private const string FragmentTag = "template";
+
+    /// <summary>
     /// Creates the target language template, which can be pre-processed for faster rendering.
     /// </summary>
     public string BuildManialink(MtComponent rootComponent, string className, int version = 3)
@@ -232,6 +237,12 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                             .AppendLine($"{GetSlotRendererVariableName(slotName)}();")
                             .AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
                         break;
+                    case FragmentTag:
+                        //Fragments only render their children, which allows grouping nodes for conditions and loops
+                        EnsureFragmentHasNoAttributes(attributeList);
+                        subSnippet.AppendLine(ProcessNode(childNode, componentMap, currentContext, rootComponent,
+                            parentComponent: parentComponent));
+                        break;
 
                     default:
                     {
@@ -417,7 +428,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             }
             else
             {
-                if (templateContentNode.ChildNodes.Count != 1)
+                if (templateContentNode.ChildNodes.Count != 1 || templateContentNode.FirstChild?.Name == FragmentTag)
                 {
                     //Only add fallthrough attributes if the component template has only one root element
                     continue;
@@ -667,6 +678,27 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             .AppendJoin("\n", _maniaScriptRenderMethods.Values)
             .AppendJoin("\n", _slots.Select(slot => slot.RenderMethodT4))
             .ToString();
+    }
+
+    /// <summary>
+    /// Throws if a fragment has attributes left after pulling conditions and loops, as they can not be rendered.
+    /// </summary>
+    private static void EnsureFragmentHasNoAttributes(MtComponentAttributes attributeList)
+    {
+        //Default slot contents may be wrapped in <template slot="default">
+        if (attributeList.TryGetValue("slot", out var slotAttribute) &&
+            slotAttribute.Value.Trim().Equals("default", StringComparison.OrdinalIgnoreCase))
+        {
+            attributeList.Remove("slot");
+        }
+
+        if (attributeList.Count == 0)
+        {
+            return;
+        }
+
+        throw new UnsupportedAttributeException(
+            $"<{FragmentTag}> only supports conditions and loops, found: {string.Join(", ", attributeList.Keys)}. Named slots can only be filled in direct children of components.");
     }
 
     /// <summary>
