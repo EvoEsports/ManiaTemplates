@@ -1,4 +1,4 @@
-<manialink version="3" id="MtConditionsTest" name="EvoSC#-MtConditionsTest">
+﻿<manialink version="3" id="MtConditionsTest" name="EvoSC#-MtConditionsTest">
 <frame>
 <label text="one" />
 </frame>
@@ -12,10 +12,12 @@
 <frame>
 <label text="other 4" />
 </frame>
-<!--  Else branches wrap the loop of their node  -->
+<!--  Loops in branches  -->
 <label text="no entries" />
+<frame>
 <label text="entry 1 at 0" />
 <label text="entry 2 at 1" />
+</frame>
 <!--  Chain without matching branch, directly followed by a new chain  -->
 <label text="new chain" />
 </manialink>

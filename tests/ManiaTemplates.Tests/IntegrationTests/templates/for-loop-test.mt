@@ -14,8 +14,10 @@
         <frame foreach="string name in names">
             <label for="int i = 0; i < 2; i++" text="{{ name }} {{ i }} at {{ __index }}, {{ __index2 }}"/>
         </frame>
-        <!-- Condition is evaluated per iteration -->
-        <label for="int i = 0; i < 5; i++" if="i % 2 == 0" text="even {{ i }}"/>
+        <!-- Conditions inside the loop are evaluated per iteration -->
+        <frame for="int i = 0; i < 3; i++">
+            <label if="i % 2 == 0" text="even {{ i }}"/>
+        </frame>
         <!-- Loop variables are passed to components and slots -->
         <TestComponent for="int i = 3; i > 1; i--" i="{{ i }}">
             <label text="slot {{ i }} at {{ __index }}"/>

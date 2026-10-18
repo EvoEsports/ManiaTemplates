@@ -164,7 +164,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
         var nodeId = 1;
         MtCondition? previousCondition = null;
-        var previousHasLoop = false;
         foreach (XmlNode childNode in node.ChildNodes)
         {
             var subSnippet = new Snippet();
@@ -175,9 +174,15 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             var loop = attributeList.PullLoop(oldContext, nodeId, _loopDepth + 1);
             var condition = attributeList.PullCondition();
 
+            if (loop != null && condition != null)
+            {
+                throw new InvalidConditionException(
+                    $"The {condition.AttributeName} attribute on <{tag}> must not be combined with a {loop.Keyword} loop, put them on separate nodes instead.");
+            }
+
             if (condition is { Type: not MtConditionType.If })
             {
-                EnsureConditionContinuesChain(tag, condition, previousCondition, previousHasLoop);
+                EnsureConditionContinuesChain(tag, condition, previousCondition);
             }
 
             if (loop != null)
@@ -275,7 +280,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 }
             }
 
-            if (condition is { IsEvaluatedPerLoopIteration: true })
+            if (condition != null)
             {
                 subSnippet = CreateConditionBlock(subSnippet, condition);
             }
@@ -286,14 +291,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 _loopDepth--;
             }
 
-            if (condition is { IsEvaluatedPerLoopIteration: false })
-            {
-                subSnippet = CreateConditionBlock(subSnippet, condition);
-            }
-
             snippet.AppendSnippet(subSnippet);
             previousCondition = condition;
-            previousHasLoop = loop != null;
             nodeId++;
         }
 
@@ -670,18 +669,12 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// Throws if an else-if or else condition does not directly follow a node with an if or else-if condition.
     /// </summary>
     private static void EnsureConditionContinuesChain(string tag, MtCondition condition,
-        MtCondition? previousCondition, bool previousHasLoop)
+        MtCondition? previousCondition)
     {
         if (previousCondition is null or { Type: MtConditionType.Else })
         {
             throw new InvalidConditionException(
                 $"The {condition.AttributeName} attribute on <{tag}> must directly follow a node with an if or else-if attribute.");
-        }
-
-        if (previousCondition.IsEvaluatedPerLoopIteration && previousHasLoop)
-        {
-            throw new InvalidConditionException(
-                $"The {condition.AttributeName} attribute on <{tag}> must not follow a node combining if with a loop, because the if is evaluated for each iteration.");
         }
     }
 

@@ -221,7 +221,9 @@ public class ManialinkEngineTest
     [InlineData("<label if=\"true\"/><!-- comment --><label else=\"\"/>")]
     [InlineData("<label if=\"true\"/><label else=\"\"/><label else=\"\"/>")]
     [InlineData("<label if=\"true\"/><label/><label else-if=\"true\"/>")]
-    [InlineData("<label foreach=\"int i in list\" if=\"i > 0\"/><label else=\"\"/>")]
+    [InlineData("<label foreach=\"int i in list\" if=\"i > 0\"/>")]
+    [InlineData("<label if=\"true\"/><label else=\"\" foreach=\"int i in list\"/>")]
+    [InlineData("<label if=\"true\"/><label else-if=\"true\" for=\"int i = 0; i < 1; i++\"/>")]
     [InlineData("<label if=\"true\" else=\"\"/>")]
     [InlineData("<label if=\"true\"/><label else=\"false\"/>")]
     public async void Should_Throw_Exception_For_Invalid_Condition_Chain(string templateContent)

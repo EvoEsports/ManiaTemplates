@@ -25,10 +25,4 @@ public class MtCondition
         MtConditionType.ElseIf => "else-if",
         _ => "else"
     };
-
-    /// <summary>
-    /// Whether the condition is evaluated for each iteration when combined with a loop on the same node.
-    /// Conditions continuing a chain (else-if, else) are evaluated once and wrap the loop instead.
-    /// </summary>
-    public bool IsEvaluatedPerLoopIteration => Type == MtConditionType.If;
 }

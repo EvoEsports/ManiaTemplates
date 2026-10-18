@@ -14,14 +14,20 @@ private List<string> __insertedOneTimeManiaScripts = new List<string>();
 private List<Action> __maniaScriptRenderMethods = new List<Action>();
 private static void DoNothing(){}
 private void RenderBody() {
+if (enabled) {
+#>
+<frame>
+<#+
 {
 var __loopCounter1 = 0;
 foreach (int i in numbers) {
 var __index = __loopCounter1++;
-if (enabled) {
 Render_Component_MtContext1ForEachLoop1_(x: (20 * __index), __slotRenderer_default: () => Render_Slot_2_default(__index: __index, i: i));
 }
 }
+#>
+</frame>
+<#+
 }
 Render_Component_MtContext1(__slotRenderer_default: () => Render_Slot_3_default());
 foreach(var maniaScriptRenderMethod in __maniaScriptRenderMethods){ maniaScriptRenderMethod(); }
@@ -80,14 +86,20 @@ __insertedOneTimeManiaScripts.Add("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU="
 <#+
 }
 private void Render_Slot_2_default(int __index, int i) {
+if (i < numbers.Count) {
+#>
+<frame>
+<#+
 {
 var __loopCounter2 = 0;
 foreach (int j in numbers.GetRange(0, i)) {
 var __index2 = __loopCounter2++;
-if (i < numbers.Count) {
 Render_Component_MtContext4ForEachLoop1_ForEachLoop1_(text: $"{(i)}, {(j)} at index {(__index)}, {(__index2)}");
 }
 }
+#>
+</frame>
+<#+
 }
 }
 private void Render_Slot_6_default() {

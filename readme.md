@@ -58,13 +58,15 @@ Any node, including components, can be repeated or rendered conditionally using 
 Inside loops the zero-based iteration index is available as `__index`, nested loops use `__index2`, `__index3` and so
 on.
 
-When combining `if` with a loop on the same node, the condition is evaluated for each iteration.
-`else-if` and `else` nodes must directly follow a node with an `if` or `else-if` attribute (without comments in
-between), and their condition is evaluated once, before a loop on the same node:
+`else-if` and `else` nodes must directly follow a node with an `if` or `else-if` attribute.
+
+A node can either have a loop or a condition, to make the evaluation order explicit, nest them instead:
 
 ````xml
 <label if="maps.Count == 0" text="No maps found."/>
-<label else="" foreach="Map map in maps" text="{{ map.Name }}"/>
+<frame else="">
+    <label foreach="Map map in maps" text="{{ map.Name }}"/>
+</frame>
 ````
 
 ### How it works

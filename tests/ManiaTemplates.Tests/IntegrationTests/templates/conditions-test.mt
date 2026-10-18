@@ -1,4 +1,4 @@
-<component>
+﻿<component>
     <using namespace="System.Collections.Generic"/>
 
     <import component="TestComponent" as="TestComponent"/>
@@ -15,11 +15,15 @@
             </TestComponent>
             <label else="" text="other {{ n }}"/>
         </frame>
-        <!-- Else branches wrap the loop of their node -->
+        <!-- Loops in branches -->
         <label if="empty.Count == 0" text="no entries"/>
-        <label else="" foreach="int n in empty" text="entry {{ n }}"/>
+        <frame else="">
+            <label foreach="int n in empty" text="entry {{ n }}"/>
+        </frame>
         <label if="numbers.Count == 0" text="no entries"/>
-        <label else="" for="int i = 0; i < 2; i++" text="entry {{ numbers[i] }} at {{ __index }}"/>
+        <frame else="">
+            <label for="int i = 0; i < 2; i++" text="entry {{ numbers[i] }} at {{ __index }}"/>
+        </frame>
         <!-- Chain without matching branch, directly followed by a new chain -->
         <label if="numbers.Count == 0" text="hidden"/>
         <label else-if="numbers.Count > 100" text="hidden"/>

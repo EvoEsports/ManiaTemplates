@@ -1,5 +1,21 @@
 ﻿<manialink version="3" id="MtEscapeTest" name="EvoSC#-MtEscapeTest">
+<frame>
+</frame>
+<frame>
+</frame>
+<frame>
 <label text="2" data-cond="True" />
+</frame>
+<frame>
 <label text="3" data-cond="True" />
+</frame>
+<frame>
 <label text="0" data-cond="False" />
+</frame>
+<frame>
+</frame>
+<frame>
+</frame>
+<frame>
+</frame>
 </manialink>

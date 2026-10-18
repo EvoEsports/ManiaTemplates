@@ -14,10 +14,15 @@
 <label text="b 0 at 1, 0" />
 <label text="b 1 at 1, 1" />
 </frame>
-<!--  Condition is evaluated per iteration  -->
+<!--  Conditions inside the loop are evaluated per iteration  -->
+<frame>
 <label text="even 0" />
+</frame>
+<frame>
+</frame>
+<frame>
 <label text="even 2" />
-<label text="even 4" />
+</frame>
 <!--  Loop variables are passed to components and slots  -->
 <label text="inner_3" />
 <label text="slot 3 at 0" />
