@@ -110,15 +110,18 @@ Besides the unnamed default slot, a component can define named slots:
 
 All children of a component node fill the default slot.
 Named slots are filled using `<template slot="name">` nodes, which must be direct children of the component node.
-Templates for slots the component does not define are ignored.
-Slot templates are [fragments](#fragments), so loops and conditions can be applied to them:
+Each slot can only be filled by one template, templates for slots the component does not define are ignored.
+
+Slots and the templates filling them do not support loops and conditions, place them inside the template or use a
+[fragment](#fragments) around the slot instead:
 
 ````xml
 <Panel>
     <label text="Rendered in the default slot"/>
 
-    <template slot="footer" if="showFooter">
-        <label text="Rendered in the footer slot"/>
+    <template slot="footer">
+        <label if="showFooter" text="Rendered in the footer slot"/>
+        <label else="" text="Rendered otherwise"/>
     </template>
 </Panel>
 ````

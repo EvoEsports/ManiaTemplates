@@ -101,27 +101,31 @@ public class ManialinkEngineTest
         Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
     }
 
-    [Fact]
-    public async void Should_Throw_Exception_For_Else_On_Named_Slot_Template()
+    [Theory]
+    [InlineData("<template slot=\"footer\" if=\"true\"><label/></template>", null)]
+    [InlineData("<template slot=\"footer\" foreach=\"int i in list\"><label/></template>", null)]
+    [InlineData("<label/><template slot=\"footer\" text=\"ignored\"><label/></template>", null)]
+    [InlineData("<template slot=\"default\" if=\"true\"><label/></template>", null)]
+    [InlineData("<label/>", "<frame><slot if=\"true\"/><slot name=\"footer\"/></frame>")]
+    [InlineData("<label/>", "<frame><label if=\"true\"/><slot else=\"\"/><slot name=\"footer\"/></frame>")]
+    [InlineData("<label/>", "<frame><slot/><slot name=\"footer\" for=\"int i = 0; i < 2; i++\"/></frame>")]
+    public async void Should_Throw_Exception_For_Control_Flow_On_Slots(string slotContent, string? componentTemplate)
     {
-        var componentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component-multi-slot.mt");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
-
-        _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", componentTemplate);
-        _maniaTemplateEngine.AddTemplateFromString("ElseSlot", """
+        _maniaTemplateEngine.AddTemplateFromString("SlotsComponent",
+            $"<component><template>{componentTemplate ?? "<frame><slot/><slot name=\"footer\"/></frame>"}</template></component>");
+        _maniaTemplateEngine.AddTemplateFromString("ControlFlowOnSlot", $"""
             <component>
                 <import component="SlotsComponent" as="SlotsComponent"/>
+                <property type="List<int>" name="list"/>
                 <template>
-                    <SlotsComponent>
-                        <label if="true" text="default"/>
-                        <template slot="footer" else=""><label/></template>
-                    </SlotsComponent>
+                    <SlotsComponent>{slotContent}</SlotsComponent>
                 </template>
             </component>
             """);
 
-        await Assert.ThrowsAsync<InvalidConditionException>(() =>
-            _maniaTemplateEngine.RenderAsync("ElseSlot", new { }, assemblies));
+        await Assert.ThrowsAsync<UnsupportedAttributeException>(() =>
+            _maniaTemplateEngine.RenderAsync("ControlFlowOnSlot", new { list = new List<int>() },
+                new[] { typeof(ManiaTemplateEngine).Assembly }));
     }
 
     [Fact]

@@ -7,20 +7,24 @@
         <!-- Hidden footer -->
         <SlotsComponent>
             <label text="default"/>
-            <template slot="footer" if="show">
-                <label text="hidden"/>
+            <template slot="footer">
+                <template if="show">
+                    <label text="hidden"/>
+                </template>
             </template>
         </SlotsComponent>
         <!-- Repeated footer -->
         <SlotsComponent>
-            <template slot="footer" for="int i = 0; i < 2; i++">
-                <label text="footer {{ i }}"/>
+            <template slot="footer">
+                <label for="int i = 0; i < 2; i++" text="footer {{ i }}"/>
             </template>
         </SlotsComponent>
         <!-- Default slot template with condition -->
         <SlotsComponent>
-            <template slot="default" if="!show">
-                <label text="shown"/>
+            <template slot="default">
+                <template if="!show">
+                    <label text="shown"/>
+                </template>
             </template>
         </SlotsComponent>
     </template>

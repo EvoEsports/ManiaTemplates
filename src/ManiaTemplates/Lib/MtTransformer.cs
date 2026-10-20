@@ -231,6 +231,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                         subSnippet.AppendLine($"<!-- {childNode.InnerText} -->");
                         break;
                     case "slot":
+                        EnsureSlotHasNoControlFlow("<slot>", loop, condition);
                         var slotName = attributeList.PullName().ToLower();
                         subSnippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart())
                             .AppendLine($"{GetSlotRendererVariableName(slotName)}();")
@@ -238,6 +239,11 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                         break;
                     case FragmentTag:
                         //Fragments only render their children, which allows grouping nodes for conditions and loops
+                        if (attributeList.ContainsKey("slot"))
+                        {
+                            EnsureSlotHasNoControlFlow($"<{FragmentTag} slot>", loop, condition);
+                        }
+
                         EnsureFragmentHasNoAttributes(attributeList);
                         subSnippet.AppendLine(ProcessNode(childNode, componentMap, currentContext, rootComponent,
                             parentComponent: parentComponent));
@@ -355,16 +361,16 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                     $"""There are multiple templates for the slot "{slotName}" in <{componentNode.Name}></>.""");
             }
 
+            if (childNode.Attributes!.Count > 1)
+            {
+                throw new UnsupportedAttributeException(
+                    $"Templates filling a slot only support the slot attribute, found: {string.Join(", ", childNode.Attributes.Cast<XmlAttribute>().Select(attribute => attribute.Name).Where(name => name != "slot"))}. Place conditions and loops inside the template instead.");
+            }
+
             if (component.Slots.Contains(slotName))
             {
-                //Only add templates, if the component does have a fitting slot.
-                //The template is rendered as fragment, so conditions and loops on it are applied.
-                var slotTemplate = (XmlElement)childNode.Clone();
-                slotTemplate.RemoveAttribute("slot");
-
-                var slotContent = childNode.OwnerDocument!.CreateElement("slot-content");
-                slotContent.AppendChild(slotTemplate);
-                contentsByName[slotName] = slotContent;
+                //Only add templates, if the component does have a fitting slot
+                contentsByName[slotName] = childNode.Clone();
             }
 
             componentNode.RemoveChild(childNode);
@@ -690,6 +696,21 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             .AppendJoin("\n", _maniaScriptRenderMethods.Values)
             .AppendJoin("\n", _slots.Select(slot => slot.RenderMethodT4))
             .ToString();
+    }
+
+    /// <summary>
+    /// Throws if a slot or a template filling a slot has a condition or loop, which have to be placed inside of it.
+    /// Conditions on slots are ambiguous, as there is a single slot content, which is rendered by the component.
+    /// </summary>
+    private static void EnsureSlotHasNoControlFlow(string node, MtLoop? loop, MtCondition? condition)
+    {
+        if (loop == null && condition == null)
+        {
+            return;
+        }
+
+        throw new UnsupportedAttributeException(
+            $"{node} does not support conditions and loops, place them on a <{FragmentTag}> around or inside of it instead.");
     }
 
     /// <summary>
