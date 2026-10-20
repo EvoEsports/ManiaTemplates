@@ -9,29 +9,67 @@ Used in [EvoSC#](https://github.com/EvoEsports/EvoSC-sharp), our new server cont
 We're using ``.mt`` file extension to discriminate ManiaTemplate from other XML files,
 using `.xml` would work just as well.
 
-## Components
+* [Getting started](#getting-started)
+* [Components](#components)
+* [Writing templates](#writing-templates)
+* [Slots](#slots)
+* [ManiaScript](#maniascript)
+* [How it works](#how-it-works)
+* [Editor setup](#editor-setup)
 
-Components are reusable UI elements with optional properties and at least a template that defines the markup.
-Any component can be included in another one, or rendered individually.
+## Getting started
 
-### Example component
+Register your templates with a `ManiaTemplateEngine` under a key of your choice. To render one, call `RenderAsync` with
+its key and the values for its properties:
 
-The XML below shows an example component importing namespaces and other components, as well as defining two properties,
-a template with conditional rendering and loops.
+````csharp
+var engine = new ManiaTemplateEngine();
+
+//Register the templates when your module loads, the key is used to import and render them
+engine.AddTemplateFromString("MapRow", mapRowTemplate);
+engine.AddTemplateFromString("MapList", mapListTemplate);
+
+//Assemblies containing the types your templates use
+var assemblies = new[] { typeof(Map).Assembly };
+
+//Optional: pre-process the template, so the first render is fast
+await engine.PreProcessAsync("MapList", assemblies);
+
+//Render the manialink as an XML string, the data fills the properties of the template
+var xml = await engine.RenderAsync("MapList", new { maps = GetMaps(), title = "Maps" }, assemblies);
+````
+
+The data can also be an `IDictionary<string, object?>`.
+Templates embedded in your assembly can be added using `LoadTemplateFromEmbeddedResource`, see
+[embedded resources](#embedded-resources).
+
+Values that every template needs, like the server name, can be set once as global variables:
+
+````csharp
+engine.GlobalVariables["serverName"] = "My server";
+````
 
 ````xml
+<label text="{{ serverName }}"/>
+````
 
+## Components
+
+Components are reusable UI elements. Each has a template that defines its markup, and optionally properties that
+receive data. A component can be imported by other components, or rendered on its own.
+
+````xml
 <component>
     <!-- import namespaces -->
     <using namespace="System.Linq"/>
 
-    <!-- import other components -->
+    <!-- import other components, the key is the one the template was added with -->
     <import component="DescriptionBox" as="DescriptionBox"/>
     <import component="Window" as="Wrapper"/>
 
     <!-- define properties -->
     <property name="title" type="string"/>
-    <property name="description" type="string" default="No descripption available."/>
+    <property name="description" type="string" default="No description available."/>
 
     <!-- create the markup -->
     <template>
@@ -43,26 +81,64 @@ a template with conditional rendering and loops.
 </component>
 ````
 
+| Node         | Description                                                                                |
+|--------------|--------------------------------------------------------------------------------------------|
+| `<using>`    | Imports a C# namespace, so its types can be used in expressions and property types.        |
+| `<import>`   | Makes a component available as a node with the name given by `as`.                         |
+| `<property>` | Declares a value the component receives. Properties without a `default` are required.     |
+| `<template>` | The markup of the component.                                                               |
+| `<script>`   | Adds [ManiaScript](#maniascript) to the manialink.                                         |
+
+A component is used like any other node, its properties are set using attributes:
+
+````xml
+<DescriptionBox description="Shown in the box"/>
+````
+
+### Expressions
+
+Attribute values can contain C# expressions inside `{{ }}`. You can use the properties of the component, the variables
+of surrounding loops and [global variables](#getting-started).
+
+````xml
+<label text="{{ player.Name }}" size="{{ width * 2 }} 5"/>
+<DescriptionBox description="Score: {{ score }}"/>
+````
+
+Properties of type `string` can mix text and expressions, like `description="Score: {{ score }}"`.
+Properties of other types take a single expression, like `width="{{ 12.5 }}"`.
+
+### Fallthrough attributes
+
+Attributes that are not properties of the component are passed on to its root element, provided the template has only
+one. This lets you use regular attributes like `pos` or `size` on your components:
+
+````xml
+<Panel pos="10 20" data-id="{{ id }}"/>
+````
+
+Components with multiple root elements, or a [fragment](#fragments) as root, ignore these attributes.
+
+## Writing templates
+
 ### Loops and conditions
 
-Any node, including components, can be repeated or rendered conditionally using the following attributes.
+Any node, including components, can be repeated or rendered conditionally using these attributes.
 
-| Attribute | Example                             | Description                                                                 |
-|-----------|-------------------------------------|-----------------------------------------------------------------------------|
-| `foreach` | `foreach="int i in numbers"`        | Renders the node for each element. The type of the variables is required.   |
-| `for`     | `for="int i = 0; i < count; i++"`   | Renders the node like a C# for loop. The type of the variables is required. |
-| `if`      | `if="i > 1"`                        | Only renders the node if the condition is true.                             |
-| `else-if` | `else-if="i == 1"`                  | Continues the condition chain of the preceding node.                        |
-| `else`    | `else=""`                           | Renders the node if no condition of the chain was true.                     |
+| Attribute | Example                           | Description                                                                 |
+|-----------|-----------------------------------|-----------------------------------------------------------------------------|
+| `foreach` | `foreach="int i in numbers"`      | Renders the node for each element. The type of the variables is required.   |
+| `for`     | `for="int i = 0; i < count; i++"` | Renders the node like a C# for loop. The type of the variables is required. |
+| `if`      | `if="i > 1"`                      | Only renders the node if the condition is true.                             |
+| `else-if` | `else-if="i == 1"`                | Continues the condition chain of the preceding node.                        |
+| `else`    | `else=""`                         | Renders the node if no condition of the chain was true.                     |
 
 Inside loops the zero-based iteration index is available as `__index`, nested loops use `__index2`, `__index3` and so
-on.
-Nested loops must declare variables with different names than their surrounding loops.
+on. Nested loops must declare variables with different names than their surrounding loops.
 
 `else-if` and `else` nodes must follow a node with an `if` or `else-if` attribute, only comments may be in between.
 
-A node can either have a loop or a condition, to make the evaluation order explicit, nest them instead.
-To do so without adding an element to the output, use a [fragment](#fragments):
+A node can have either a loop or a condition. To combine them, nest the nodes using a [fragment](#fragments):
 
 ````xml
 <label if="maps.Count == 0" text="No maps found."/>
@@ -84,15 +160,12 @@ Use it to group nodes for loops and conditions:
 </template>
 ````
 
-As fragments have no element of their own, they only support the loop and condition attributes, any other attribute
-throws an exception.
-A component whose template consists of a single fragment does not receive fallthrough attributes, as it may render
-multiple root elements.
+Fragments only support loop and condition attributes, any other attribute causes an exception.
 
-### Slots
+## Slots
 
-Components can define slots using `<slot/>` nodes, which are filled with content when using the component.
-Besides the unnamed default slot, a component can define named slots:
+Slots let whoever uses a component decide what is rendered inside it, like the content of a window.
+A component defines slots using `<slot/>` nodes. Besides the unnamed default slot, it can define named slots:
 
 ````xml
 <!-- Panel.mt -->
@@ -108,12 +181,10 @@ Besides the unnamed default slot, a component can define named slots:
 </component>
 ````
 
-All children of a component node fill the default slot.
-Named slots are filled using `<template slot="name">` nodes, which must be direct children of the component node.
-Each slot can only be filled by one template, templates for slots the component does not define are ignored.
+### Filling slots
 
-Slots and the templates filling them do not support loops and conditions, place them inside the template or use a
-[fragment](#fragments) around the slot instead:
+All children of a component node fill the default slot.
+Named slots are filled using `<template slot="name">` nodes, which must be direct children of the component node:
 
 ````xml
 <Panel>
@@ -126,9 +197,72 @@ Slots and the templates filling them do not support loops and conditions, place 
 </Panel>
 ````
 
-Slot contents can use the properties and loop variables available where the component is used.
+* Each slot can only be filled by one template.
+* Templates for slots the component does not define are ignored.
+* `<template slot>` itself does not support `if` and loops, use them on the contents inside of it.
+* The contents can use the variables available where you use the component, like its properties and loop variables.
 
-### How it works
+### Slot arguments
+
+A component can pass values to the contents of its slots. They are available in the contents as variables, named after
+the attributes of the `<slot>`:
+
+````xml
+<!-- Usage -->
+<ItemList items="{{ names }}">
+    <label text="{{ item }} at {{ index }}"/>
+</ItemList>
+````
+
+Here `ItemList` passes `item` and `index` to its slot. The documentation of a component lists the arguments it passes.
+Don't give your own variables the same name as a passed argument, this is rejected.
+
+### Defining slots
+
+Slots support all conditions (`if`, `else-if`, `else`) and loops (`for`, `foreach`) to render them conditionally or
+repeatedly. A slot can also be placed at multiple positions, its contents are rendered at each of them:
+
+````xml
+<!-- ItemList.mt -->
+<component>
+    <property type="List<string>" name="items"/>
+    <property type="bool" name="showFooter"/>
+    <template>
+        <template foreach="string item in items">
+            <slot item="{{ item }}" index="{{ __index }}"/>
+        </template>
+        <slot name="footer" if="showFooter"/>
+    </template>
+</component>
+````
+
+Arguments are attributes of the `<slot>`. Their value must be a single variable available at the slot, like a loop
+variable or a property of the component, written like `item="{{ item }}"`. A slot rendered at multiple positions must
+pass the same arguments at each of them.
+
+## ManiaScript
+
+Components can include ManiaScript using `<script>` nodes, either inline or from a script registered with
+`engine.AddManiaScriptFromString("key", script)`:
+
+````xml
+<component>
+    <template>
+        <label id="status" text="Loading"/>
+    </template>
+
+    <script>
+        main() {
+            // ...
+        }
+    </script>
+    <script resource="Shared.Helpers" once="true"/>
+</component>
+````
+
+With the `once` attribute the script is added only a single time, even if the component is used multiple times.
+
+## How it works
 
 Before rendering a template, all components are combined into a
 single [T4 file](https://learn.microsoft.com/en-us/visualstudio/modeling/code-generation-and-t4-text-templates), which
@@ -142,48 +276,36 @@ flowchart LR
     cs -->|render|out[XML string]
 ````
 
-### List of included components
+Errors in expressions, like an unknown variable, are reported when the template is compiled. This happens on the first
+render, or when calling `PreProcessAsync`.
+
+## Included components
 
 [List of global components](components.md)
 
-## Code example
+## Editor setup
 
-How to add component files and render a template.
-
-````csharp
-//Prepare template engine
-var engine = new ManiaTemplateEngine();
-
-//Add resources when module loads
-engine.LoadTemplateFromEmbeddedResource("Tester.Templates.MapRow.mt");
-var mapList = engine.LoadTemplateFromEmbeddedResource("Tester.Templates.MapList.mt");
-
-//Optionally pre-process the template for faster first render
-mapList.PreProcess();
-
-//Render manialink
-var result = mapList.RenderAsync(GetMapListData());
-````
-
-## Setup Rider to recognize mt-files
+### Recognize mt-files in Rider
 
 * Go to **Editor > File Types**, select *XML* in the recognized file types list.
 * Add *.mt* on the right side.
 
-## How to add embedded resources
+### Embedded resources
 
-You can use different sources, but in general we'll use embedded resources for our templates.
-
-### In Rider
-
-Right-click a file, go to **Properties**, then under **Build Action** select *Embedded Resource*.
+Templates can come from any source, but we usually embed them as resources.
+In Rider, right-click a file, go to **Properties** and select *Embedded Resource* as **Build Action**.
 
 To add a whole directory, add the following to the *.csproj* file:
 
 ````xml
-
 <ItemGroup>
     <None Remove="Templates\**\*"/>
     <EmbeddedResource Include="Templates\**\*"/>
 </ItemGroup>
+````
+
+Add embedded files to the engine using their resource path, which also serves as their key:
+
+````csharp
+engine.LoadTemplateFromEmbeddedResource("MyModule.Templates.MapRow.mt");
 ````

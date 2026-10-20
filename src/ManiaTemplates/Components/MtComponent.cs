@@ -241,15 +241,7 @@ public class MtComponent
         {
             foreach (XmlNode childNode in node.ChildNodes)
             {
-                foreach (var slotName in GetSlotNamesInTemplate(childNode))
-                {
-                    if (slotNames.Contains(slotName) && slotName != "default")
-                    {
-                        throw new DuplicateSlotException($"""A slot with the name "{slotName}" already exists.""");
-                    }
-
-                    slotNames.Add(slotName);
-                }
+                slotNames.UnionWith(GetSlotNamesInTemplate(childNode));
             }
         }
 

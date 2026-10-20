@@ -1,0 +1,16 @@
+<manialink version="3" id="MtSlotArgumentsTest" name="EvoSC#-MtSlotArgumentsTest">
+<frame>
+<label text="List 1" />
+<label text="P1: a at 0 in List 1 (0)" />
+<label text="a 7 at 0" />
+<label text="P1: b at 1 in List 1 (0)" />
+<label text="b 7 at 0" />
+</frame>
+<frame>
+<label text="List 2" />
+<label text="P2: a at 0 in List 2 (1)" />
+<label text="a 7 at 0" />
+<label text="P2: b at 1 in List 2 (1)" />
+<label text="b 7 at 0" />
+</frame>
+</manialink>

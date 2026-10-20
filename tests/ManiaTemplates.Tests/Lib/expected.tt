@@ -12,7 +12,6 @@ public List<int> numbers { get; init; }
 public boolean enabled { get; init; } = true;
 private List<string> __insertedOneTimeManiaScripts = new List<string>();
 private List<Action> __maniaScriptRenderMethods = new List<Action>();
-private static void DoNothing(){}
 private void RenderBody() {
 if (enabled) {
 #>
@@ -45,31 +44,31 @@ scriptText3
 </script>
 <#+
 }
+private void Render_Component_MtContext1ForEachLoop1_(SlotRenderer_MtContext1_default? __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
+#>
+<frame pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" z-index="<#= Security.Escape(zIndex) #>">
+<#+
+__slotRenderer_default?.Invoke();
+#>
+</frame>
+<#+
+}
 private void Render_Component_MtContext4ForEachLoop1_ForEachLoop1_(double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = $"left", string valign = $"center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = $"", string url = $"", string manialink = $"", string style = $"", string textfont = $"GameFont", double textsize = 1.0, string textcolor = $"", string focusareacolor1 = $"", string focusareacolor2 = $"", string text = $"", string textprefix = $"", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = $"", string id = $"") {
 #>
 <label pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" halign="<#= Security.Escape(halign) #>" valign="<#= Security.Escape(valign) #>" opacity="<#= Security.Escape(opacity) #>" z-index="<#= Security.Escape(zIndex) #>" ScriptEvents="<#= Security.Escape(events) #>" action="<#= Security.Escape(action) #>" url="<#= Security.Escape(url) #>" manialink="<#= Security.Escape(manialink) #>" style="<#= Security.Escape(style) #>" textfont="<#= Security.Escape(textfont) #>" textsize="<#= Security.Escape(textsize) #>" textcolor="<#= Security.Escape(textcolor) #>" focusareacolor1="<#= Security.Escape(focusareacolor1) #>" focusareacolor2="<#= Security.Escape(focusareacolor2) #>" text="<#= Security.Escape(text) #>" textprefix="<#= Security.Escape(textprefix) #>" textemboss="<#= Security.Escape(bold) #>" autonewline="<#= Security.Escape(autonewline) #>" maxline="<#= Security.Escape(maxline) #>" translate="<#= Security.Escape(translate) #>" textid="<#= Security.Escape(textid) #>" id="<#= Security.Escape(id) #>" />
 <#+
 }
-private void Render_Component_MtContext1ForEachLoop1_(Action __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
+private void Render_Component_MtContext1(SlotRenderer_MtContext1_default? __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
 #>
 <frame pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" z-index="<#= Security.Escape(zIndex) #>">
 <#+
-__slotRenderer_default();
+__slotRenderer_default?.Invoke();
 #>
 </frame>
 <#+
 }
 private void Render_Component_MtContext5(test arg3, string arg1 = $"", int arg2 = 0) {
 __maniaScriptRenderMethods.Add(() => Render_ComponentScript_MtContext5(arg3,arg1,arg2));
-}
-private void Render_Component_MtContext1(Action __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
-#>
-<frame pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" z-index="<#= Security.Escape(zIndex) #>">
-<#+
-__slotRenderer_default();
-#>
-</frame>
-<#+
 }
 private void Render_ComponentScript_MtContext5(test arg3, string arg1 = $"", int arg2 = 0) {
 #>
@@ -113,4 +112,6 @@ Render_Component_MtContext5(arg3: (new test()));
 }
 private void Render_Slot_3_default() {
 Render_Component_MtContext1(__slotRenderer_default: () => Render_Slot_6_default());
-}#>
+}
+private delegate void SlotRenderer_MtContext1_default();
+#>
