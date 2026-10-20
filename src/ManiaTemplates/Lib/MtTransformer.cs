@@ -208,7 +208,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                     component,
                     parentComponent,
                     currentContext,
-                    oldContext,
                     attributeList,
                     slotContents,
                     rootComponent,
@@ -380,7 +379,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         MtComponent component,
         MtComponent parentComponent,
         MtDataContext currentContext,
-        MtDataContext oldContext,
         MtComponentAttributes attributeList,
         Dictionary<string, string> slotContents,
         MtComponent rootComponent,
@@ -506,10 +504,11 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
         if (!_renderMethods.ContainsKey(renderMethodName))
         {
+            //The component is rendered in its own method, so variables of the surrounding template are not available
             var componentBody = ProcessNode(
                 templateContentNode,
                 componentMap.Overload(component.ImportedComponents),
-                oldContext,
+                new MtDataContext(),
                 rootComponent: rootComponent,
                 parentComponent: component,
                 fallthroughAttributesMap: fallthroughAttributesAliasMap

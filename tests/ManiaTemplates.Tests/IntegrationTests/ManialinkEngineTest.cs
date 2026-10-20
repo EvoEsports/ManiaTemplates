@@ -323,6 +323,37 @@ public class ManialinkEngineTest
     }
 
     [Fact]
+    public void Should_Not_Pass_Loop_Variables_Into_Component_Templates()
+    {
+        //The component uses a component with a slot and declares a loop variable with the same name as the outer loop
+        _maniaTemplateEngine.AddTemplateFromString("LoopComponent", """
+            <component>
+                <template>
+                    <Frame>
+                        <label foreach="int i in new[] { 7 }" text="inner {{ i }}"/>
+                    </Frame>
+                </template>
+            </component>
+            """);
+        _maniaTemplateEngine.AddTemplateFromString("ComponentInLoop", """
+            <component>
+                <import component="LoopComponent" as="LoopComponent"/>
+                <template>
+                    <LoopComponent foreach="int i in new[] { 1, 2 }"/>
+                    <frame foreach="int i in new[] { 1, 2 }">
+                        <LoopComponent/>
+                    </frame>
+                </template>
+            </component>
+            """);
+
+        var template = _maniaTemplateEngine.RenderAsync("ComponentInLoop", new { },
+            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+
+        Assert.Equal(4, template.Split("<label text=\"inner 7\" />").Length - 1);
+    }
+
+    [Fact]
     public async void Should_Pass_Unmapped_Node_Attributes_To_Component_Root_Element()
     {
         var wrapperComponent = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");
