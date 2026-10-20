@@ -469,11 +469,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             //The arguments passed by the slot are available in its contents in addition to the variables available where
             //the component is used
             var slotArguments = GetSlotArguments(component, slotName);
-            var slotContext = new MtDataContext(currentContext.ToString());
-            foreach (var (name, type) in currentContext)
-            {
-                slotContext[name] = type;
-            }
+            var slotContext = currentContext.Copy();
 
             foreach (var (name, type) in slotArguments)
             {

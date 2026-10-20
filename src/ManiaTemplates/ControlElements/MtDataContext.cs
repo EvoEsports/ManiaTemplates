@@ -28,6 +28,20 @@ public class MtDataContext : Dictionary<string, string>
         return clone;
     }
 
+    /// <summary>
+    /// Creates a context with the same name, parent and variables, which can be extended without changing this one.
+    /// </summary>
+    public MtDataContext Copy()
+    {
+        var copy = new MtDataContext(_name, ParentContext);
+        foreach (var (name, type) in this)
+        {
+            copy[name] = type;
+        }
+
+        return copy;
+    }
+
     public override string ToString()
     {
         return _name ?? "";

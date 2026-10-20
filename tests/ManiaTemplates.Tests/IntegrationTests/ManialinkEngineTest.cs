@@ -472,6 +472,125 @@ public class ManialinkEngineTest
         Assert.Equal(3, template.Split("<label text=\"T\" />").Length - 1);
     }
 
+    [Fact]
+    public void Should_Pass_Slot_Arguments_When_Component_Is_Used_Twice()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("TwiceUsed", """
+            <component>
+                <property type="string" name="title"/>
+                <template>
+                    <slot value="{{ title }}"/>
+                </template>
+            </component>
+            """);
+        _maniaTemplateEngine.AddTemplateFromString("TwiceUsedUsage", """
+            <component>
+                <import component="TwiceUsed" as="TwiceUsed"/>
+                <template>
+                    <TwiceUsed title="A"><label text="first {{ value }}"/></TwiceUsed>
+                    <TwiceUsed title="B"><label text="second {{ value }}"/></TwiceUsed>
+                </template>
+            </component>
+            """);
+
+        var template = _maniaTemplateEngine.RenderAsync("TwiceUsedUsage", new { },
+            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+
+        Assert.Contains("<label text=\"first A\" />", template);
+        Assert.Contains("<label text=\"second B\" />", template);
+    }
+
+    [Fact]
+    public void Should_Pass_Slot_Arguments_Through_Forwarded_Slot()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("ForwardInner", """
+            <component>
+                <property type="string" name="label" default="I"/>
+                <template>
+                    <frame><slot inner="{{ label }}"/></frame>
+                </template>
+            </component>
+            """);
+        _maniaTemplateEngine.AddTemplateFromString("ForwardOuter", """
+            <component>
+                <import component="ForwardInner" as="ForwardInner"/>
+                <property type="string" name="y"/>
+                <template>
+                    <ForwardInner><slot x="{{ y }}"/></ForwardInner>
+                </template>
+            </component>
+            """);
+        _maniaTemplateEngine.AddTemplateFromString("ForwardUsage", """
+            <component>
+                <import component="ForwardOuter" as="ForwardOuter"/>
+                <template>
+                    <ForwardOuter y="Y"><label text="{{ x }}"/></ForwardOuter>
+                </template>
+            </component>
+            """);
+
+        var template = _maniaTemplateEngine.RenderAsync("ForwardUsage", new { },
+            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+
+        Assert.Contains("<label text=\"Y\" />", template);
+    }
+
+    [Fact]
+    public void Should_Pass_Arguments_To_Named_Slots()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("NamedArgs", """
+            <component>
+                <property type="int" name="count"/>
+                <template>
+                    <slot name="footer" total="{{ count }}"/>
+                </template>
+            </component>
+            """);
+        _maniaTemplateEngine.AddTemplateFromString("NamedArgsUsage", """
+            <component>
+                <import component="NamedArgs" as="NamedArgs"/>
+                <template>
+                    <NamedArgs count="5">
+                        <template slot="footer"><label text="total {{ total }}"/></template>
+                    </NamedArgs>
+                </template>
+            </component>
+            """);
+
+        var template = _maniaTemplateEngine.RenderAsync("NamedArgsUsage", new { },
+            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+
+        Assert.Contains("<label text=\"total 5\" />", template);
+    }
+
+    [Fact]
+    public void Should_Pass_Slot_Arguments_Of_Generic_Types()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("GenericArgs", """
+            <component>
+                <property type="Dictionary<string, List<int>>" name="data"/>
+                <template>
+                    <slot map="{{ data }}"/>
+                </template>
+            </component>
+            """);
+        _maniaTemplateEngine.AddTemplateFromString("GenericArgsUsage", """
+            <component>
+                <import component="GenericArgs" as="GenericArgs"/>
+                <property type="Dictionary<string, List<int>>" name="source"/>
+                <template>
+                    <GenericArgs data="{{ source }}"><label text="{{ map.Count }}"/></GenericArgs>
+                </template>
+            </component>
+            """);
+
+        var source = new Dictionary<string, List<int>> { ["a"] = new() { 1, 2 }, ["b"] = new() { 3 } };
+        var template = _maniaTemplateEngine.RenderAsync("GenericArgsUsage", new { source },
+            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+
+        Assert.Contains("<label text=\"2\" />", template);
+    }
+
     [Theory]
     [InlineData("<slot item=\"{{ title + 1 }}\"/>", "<label/>")]
     [InlineData("<slot item=\"{{ unknown }}\"/>", "<label/>")]
