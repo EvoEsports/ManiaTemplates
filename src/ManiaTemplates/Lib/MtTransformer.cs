@@ -230,7 +230,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                         subSnippet.AppendLine($"<!-- {childNode.InnerText} -->");
                         break;
                     case "slot":
-                        EnsureSlotHasNoControlFlow("<slot>", loop, condition);
                         var slotName = attributeList.PullName().ToLower();
                         var slotArguments = ParseSlotArguments(slotName, attributeList, currentContext);
                         RegisterSlotArguments(parentComponent, slotName, slotArguments);
@@ -245,7 +244,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                         //Fragments only render their children, which allows grouping nodes for conditions and loops
                         if (attributeList.ContainsKey("slot"))
                         {
-                            EnsureSlotHasNoControlFlow($"<{FragmentTag} slot>", loop, condition);
+                            EnsureSlotTemplateHasNoControlFlow(loop, condition);
                         }
 
                         EnsureFragmentHasNoAttributes(attributeList);
@@ -762,10 +761,10 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Throws if a slot or a template filling a slot has a condition or loop, which have to be placed inside of it.
-    /// Conditions on slots are ambiguous, as there is a single slot content, which is rendered by the component.
+    /// Throws if a template filling a slot has a condition or loop, which have to be placed inside of it.
+    /// Conditions on these templates are ambiguous, as there is a single slot content, which is rendered by the component.
     /// </summary>
-    private static void EnsureSlotHasNoControlFlow(string node, MtLoop? loop, MtCondition? condition)
+    private static void EnsureSlotTemplateHasNoControlFlow(MtLoop? loop, MtCondition? condition)
     {
         if (loop == null && condition == null)
         {
@@ -773,7 +772,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         }
 
         throw new UnsupportedAttributeException(
-            $"{node} does not support conditions and loops, place them on a <{FragmentTag}> around or inside of it instead.");
+            $"<{FragmentTag} slot> does not support conditions and loops, place them inside of it instead.");
     }
 
     /// <summary>
