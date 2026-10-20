@@ -53,4 +53,22 @@ public class MtForeachTest
         Assert.Throws<ParsingForeachLoopFailedException>(() =>
             MtForeach.FromString(foreachAttributeValue, new MtDataContext(), 1, 1));
     }
+
+    [Theory]
+    [InlineData("int i in numbers")]
+    [InlineData("(int j, string i) in pairs")]
+    public void Should_Reject_Variable_Declared_By_Surrounding_Loop(string foreachAttributeValue)
+    {
+        var outer = MtForeach.FromString("int i in numbers", new MtDataContext(), 1, 1);
+
+        Assert.Throws<ParsingForeachLoopFailedException>(() =>
+            MtForeach.FromString(foreachAttributeValue, outer.Context, 1, 2));
+    }
+
+    [Fact]
+    public void Should_Reject_Variable_Declared_Twice()
+    {
+        Assert.Throws<ParsingForeachLoopFailedException>(() =>
+            MtForeach.FromString("(int a, (int b, int a)) in nested", new MtDataContext(), 1, 1));
+    }
 }

@@ -39,6 +39,13 @@ public class MtFor : MtLoop
             throw new ParsingForLoopFailedException("User defined variables must not start with __.");
         }
 
+        var redeclaredName = FindRedeclaredVariableName(foundVariables, context);
+        if (redeclaredName != null)
+        {
+            throw new ParsingForLoopFailedException(
+                $"The variable {redeclaredName} is already declared by this or a surrounding loop, please use another name.");
+        }
+
         return new MtFor
         {
             Condition = forAttributeValue,

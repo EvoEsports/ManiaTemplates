@@ -52,6 +52,17 @@ public abstract class MtLoop
     }
 
     /// <summary>
+    /// Returns the name of a variable that is declared twice by the loop or already declared by a surrounding loop,
+    /// else null.
+    /// </summary>
+    protected static string? FindRedeclaredVariableName(IEnumerable<MtLoopVariable> variables,
+        MtDataContext parentContext)
+    {
+        var declaredNames = new HashSet<string>(parentContext.Keys);
+        return variables.Select(variable => variable.Name).FirstOrDefault(name => !declaredNames.Add(name));
+    }
+
+    /// <summary>
     /// Whether any of the variables uses a name reserved for internal variables (starting with __).
     /// </summary>
     protected static bool UsesReservedVariableName(IEnumerable<MtLoopVariable> variables)

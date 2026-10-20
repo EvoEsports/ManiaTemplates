@@ -36,6 +36,13 @@ public class MtForeach : MtLoop
             throw new ParsingForeachLoopFailedException("User defined variables must not start with __.");
         }
 
+        var redeclaredName = FindRedeclaredVariableName(foundVariables, context);
+        if (redeclaredName != null)
+        {
+            throw new ParsingForeachLoopFailedException(
+                $"The variable {redeclaredName} is already declared by this or a surrounding loop, please use another name.");
+        }
+
         return new MtForeach
         {
             Condition = foreachAttributeValue,

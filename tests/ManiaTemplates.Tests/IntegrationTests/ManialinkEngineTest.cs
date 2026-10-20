@@ -354,6 +354,24 @@ public class ManialinkEngineTest
     }
 
     [Fact]
+    public async void Should_Throw_Exception_For_Variable_Reused_In_Nested_Loop()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("ReusedVariable", """
+            <component>
+                <template>
+                    <frame foreach="int i in new[] { 1, 2 }">
+                        <label foreach="int i in new[] { 3, 4 }" text="{{ i }}"/>
+                    </frame>
+                </template>
+            </component>
+            """);
+
+        var exception = await Assert.ThrowsAsync<ParsingForeachLoopFailedException>(() =>
+            _maniaTemplateEngine.RenderAsync("ReusedVariable", new { }, new[] { typeof(ManiaTemplateEngine).Assembly }));
+        Assert.Contains("The variable i is already declared", exception.Message);
+    }
+
+    [Fact]
     public async void Should_Pass_Unmapped_Node_Attributes_To_Component_Root_Element()
     {
         var wrapperComponent = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");

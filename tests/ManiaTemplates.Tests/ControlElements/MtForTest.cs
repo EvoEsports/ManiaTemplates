@@ -62,4 +62,20 @@ public class MtForTest
         Assert.Throws<ParsingForLoopFailedException>(() =>
             MtFor.FromString(forAttributeValue, new MtDataContext(), 1, 1));
     }
+
+    [Fact]
+    public void Should_Reject_Variable_Declared_By_Surrounding_Loop()
+    {
+        var outer = MtForeach.FromString("int i in numbers", new MtDataContext(), 1, 1);
+
+        Assert.Throws<ParsingForLoopFailedException>(() =>
+            MtFor.FromString("int j = 0, i = 0; j < 3; j++", outer.Context, 1, 2));
+    }
+
+    [Fact]
+    public void Should_Reject_Variable_Declared_Twice()
+    {
+        Assert.Throws<ParsingForLoopFailedException>(() =>
+            MtFor.FromString("int i = 0, i = 1; i < 3; i++", new MtDataContext(), 1, 1));
+    }
 }
