@@ -427,6 +427,118 @@ public class ManialinkEngineTest
     }
 
     [Fact]
+    public async void Should_Pass_Slot_Arguments_To_Slot_Contents()
+    {
+        var itemListComponent = await File.ReadAllTextAsync("IntegrationTests/templates/item-list.mt");
+        var slotArgumentsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slot-arguments-test.mt");
+        var expected = await File.ReadAllTextAsync("IntegrationTests/expected/slot-arguments-test.xml");
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly };
+
+        _maniaTemplateEngine.AddTemplateFromString("ItemList", itemListComponent);
+        _maniaTemplateEngine.AddTemplateFromString("SlotArgumentsTest", slotArgumentsTemplate);
+
+        var template = _maniaTemplateEngine.RenderAsync("SlotArgumentsTest", new { prefix = "P" }, assemblies).Result;
+        Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public void Should_Pass_Slot_Arguments_At_Every_Position_Of_Slot()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("RepeatedSlot", """
+            <component>
+                <property type="string" name="title"/>
+                <template>
+                    <template foreach="int i in new[] { 1, 2 }">
+                        <slot value="{{ title }}"/>
+                    </template>
+                    <slot value="{{ title }}"/>
+                </template>
+            </component>
+            """);
+        _maniaTemplateEngine.AddTemplateFromString("RepeatedSlotUsage", """
+            <component>
+                <import component="RepeatedSlot" as="RepeatedSlot"/>
+                <template>
+                    <RepeatedSlot title="T">
+                        <label text="{{ value }}"/>
+                    </RepeatedSlot>
+                </template>
+            </component>
+            """);
+
+        var template = _maniaTemplateEngine.RenderAsync("RepeatedSlotUsage", new { },
+            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+
+        Assert.Equal(3, template.Split("<label text=\"T\" />").Length - 1);
+    }
+
+    [Theory]
+    [InlineData("<slot item=\"{{ title + 1 }}\"/>", "<label/>")]
+    [InlineData("<slot item=\"{{ unknown }}\"/>", "<label/>")]
+    [InlineData("<slot item=\"title\"/>", "<label/>")]
+    [InlineData("<slot __item=\"{{ title }}\"/>", "<label/>")]
+    [InlineData("<slot item=\"{{ title }}\"/><slot/>", "<label/>")]
+    public async void Should_Throw_Exception_For_Invalid_Slot_Arguments(string componentTemplate, string usage)
+    {
+        _maniaTemplateEngine.AddTemplateFromString("SlotComponent",
+            $"<component><property type=\"string\" name=\"title\"/><template>{componentTemplate}</template></component>");
+        _maniaTemplateEngine.AddTemplateFromString("InvalidSlotArguments", $"""
+            <component>
+                <import component="SlotComponent" as="SlotComponent"/>
+                <property type="List<string>" name="names"/>
+                <template>
+                    <SlotComponent title="T">{usage}</SlotComponent>
+                </template>
+            </component>
+            """);
+
+        await Assert.ThrowsAsync<InvalidSlotArgumentException>(() =>
+            _maniaTemplateEngine.RenderAsync("InvalidSlotArguments", new { names = new List<string>() },
+                new[] { typeof(ManiaTemplateEngine).Assembly }));
+    }
+
+    [Fact]
+    public async void Should_Throw_Exception_For_Slot_Argument_Named_Like_Variable()
+    {
+        var itemListComponent = await File.ReadAllTextAsync("IntegrationTests/templates/item-list.mt");
+        _maniaTemplateEngine.AddTemplateFromString("ItemList", itemListComponent);
+        _maniaTemplateEngine.AddTemplateFromString("SlotArgumentConflict", """
+            <component>
+                <import component="ItemList" as="ItemList"/>
+                <template>
+                    <ItemList foreach="string item in new List<string>()" items="{{ new List<string>() }}">
+                        <label text="{{ item }}"/>
+                    </ItemList>
+                </template>
+            </component>
+            """);
+
+        var exception = await Assert.ThrowsAsync<InvalidSlotArgumentException>(() =>
+            _maniaTemplateEngine.RenderAsync("SlotArgumentConflict", new { }, new[] { typeof(ManiaTemplateEngine).Assembly }));
+        Assert.Contains("The argument item passed to the slot default of <ItemList> conflicts", exception.Message);
+    }
+
+    [Fact]
+    public async void Should_Throw_Exception_For_Loop_Variable_Named_Like_Slot_Argument()
+    {
+        var itemListComponent = await File.ReadAllTextAsync("IntegrationTests/templates/item-list.mt");
+        _maniaTemplateEngine.AddTemplateFromString("ItemList", itemListComponent);
+        _maniaTemplateEngine.AddTemplateFromString("SlotLoopVariable", """
+            <component>
+                <import component="ItemList" as="ItemList"/>
+                <template>
+                    <ItemList items="{{ new List<string>() }}">
+                        <label foreach="string item in new List<string>()" text="{{ item }}"/>
+                    </ItemList>
+                </template>
+            </component>
+            """);
+
+        await Assert.ThrowsAsync<ParsingForeachLoopFailedException>(() =>
+            _maniaTemplateEngine.RenderAsync("SlotLoopVariable", new { }, new[] { typeof(ManiaTemplateEngine).Assembly }));
+    }
+
+    [Fact]
     public async void Should_Pass_Unmapped_Node_Attributes_To_Component_Root_Element()
     {
         var wrapperComponent = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");

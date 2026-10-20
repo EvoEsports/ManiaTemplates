@@ -127,6 +127,29 @@ Slots and the templates filling them do not support loops and conditions, place 
 ````
 
 Slot contents can use the properties and loop variables available where the component is used.
+Additionally, a slot can pass variables available at its position to its contents as arguments, which allows
+components to render their slot for each of their items:
+
+````xml
+<!-- ItemList.mt -->
+<component>
+    <property type="List<string>" name="items"/>
+    <template>
+        <template foreach="string item in items">
+            <slot item="{{ item }}" index="{{ __index }}"/>
+        </template>
+    </template>
+</component>
+
+<!-- Usage -->
+<ItemList items="{{ names }}">
+    <label text="{{ item }} at {{ index }}"/>
+</ItemList>
+````
+
+The value of an argument must be a single variable available at the slot, like a loop variable or a property of the
+component, and a slot rendered at multiple positions must pass the same arguments at each of them.
+Arguments must not have the same name as a variable where the component is used.
 
 ### How it works
 
