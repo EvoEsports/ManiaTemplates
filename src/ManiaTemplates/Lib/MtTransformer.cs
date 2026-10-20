@@ -324,6 +324,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         MtComponent rootComponent)
     {
         var contentsByName = new Dictionary<string, XmlNode>();
+        var namedSlotTemplates = new HashSet<string>();
 
         //Iterate over a copy, as named slot templates are removed from the node
         foreach (var childNode in componentNode.ChildNodes.Cast<XmlNode>().ToList())
@@ -346,6 +347,12 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             {
                 //Do not strip contents for default slot from node
                 continue;
+            }
+
+            if (!namedSlotTemplates.Add(slotName))
+            {
+                throw new DuplicateSlotException(
+                    $"""There are multiple templates for the slot "{slotName}" in <{componentNode.Name}></>.""");
             }
 
             if (component.Slots.Contains(slotName))

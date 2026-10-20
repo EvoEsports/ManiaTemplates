@@ -125,6 +125,28 @@ public class ManialinkEngineTest
     }
 
     [Fact]
+    public async void Should_Throw_Exception_For_Multiple_Templates_Of_Same_Slot()
+    {
+        var componentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component-multi-slot.mt");
+        _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", componentTemplate);
+        _maniaTemplateEngine.AddTemplateFromString("MultipleSlotTemplates", """
+            <component>
+                <import component="SlotsComponent" as="SlotsComponent"/>
+                <template>
+                    <SlotsComponent>
+                        <template slot="footer"><label text="first"/></template>
+                        <template slot="footer"><label text="second"/></template>
+                    </SlotsComponent>
+                </template>
+            </component>
+            """);
+
+        await Assert.ThrowsAsync<DuplicateSlotException>(() =>
+            _maniaTemplateEngine.RenderAsync("MultipleSlotTemplates", new { },
+                new[] { typeof(ManiaTemplateEngine).Assembly }));
+    }
+
+    [Fact]
     public async void Should_Throw_Exception_For_Duplicate_Slot_In_Source_Template()
     {
         var namedSlotsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/named-slots.mt");
