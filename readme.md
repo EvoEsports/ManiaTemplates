@@ -43,6 +43,91 @@ a template with conditional rendering and loops.
 </component>
 ````
 
+### Loops and conditions
+
+Any node, including components, can be repeated or rendered conditionally using the following attributes.
+
+| Attribute | Example                             | Description                                                                 |
+|-----------|-------------------------------------|-----------------------------------------------------------------------------|
+| `foreach` | `foreach="int i in numbers"`        | Renders the node for each element. The type of the variables is required.   |
+| `for`     | `for="int i = 0; i < count; i++"`   | Renders the node like a C# for loop. The type of the variables is required. |
+| `if`      | `if="i > 1"`                        | Only renders the node if the condition is true.                             |
+| `else-if` | `else-if="i == 1"`                  | Continues the condition chain of the preceding node.                        |
+| `else`    | `else=""`                           | Renders the node if no condition of the chain was true.                     |
+
+Inside loops the zero-based iteration index is available as `__index`, nested loops use `__index2`, `__index3` and so
+on.
+Nested loops must declare variables with different names than their surrounding loops.
+
+`else-if` and `else` nodes must follow a node with an `if` or `else-if` attribute, only comments may be in between.
+
+A node can either have a loop or a condition, to make the evaluation order explicit, nest them instead.
+To do so without adding an element to the output, use a [fragment](#fragments):
+
+````xml
+<label if="maps.Count == 0" text="No maps found."/>
+<!-- List all maps otherwise -->
+<template else="">
+    <label foreach="Map map in maps" text="{{ map.Name }}"/>
+</template>
+````
+
+### Fragments
+
+A `<template>` node inside a template is a fragment: it only renders its children, without producing an element itself.
+Use it to group nodes for loops and conditions:
+
+````xml
+<template foreach="Player player in players">
+    <label text="{{ player.Name }}"/>
+    <label text="{{ player.Score }}"/>
+</template>
+````
+
+As fragments have no element of their own, they only support the loop and condition attributes, any other attribute
+throws an exception.
+A component whose template consists of a single fragment does not receive fallthrough attributes, as it may render
+multiple root elements.
+
+### Slots
+
+Components can define slots using `<slot/>` nodes, which are filled with content when using the component.
+Besides the unnamed default slot, a component can define named slots:
+
+````xml
+<!-- Panel.mt -->
+<component>
+    <template>
+        <frame>
+            <slot/>
+            <frame pos="0 -50">
+                <slot name="footer"/>
+            </frame>
+        </frame>
+    </template>
+</component>
+````
+
+All children of a component node fill the default slot.
+Named slots are filled using `<template slot="name">` nodes, which must be direct children of the component node.
+Each slot can only be filled by one template, templates for slots the component does not define are ignored.
+
+Slots and the templates filling them do not support loops and conditions, place them inside the template or use a
+[fragment](#fragments) around the slot instead:
+
+````xml
+<Panel>
+    <label text="Rendered in the default slot"/>
+
+    <template slot="footer">
+        <label if="showFooter" text="Rendered in the footer slot"/>
+        <label else="" text="Rendered otherwise"/>
+    </template>
+</Panel>
+````
+
+Slot contents can use the properties and loop variables available where the component is used.
+
 ### How it works
 
 Before rendering a template, all components are combined into a

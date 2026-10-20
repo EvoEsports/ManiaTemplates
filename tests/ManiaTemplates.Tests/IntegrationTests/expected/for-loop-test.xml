@@ -1,0 +1,31 @@
+<manialink version="3" id="MtForLoopTest" name="EvoSC#-MtForLoopTest">
+<label text="0 at 0" />
+<label text="1 at 1" />
+<label text="2 at 2" />
+<!--  Sibling loop with multiple variables  -->
+<label text="10, 0 at 0" />
+<label text="6, 1 at 1" />
+<!--  Loop nested in foreach  -->
+<frame>
+<label text="a 0 at 0, 0" />
+<label text="a 1 at 0, 1" />
+</frame>
+<frame>
+<label text="b 0 at 1, 0" />
+<label text="b 1 at 1, 1" />
+</frame>
+<!--  Conditions inside the loop are evaluated per iteration  -->
+<frame>
+<label text="even 0" />
+</frame>
+<frame>
+</frame>
+<frame>
+<label text="even 2" />
+</frame>
+<!--  Loop variables are passed to components and slots  -->
+<label text="inner_3" />
+<label text="slot 3 at 0" />
+<label text="inner_2" />
+<label text="slot 2 at 1" />
+</manialink>

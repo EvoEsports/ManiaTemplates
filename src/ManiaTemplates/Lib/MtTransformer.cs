@@ -20,6 +20,12 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private readonly Dictionary<string, string> _renderMethods = new();
     private readonly Dictionary<string, string> _maniaScriptRenderMethods = new();
     private int _loopDepth;
+    private int _conditionChainCount;
+
+    /// <summary>
+    /// Tag of nodes that only render their children, without producing an element themselves.
+    /// </summary>
+    private const string FragmentTag = "template";
 
     /// <summary>
     /// Creates the target language template, which can be pre-processed for faster rendering.
@@ -163,6 +169,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         Snippet snippet = [];
 
         var nodeId = 1;
+        string? openConditionChainVariable = null;
         foreach (XmlNode childNode in node.ChildNodes)
         {
             var subSnippet = new Snippet();
@@ -170,12 +177,20 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             var attributeList = IXmlMethods.GetAttributes(childNode);
             var currentContext = oldContext;
 
-            var forEachCondition = attributeList.PullForeachCondition(oldContext, nodeId, _loopDepth);
-            var ifCondition = attributeList.PullIfCondition();
+            var loop = attributeList.PullLoop(oldContext, nodeId, _loopDepth + 1);
+            var condition = attributeList.PullCondition();
 
-            if (forEachCondition != null)
+            if (loop != null && condition != null)
             {
-                currentContext = forEachCondition.Context;
+                throw new InvalidConditionException(
+                    $"The {condition.AttributeName} attribute on <{tag}> must not be combined with a {loop.Keyword} loop, put them on separate nodes instead.");
+            }
+
+            var conditionChainVariable = GetConditionChainVariable(childNode, tag, condition, openConditionChainVariable);
+
+            if (loop != null)
+            {
+                currentContext = loop.Context;
                 _loopDepth++;
             }
 
@@ -193,7 +208,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                     component,
                     parentComponent,
                     currentContext,
-                    oldContext,
                     attributeList,
                     slotContents,
                     rootComponent,
@@ -217,10 +231,22 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                         subSnippet.AppendLine($"<!-- {childNode.InnerText} -->");
                         break;
                     case "slot":
+                        EnsureSlotHasNoControlFlow("<slot>", loop, condition);
                         var slotName = attributeList.PullName().ToLower();
                         subSnippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart())
                             .AppendLine($"{GetSlotRendererVariableName(slotName)}();")
                             .AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
+                        break;
+                    case FragmentTag:
+                        //Fragments only render their children, which allows grouping nodes for conditions and loops
+                        if (attributeList.ContainsKey("slot"))
+                        {
+                            EnsureSlotHasNoControlFlow($"<{FragmentTag} slot>", loop, condition);
+                        }
+
+                        EnsureFragmentHasNoAttributes(attributeList);
+                        subSnippet.AppendLine(ProcessNode(childNode, componentMap, currentContext, rootComponent,
+                            parentComponent: parentComponent));
                         break;
 
                     default:
@@ -268,15 +294,21 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 }
             }
 
-            if (ifCondition != null)
+            if (condition != null)
             {
-                subSnippet = CreateIfBlock(subSnippet, ifCondition);
+                subSnippet = CreateConditionBlock(subSnippet, condition, conditionChainVariable);
             }
 
-            if (forEachCondition != null)
+            if (loop != null)
             {
-                subSnippet = CreateForEachBlock(subSnippet, forEachCondition);
+                subSnippet = CreateLoopBlock(subSnippet, loop);
                 _loopDepth--;
+            }
+
+            //Comments may be placed between the nodes of a condition chain
+            if (childNode is not XmlComment)
+            {
+                openConditionChainVariable = condition?.Type == MtConditionType.Else ? null : conditionChainVariable;
             }
 
             snippet.AppendSnippet(subSnippet);
@@ -298,8 +330,10 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         MtComponent rootComponent)
     {
         var contentsByName = new Dictionary<string, XmlNode>();
+        var namedSlotTemplates = new HashSet<string>();
 
-        foreach (XmlNode childNode in componentNode.ChildNodes)
+        //Iterate over a copy, as named slot templates are removed from the node
+        foreach (var childNode in componentNode.ChildNodes.Cast<XmlNode>().ToList())
         {
             if (childNode.Name != "template")
             {
@@ -319,6 +353,18 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             {
                 //Do not strip contents for default slot from node
                 continue;
+            }
+
+            if (!namedSlotTemplates.Add(slotName))
+            {
+                throw new DuplicateSlotException(
+                    $"""There are multiple templates for the slot "{slotName}" in <{componentNode.Name}></>.""");
+            }
+
+            if (childNode.Attributes!.Count > 1)
+            {
+                throw new UnsupportedAttributeException(
+                    $"Templates filling a slot only support the slot attribute, found: {string.Join(", ", childNode.Attributes.Cast<XmlAttribute>().Select(attribute => attribute.Name).Where(name => name != "slot"))}. Place conditions and loops inside the template instead.");
             }
 
             if (component.Slots.Contains(slotName))
@@ -346,7 +392,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         MtComponent component,
         MtComponent parentComponent,
         MtDataContext currentContext,
-        MtDataContext oldContext,
         MtComponentAttributes attributeList,
         Dictionary<string, string> slotContents,
         MtComponent rootComponent,
@@ -400,7 +445,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             }
             else
             {
-                if (templateContentNode.ChildNodes.Count != 1)
+                if (templateContentNode.ChildNodes.Count != 1 || templateContentNode.FirstChild?.Name == FragmentTag)
                 {
                     //Only add fallthrough attributes if the component template has only one root element
                     continue;
@@ -472,10 +517,11 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
         if (!_renderMethods.ContainsKey(renderMethodName))
         {
+            //The component is rendered in its own method, so variables of the surrounding template are not available
             var componentBody = ProcessNode(
                 templateContentNode,
                 componentMap.Overload(component.ImportedComponents),
-                oldContext,
+                new MtDataContext(),
                 rootComponent: rootComponent,
                 parentComponent: component,
                 fallthroughAttributesMap: fallthroughAttributesAliasMap
@@ -653,15 +699,114 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Wraps the snippet in a if-condition.
+    /// Throws if a slot or a template filling a slot has a condition or loop, which have to be placed inside of it.
+    /// Conditions on slots are ambiguous, as there is a single slot content, which is rendered by the component.
     /// </summary>
-    private Snippet CreateIfBlock(Snippet input, string ifCondition)
+    private static void EnsureSlotHasNoControlFlow(string node, MtLoop? loop, MtCondition? condition)
+    {
+        if (loop == null && condition == null)
+        {
+            return;
+        }
+
+        throw new UnsupportedAttributeException(
+            $"{node} does not support conditions and loops, place them on a <{FragmentTag}> around or inside of it instead.");
+    }
+
+    /// <summary>
+    /// Throws if a fragment has attributes left after pulling conditions and loops, as they can not be rendered.
+    /// </summary>
+    private static void EnsureFragmentHasNoAttributes(MtComponentAttributes attributeList)
+    {
+        //Default slot contents may be wrapped in <template slot="default">
+        if (attributeList.TryGetValue("slot", out var slotAttribute) &&
+            slotAttribute.Value.Trim().Equals("default", StringComparison.OrdinalIgnoreCase))
+        {
+            attributeList.Remove("slot");
+        }
+
+        if (attributeList.Count == 0)
+        {
+            return;
+        }
+
+        throw new UnsupportedAttributeException(
+            $"<{FragmentTag}> only supports conditions and loops, found: {string.Join(", ", attributeList.Keys)}. Named slots can only be filled in direct children of components.");
+    }
+
+    /// <summary>
+    /// Returns the name of the variable tracking whether a condition of the chain the node belongs to was met.
+    /// Returns null for nodes without condition and if-conditions not continued by an else-if or else.
+    /// </summary>
+    private string? GetConditionChainVariable(XmlNode node, string tag, MtCondition? condition,
+        string? openConditionChainVariable)
+    {
+        switch (condition?.Type)
+        {
+            case null:
+                return null;
+
+            case MtConditionType.If:
+                return IsConditionChainContinued(node) ? $"__conditionChain{++_conditionChainCount}" : null;
+
+            default:
+                return openConditionChainVariable ?? throw new InvalidConditionException(
+                    $"The {condition.AttributeName} attribute on <{tag}> must follow a node with an if or else-if attribute, only comments may be in between.");
+        }
+    }
+
+    /// <summary>
+    /// Checks whether the next sibling node, ignoring comments, continues a condition chain with else-if or else.
+    /// </summary>
+    private static bool IsConditionChainContinued(XmlNode node)
+    {
+        var sibling = node.NextSibling;
+        while (sibling is XmlComment)
+        {
+            sibling = sibling.NextSibling;
+        }
+
+        return sibling?.Attributes?["else-if"] != null || sibling?.Attributes?["else"] != null;
+    }
+
+    /// <summary>
+    /// Wraps the snippet in a condition block.
+    /// Conditions of a chain are rendered as separate if-blocks sharing a variable that tracks whether a condition
+    /// was met, which allows rendering comments between them.
+    /// </summary>
+    private Snippet CreateConditionBlock(Snippet input, MtCondition condition, string? conditionChainVariable)
     {
         var snippet = new Snippet();
-        var ifContent = ICurlyBraceMethods.TemplateInterpolationRegex.Replace(ifCondition, "$1");
+        var expression = ICurlyBraceMethods.TemplateInterpolationRegex.Replace(condition.Expression, "$1");
 
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, $"if ({ifContent}) {{");
+
+        if (conditionChainVariable == null)
+        {
+            snippet.AppendLine(null, $"if ({expression}) {{");
+        }
+        else
+        {
+            switch (condition.Type)
+            {
+                case MtConditionType.If:
+                    snippet.AppendLine(null, $"var {conditionChainVariable} = false;");
+                    snippet.AppendLine(null, $"if ({expression}) {{");
+                    break;
+                case MtConditionType.ElseIf:
+                    snippet.AppendLine(null, $"if (!{conditionChainVariable} && ({expression})) {{");
+                    break;
+                default:
+                    snippet.AppendLine(null, $"if (!{conditionChainVariable}) {{");
+                    break;
+            }
+
+            if (condition.Type != MtConditionType.Else)
+            {
+                snippet.AppendLine(null, $"{conditionChainVariable} = true;");
+            }
+        }
+
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());
@@ -672,27 +817,21 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Wraps the snippet in a foreach-loop.
+    /// Wraps the snippet in a loop, exposing the zero-based iteration index to the loop body.
+    /// The surrounding block scopes the iteration counter, so sibling loops do not collide.
     /// </summary>
-    private Snippet CreateForEachBlock(Snippet input, MtForeach foreachLoop)
+    private Snippet CreateLoopBlock(Snippet input, MtLoop loop)
     {
-        var outerIndexVariableName = "__outerIndex" + (new Random()).Next();
-        var innerIndexVariableName = "__index";
-
-        if (_loopDepth > 1)
-        {
-            innerIndexVariableName += _loopDepth;
-        }
-
         var snippet = new Snippet();
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, $"var {outerIndexVariableName} = 0;");
-        snippet.AppendLine(null, $"foreach ({foreachLoop.Condition}) {{");
-        snippet.AppendLine(null, $"var {innerIndexVariableName} = {outerIndexVariableName};");
+        snippet.AppendLine(null, "{");
+        snippet.AppendLine(null, $"var {loop.CounterVariableName} = 0;");
+        snippet.AppendLine(null, $"{loop.Keyword} ({loop.Condition}) {{");
+        snippet.AppendLine(null, $"var {loop.IndexVariableName} = {loop.CounterVariableName}++;");
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, $"{outerIndexVariableName}++;");
+        snippet.AppendLine(null, "}");
         snippet.AppendLine(null, "}");
         snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockEnd());
 

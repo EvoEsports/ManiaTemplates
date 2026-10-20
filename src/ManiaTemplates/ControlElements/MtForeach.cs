@@ -1,114 +1,94 @@
-﻿using System.Text.RegularExpressions;
-using ManiaTemplates.Components;
-using ManiaTemplates.Exceptions;
+﻿using ManiaTemplates.Exceptions;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ManiaTemplates.ControlElements;
 
-public class MtForeach
+public class MtForeach : MtLoop
 {
-    public required string Condition { get; init; }
-    public required List<MtForeachVariable> Variables { get; init; }
-    public required MtDataContext Context { get; init; }
+    public override string Keyword => "foreach";
 
-    private static readonly Regex ForeachConditionRegex =
-        new(@"^(?:ref\s+)?(?:readonly\s+)?(?:(T|V|var|[a-zA-Z].*?)\s+)?(.+?)\s+in\s(.+)$");
-
-    private static readonly Regex ForeachVariablesRegex = new(@"^\(?(.+?)(?:$|,\s*(.+)\))");
-    private static readonly Regex ForeachVariablesTypeSplitterRegex = new(@"^(.+?)(?:$|\s+(.+)$)");
-
-    public static MtForeach FromString(string foreachAttributeValue, MtDataContext context, int nodeId, int loopDepth)
+    public static MtForeach FromString(string foreachAttributeValue, MtDataContext context, int nodeId, int depth)
     {
-        //Match the value of the foreach-attribute of the XmlNode.
-        //Split it into type, variables (var x, var (x,y), ...) and the source.
-        var conditionMatch = ForeachConditionRegex.Match(foreachAttributeValue);
-        if (!conditionMatch.Success)
+        //Let the C# parser split the value into the loop variables and the source.
+        var statement = SyntaxFactory.ParseStatement($"foreach ({foreachAttributeValue}) {{}}");
+        if (statement.ContainsDiagnostics)
         {
-            throw new ParsingForeachLoopFailedException("Failed to parse foreach condition.");
+            throw new ParsingForeachLoopFailedException($"Failed to parse foreach loop: {foreachAttributeValue}");
         }
 
-        var type = conditionMatch.Groups[1].Value;
-        var variables = conditionMatch.Groups[2].Value;
-        var sourceEnumerable = conditionMatch.Groups[3].Value;
-
-        if (type == "var")
+        var foundVariables = statement switch
         {
-            throw new ParsingForeachLoopFailedException("You may not use var in foreach loops, please specify type.");
-        }
+            //foreach (int i in numbers)
+            ForEachStatementSyntax foreachStatement =>
+                [CreateVariable(foreachStatement.Type, foreachStatement.Identifier.Text)],
 
-        //Split the variables if more than one is defined
-        var variablesMatch = ForeachVariablesRegex.Match(variables);
-        if (!variablesMatch.Success || variablesMatch.Groups.Count < 3)
-        {
-            throw new ParsingForeachLoopFailedException("Failed to parse variables of foreach condition.");
-        }
+            //foreach ((int a, string b) in pairs)
+            ForEachVariableStatementSyntax foreachVariableStatement =>
+                GetDeconstructedVariables(foreachVariableStatement.Variable).ToList(),
 
-        var foundVariables = new List<MtForeachVariable>();
-        foreach (var group in variablesMatch.Groups.Values.Skip(1))
-        {
-            if (group.Length == 0) continue;
-
-            //Parse the variable types and names of the loop
-            var variableAndType = ForeachVariablesTypeSplitterRegex.Match(group.Value);
-            if (!variableAndType.Success)
-            {
-                throw new ParsingForeachLoopFailedException(
-                    "Failed to split variables and types of foreach condition.");
-            }
-
-            var typeOrName = variableAndType.Groups[1];
-            var nameOrEmpty = variableAndType.Groups[2];
-
-            if (nameOrEmpty.Length == 0)
-            {
-                foundVariables.Add(new MtForeachVariable
-                {
-                    Type = type,
-                    Name = typeOrName.Value
-                });
-            }
-            else
-            {
-                if (typeOrName.Value == "var")
-                {
-                    throw new ParsingForeachLoopFailedException(
-                        "You may not use var in foreach loops, please specify type.");
-                }
-
-                foundVariables.Add(new MtForeachVariable
-                {
-                    Type = typeOrName.Value,
-                    Name = nameOrEmpty.Value
-                });
-            }
-        }
+            _ => throw new ParsingForeachLoopFailedException($"Failed to parse foreach loop: {foreachAttributeValue}")
+        };
 
         //Prevent user defining __index variable
-        if (foundVariables.Any(variable => variable.Name.StartsWith("__")))
+        if (UsesReservedVariableName(foundVariables))
         {
             throw new ParsingForeachLoopFailedException("User defined variables must not start with __.");
         }
 
-        var indexVariable = "__index";
-        if (loopDepth > 0)
+        var redeclaredName = FindRedeclaredVariableName(foundVariables, context);
+        if (redeclaredName != null)
         {
-            indexVariable += (loopDepth + 1);
-        }
-
-        var newContext = new MtDataContext($"ForEachLoop{nodeId}")
-        {
-            { indexVariable, "int" },
-        };
-
-        foreach (var variable in foundVariables)
-        {
-            newContext[variable.Name] = variable.Type;
+            throw new ParsingForeachLoopFailedException(
+                $"The variable {redeclaredName} is already declared by this or a surrounding loop, please use another name.");
         }
 
         return new MtForeach
         {
             Condition = foreachAttributeValue,
             Variables = foundVariables,
-            Context = newContext.NewContext(context)
+            Depth = depth,
+            Context = CreateContext($"ForEachLoop{nodeId}", depth, foundVariables, context)
+        };
+    }
+
+    /// <summary>
+    /// Returns the variables declared by deconstructing the elements of the loop, including nested tuples.
+    /// </summary>
+    private static IEnumerable<MtLoopVariable> GetDeconstructedVariables(ExpressionSyntax expression)
+    {
+        return expression switch
+        {
+            TupleExpressionSyntax tuple =>
+                tuple.Arguments.SelectMany(argument => GetDeconstructedVariables(argument.Expression)),
+
+            DeclarationExpressionSyntax { Designation: SingleVariableDesignationSyntax designation } declaration =>
+                [CreateVariable(declaration.Type, designation.Identifier.Text)],
+
+            //Discards (int _) and existing variables (a, _) do not declare new variables
+            DeclarationExpressionSyntax { Designation: DiscardDesignationSyntax } or IdentifierNameSyntax => [],
+
+            //var (a, b) has no explicit types
+            DeclarationExpressionSyntax { Type.IsVar: true } => throw new ParsingForeachLoopFailedException(
+                "You may not use var in foreach loops, please specify type."),
+
+            _ => throw new ParsingForeachLoopFailedException(
+                $"Failed to parse variables of foreach loop: {expression}")
+        };
+    }
+
+    private static MtLoopVariable CreateVariable(TypeSyntax type, string name)
+    {
+        if (type.IsVar)
+        {
+            throw new ParsingForeachLoopFailedException("You may not use var in foreach loops, please specify type.");
+        }
+
+        return new MtLoopVariable
+        {
+            //Loop variables are passed to slots by value, so ref modifiers are dropped
+            Type = (type is RefTypeSyntax refType ? refType.Type : type).ToString(),
+            Name = name
         };
     }
 }

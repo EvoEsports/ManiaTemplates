@@ -27,15 +27,15 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ContentWithTargetPath Include="**\*.tt">
+        <ContentWithTargetPath Include="**\*.tt" Exclude="bin\**;obj\**">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <TargetPath>%(RecursiveDir)\%(Filename)%(Extension)</TargetPath>
         </ContentWithTargetPath>
-        <ContentWithTargetPath Include="**\*.mt">
+        <ContentWithTargetPath Include="**\*.mt" Exclude="bin\**;obj\**">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <TargetPath>%(RecursiveDir)\%(Filename)%(Extension)</TargetPath>
         </ContentWithTargetPath>
-        <ContentWithTargetPath Include="**\*.xml">
+        <ContentWithTargetPath Include="**\*.xml" Exclude="bin\**;obj\**">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <TargetPath>%(RecursiveDir)\%(Filename)%(Extension)</TargetPath>
         </ContentWithTargetPath>

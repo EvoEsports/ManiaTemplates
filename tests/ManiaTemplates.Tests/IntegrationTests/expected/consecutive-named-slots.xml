@@ -1,0 +1,8 @@
+<manialink version="3" id="MtConsecutiveNamedSlots" name="EvoSC#-MtConsecutiveNamedSlots">
+<frame class="outer">
+<label text="default" />
+<frame class="inner">
+<label text="footer" />
+</frame>
+</frame>
+</manialink>

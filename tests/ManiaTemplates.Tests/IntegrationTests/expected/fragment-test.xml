@@ -1,0 +1,19 @@
+<manialink version="3" id="MtFragmentTest" name="EvoSC#-MtFragmentTest">
+<label text="1 is odd" />
+<!--  Nested fragment  -->
+<label text="2 is even" />
+<!--  Nested fragment  -->
+<label text="two at 1" />
+<label text="not empty" />
+<label text="2 entries" />
+<!--  Fragments in default slot, next to named slots  -->
+<frame class="outer">
+<label text="default slot" />
+<frame class="inner">
+<label text="footer" />
+</frame>
+</frame>
+<!--  Fragment as component root does not receive fallthrough attributes  -->
+<label text="first" />
+<label text="second" />
+</manialink>

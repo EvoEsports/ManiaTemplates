@@ -1,0 +1,21 @@
+<manialink version="3" id="MtSlotTemplates" name="EvoSC#-MtSlotTemplates">
+<!--  Hidden footer  -->
+<frame class="outer">
+<label text="default" />
+<frame class="inner">
+</frame>
+</frame>
+<!--  Repeated footer  -->
+<frame class="outer">
+<frame class="inner">
+<label text="footer 0" />
+<label text="footer 1" />
+</frame>
+</frame>
+<!--  Default slot template with condition  -->
+<frame class="outer">
+<label text="shown" />
+<frame class="inner">
+</frame>
+</frame>
+</manialink>

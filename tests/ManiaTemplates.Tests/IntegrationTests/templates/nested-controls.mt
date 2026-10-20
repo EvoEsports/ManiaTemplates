@@ -4,9 +4,13 @@
     <property type="bool" name="enabled" default="true"/>
     
     <template>
-        <Frame if="enabled" foreach="int i in numbers" x="{{ 10 * __index }}">
-            <Label if="i < numbers.Count" foreach="int j in numbers.GetRange(0, i)" text="{{ i }}, {{ j }} at index {{ __index }}, {{ __index2 }}"/>
-        </Frame>
+        <frame if="enabled">
+            <Frame foreach="int i in numbers" x="{{ 10 * __index }}">
+                <frame if="i < numbers.Count">
+                    <Label foreach="int j in numbers.GetRange(0, i)" text="{{ i }}, {{ j }} at index {{ __index }}, {{ __index2 }}"/>
+                </frame>
+            </Frame>
+        </frame>
         <Frame>
             <Frame>
                 <test>

@@ -1,0 +1,27 @@
+<manialink version="3" id="MtConditionsTest" name="EvoSC#-MtConditionsTest">
+<frame>
+<label text="one" />
+<!--  Comments are allowed within a chain  -->
+</frame>
+<frame>
+<!--  Comments are allowed within a chain  -->
+<label text="two" />
+</frame>
+<frame>
+<!--  Comments are allowed within a chain  -->
+<label text="inner_3" />
+<label text="three" />
+</frame>
+<frame>
+<!--  Comments are allowed within a chain  -->
+<label text="other 4" />
+</frame>
+<!--  Loops in branches  -->
+<label text="no entries" />
+<frame>
+<label text="entry 1 at 0" />
+<label text="entry 2 at 1" />
+</frame>
+<!--  Chain without matching branch, directly followed by a new chain  -->
+<label text="new chain" />
+</manialink>
