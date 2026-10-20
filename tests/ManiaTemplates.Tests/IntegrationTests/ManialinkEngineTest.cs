@@ -398,6 +398,35 @@ public class ManialinkEngineTest
     }
 
     [Fact]
+    public void Should_Pass_Types_Containing_String_To_Components()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("StringTypes", """
+            <component>
+                <property type="List<string>" name="names"/>
+                <property type="string" name="separator" default=", "/>
+                <template>
+                    <label text="{{ string.Join(separator, names) }}"/>
+                </template>
+            </component>
+            """);
+        _maniaTemplateEngine.AddTemplateFromString("StringTypesUsage", """
+            <component>
+                <import component="StringTypes" as="StringTypes"/>
+                <template>
+                    <StringTypes names="{{ new List<string> { &quot;a&quot;, &quot;b&quot; } }}"/>
+                    <StringTypes names="{{ new List<string> { &quot;c&quot;, &quot;d&quot; } }}" separator=" and "/>
+                </template>
+            </component>
+            """);
+
+        var template = _maniaTemplateEngine.RenderAsync("StringTypesUsage", new { },
+            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+
+        Assert.Contains("<label text=\"a, b\" />", template);
+        Assert.Contains("<label text=\"c and d\" />", template);
+    }
+
+    [Fact]
     public async void Should_Pass_Unmapped_Node_Attributes_To_Component_Root_Element()
     {
         var wrapperComponent = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");

@@ -6,7 +6,15 @@ public interface IStringMethods
     /// Determines whether a component property is a string type.
     /// </summary>
     public static bool IsStringType(string typeString)
-        => typeString.ToLower().Contains("string"); //TODO: find better way to determine string
+    {
+        var type = typeString.Replace(" ", "").TrimEnd('?');
+        if (type.StartsWith("global::"))
+        {
+            type = type["global::".Length..];
+        }
+
+        return type is "string" or "String" or "System.String";
+    }
 
     /// <summary>
     /// Wraps a string in quotes.
