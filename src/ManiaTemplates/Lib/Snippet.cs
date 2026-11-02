@@ -18,6 +18,7 @@ public class Snippet : List<string>
         return this;
     }
 
-    public string ToString(string joinWith = "\n") =>
-        string.Join(joinWith, this).Trim();
+    public override string ToString() => ToString("\n");
+
+    public string ToString(string joinWith) => string.Join(joinWith, this).Trim();
 }
