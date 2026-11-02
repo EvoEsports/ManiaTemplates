@@ -728,6 +728,7 @@ public class ManialinkEngineTest
     [InlineData("<slot item=\"title\"/>", "<label/>")]
     [InlineData("<slot __item=\"{{ title }}\"/>", "<label/>")]
     [InlineData("<slot item=\"{{ title }}\"/><slot/>", "<label/>")]
+    [InlineData("<slot item=\"{{ title }}\"/><slot foreach=\"int i in new[] { 1 }\" item=\"{{ i }}\"/>", "<label/>")]
     public async void Should_Throw_Exception_For_Invalid_Slot_Arguments(string componentTemplate, string usage)
     {
         _maniaTemplateEngine.AddTemplateFromString("SlotComponent",

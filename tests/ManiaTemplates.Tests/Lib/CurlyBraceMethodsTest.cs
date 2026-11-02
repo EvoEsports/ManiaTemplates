@@ -9,6 +9,7 @@ public class CurlyBraceMethodsTest
     [InlineData("{{ {{ a }} {{ b }} }}")]
     [InlineData("{{ {{ b }} }}")]
     [InlineData("text {{ a }} {{ b {{ c }} }}")]
+    [InlineData("{{ a {{ b")]
     public void Should_Throw_Interpolation_Recursion_Exception(string value)
     {
         Assert.Throws<InterpolationRecursionException>(() => ICurlyBraceMethods.PreventInterpolationRecursion(value));
@@ -19,6 +20,7 @@ public class CurlyBraceMethodsTest
     [InlineData("{{a}}{{b}}")]
     [InlineData("{{ new[] { 1, 2 } }}")]
     [InlineData("no interpolation")]
+    [InlineData("{{ a } }")]
     public void Should_Allow_Consecutive_Interpolations(string value)
     {
         ICurlyBraceMethods.PreventInterpolationRecursion(value);

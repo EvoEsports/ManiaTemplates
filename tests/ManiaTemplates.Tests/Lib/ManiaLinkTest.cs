@@ -86,6 +86,25 @@ public class ManiaLinkTest
     }
 
     [Fact]
+    public async Task Should_Render_Empty_String_For_Null_Output()
+    {
+        var maniaLink = new ManiaLink("MtNull", "public class MtNull { public string? TransformText() => null; }",
+            new[] { typeof(ManiaLink).Assembly });
+
+        Assert.Equal("", await maniaLink.RenderAsync(new { }));
+    }
+
+    [Fact]
+    public async Task Should_Accept_Lazy_Assembly_Enumerations()
+    {
+        var assemblies = new[] { typeof(ManiaLink).Assembly }.Where(assembly => assembly != null);
+        var maniaLink = new ManiaLink("MtLazy", "public class MtLazy { public string TransformText() => \"<frame/>\"; }",
+            assemblies);
+
+        Assert.Equal("<frame/>", await maniaLink.RenderAsync(new { }));
+    }
+
+    [Fact]
     public void Should_Throw_Exception_For_Invalid_Template_Source()
     {
         var exception = Assert.Throws<ManiaTemplateCompilationFailedException>(() =>

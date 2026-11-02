@@ -1,3 +1,4 @@
+using ManiaTemplates.Components;
 using ManiaTemplates.Exceptions;
 
 namespace ManiaTemplates.Tests;
@@ -134,6 +135,29 @@ public class ManiaTemplateEngineTest
         Assert.Contains("## Label\n\n`<Label />`\n\n| Attribute | Type | Default |", markdown);
         Assert.Contains("`<Window> ... </Window>`", markdown);
         Assert.Contains("| textfont | string | GameFont |", markdown);
+    }
+
+    [Fact]
+    public void Should_List_Components_Without_Properties_In_Markdown()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("Plain", "<component><template><label/></template></component>");
+
+        var markdown = new MtComponentMarkdownGenerator
+        {
+            Engine = _maniaTemplateEngine,
+            Components = new MtComponentMap { { "Plain", new MtComponentImport { TemplateKey = "Plain", Tag = "Plain" } } }
+        }.Generate();
+
+        Assert.Equal("""
+            # Component list
+
+            This list contains available components and their attributes.
+
+            ## Plain
+
+            `<Plain />`
+
+            """, markdown, ignoreLineEndingDifferences: true);
     }
 
     [Fact]
