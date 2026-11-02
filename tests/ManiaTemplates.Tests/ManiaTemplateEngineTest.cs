@@ -62,6 +62,16 @@ public class ManiaTemplateEngineTest
     }
 
     [Fact]
+    public async Task Should_Hide_Rendered_Template()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("Label", LabelTemplate);
+        var rendered = await _maniaTemplateEngine.RenderAsync("Label", new { text = "unit" }, _assemblies);
+
+        Assert.Contains("id=\"MtLabel\"", rendered);
+        Assert.Equal("<manialink id=\"MtLabel\"></manialink>", _maniaTemplateEngine.Hide("Label"));
+    }
+
+    [Fact]
     public void Should_Write_T4_Template_When_Pre_Processing()
     {
         var directory = Directory.CreateTempSubdirectory("ManiaTemplatesTest");

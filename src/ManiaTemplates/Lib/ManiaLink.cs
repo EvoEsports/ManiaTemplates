@@ -6,6 +6,7 @@ namespace ManiaTemplates.Lib;
 
 public class ManiaLink
 {
+    private readonly string _className;
     private readonly Type _textTransformer;
 
     private static readonly Regex ReplaceDefaultAttr =
@@ -18,6 +19,7 @@ public class ManiaLink
     /// </summary>
     public ManiaLink(string className, string preCompiledTemplate, IEnumerable<Assembly> assemblies)
     {
+        _className = className;
         _textTransformer = TemplateCompiler.Compile(className, preCompiledTemplate, assemblies);
     }
 
@@ -76,6 +78,22 @@ public class ManiaLink
 
         var result = output == null ? "" : ReplaceDefaultAttr.Replace(output, "");
         return Task.FromResult(result);
+    }
+
+    /// <summary>
+    /// Create empty manialink for this instance, used to hide displayed UI elements.
+    /// </summary>
+    /// <returns>
+    /// A string containing the empty manialink, ready to be send to the player(s).
+    /// </returns>
+    public string Hide() => CreateHideManialink(_className);
+
+    /// <summary>
+    /// Create empty manialink with the given id, used to hide displayed UI elements.
+    /// </summary>
+    public static string CreateHideManialink(string id)
+    {
+        return @$"<manialink id=""{id}""></manialink>";
     }
 
     /// <summary>

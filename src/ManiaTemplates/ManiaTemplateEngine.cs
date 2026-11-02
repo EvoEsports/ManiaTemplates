@@ -138,6 +138,11 @@ public class ManiaTemplateEngine
         return await _preProcessed[key].RenderAsync(data, GlobalVariables);
     }
 
+    /// <summary>
+    /// Creates an empty manialink for a template-key, used to hide the rendered template from players.
+    /// </summary>
+    public string Hide(string key) => ManiaLink.CreateHideManialink(ManialinkNameUtils.KeyToId(key));
+
     private async Task CheckPreprocessingAsync(string key, IEnumerable<Assembly> assemblies)
     {
         var assemblyList = assemblies.ToList();

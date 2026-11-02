@@ -43,6 +43,12 @@ The data can also be an `IDictionary<string, object?>`.
 Templates embedded in your assembly can be added using `LoadTemplateFromEmbeddedResource`, see
 [embedded resources](#embedded-resources).
 
+To remove the rendered manialink from the players' screens, send them the empty manialink returned by `Hide`:
+
+````csharp
+var hideXml = engine.Hide("MapList");
+````
+
 Values that every template needs, like the server name, can be set once as global variables:
 
 ````csharp
