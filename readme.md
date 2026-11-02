@@ -268,6 +268,9 @@ Components can include ManiaScript using `<script>` nodes, either inline or from
 
 With the `once` attribute the script is added only a single time, even if the component is used multiple times.
 
+Scripts are rendered inside of an XML comment (`<script><!-- ... --></script>`), so characters like `<` and `>` can be
+used.
+
 Scripts can use expressions too. `{{ }}` inserts the XML escaped value, `{! !}` inserts the raw value:
 
 ````xml
@@ -288,8 +291,8 @@ Scripts can use expressions too. `{{ }}` inserts the XML escaped value, `{! !}` 
 </component>
 ````
 
-Use `{! !}` only for values you control, it is not escaped. A ManiaLink may contain only one script with a `main()`
-method.
+Use `{! !}` only for values you control, it is not escaped. Rendering throws an exception if a raw value contains `--`.
+A ManiaLink may contain only one script with a `main()` method.
 
 `#Include`, `#Const` and `#Struct` directives of all scripts are moved to the top of the ManiaLink, so components can
 share them. Defining the same name twice with a different value throws an exception.
