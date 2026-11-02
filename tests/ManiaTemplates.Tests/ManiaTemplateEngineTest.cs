@@ -128,6 +128,27 @@ public class ManiaTemplateEngineTest
     [Fact]
     public void Should_Generate_Components_Markdown()
     {
-        Assert.StartsWith("# Component list", _maniaTemplateEngine.GenerateComponentsMarkdown());
+        var markdown = _maniaTemplateEngine.GenerateComponentsMarkdown();
+
+        Assert.StartsWith("# Component list", markdown);
+        Assert.Contains("## Label\n\n`<Label />`\n\n| Attribute | Type | Default |", markdown);
+        Assert.Contains("`<Window> ... </Window>`", markdown);
+        Assert.Contains("| textfont | string | GameFont |", markdown);
+    }
+
+    [Fact]
+    public void Components_Markdown_Should_Be_Up_To_Date()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory != null && !File.Exists(Path.Combine(directory.FullName, "ManiaTemplates.sln")))
+        {
+            directory = directory.Parent;
+        }
+
+        Assert.NotNull(directory);
+        var componentsMarkdown = File.ReadAllText(Path.Combine(directory.FullName, "components.md"));
+
+        Assert.Equal(componentsMarkdown, _maniaTemplateEngine.GenerateComponentsMarkdown(),
+            ignoreLineEndingDifferences: true);
     }
 }

@@ -35,7 +35,6 @@ public interface ICurlyBraceMethods
         Regex? interpolationPattern = null)
     {
         PreventCurlyBraceCountMismatch(value);
-        PreventInterpolationRecursion(value);
 
         var output = value;
         var pattern = interpolationPattern ?? TemplateInterpolationRegex;
@@ -55,33 +54,7 @@ public interface ICurlyBraceMethods
     }
 
     /// <summary>
-    /// Checks whether double interpolation exists ({{ {{ a }} {{ b }} }}) and throws exception if so.
-    /// </summary>
-    public static void PreventInterpolationRecursion(string value)
-    {
-        //TODO: find proper algorithm
-        // var openCurlyBraces = 0;
-        // foreach (var character in value.ToCharArray())
-        // {
-        //     if (character == '{')
-        //     {
-        //         openCurlyBraces++;
-        //
-        //         if (openCurlyBraces >= 4)
-        //         {
-        //             throw new InterpolationRecursionException(
-        //                 $"Double interpolation found in: {value}. You must not use double curly braces inside other double curly braces.");
-        //         }
-        //     }
-        //     else if (character == '}')
-        //     {
-        //         openCurlyBraces--;
-        //     }
-        // }
-    }
-
-    /// <summary>
-    /// Checks whether double interpolation exists ({{ {{ a }} {{ b }} }}) and throws exception if so.
+    /// Checks whether opening and closing curly braces are balanced and throws exception if not.
     /// </summary>
     public static void PreventCurlyBraceCountMismatch(string value)
     {

@@ -6,7 +6,6 @@ namespace ManiaTemplates.Lib;
 
 public class ManiaLink
 {
-    private readonly string _className;
     private readonly Type _textTransformer;
 
     private static readonly Regex ReplaceDefaultAttr =
@@ -19,19 +18,7 @@ public class ManiaLink
     /// </summary>
     public ManiaLink(string className, string preCompiledTemplate, IEnumerable<Assembly> assemblies)
     {
-        _className = className;
         _textTransformer = TemplateCompiler.Compile(className, preCompiledTemplate, assemblies);
-    }
-
-    /// <summary>
-    /// Render the manialink instance with the given data.
-    /// </summary>
-    /// <returns>
-    /// A string containing the rendered manialink, ready to be displayed.
-    /// </returns>
-    public string? Render(dynamic data)
-    {
-        return RenderInternalAsync(data).Result;
     }
 
     public Task<string> RenderAsync(object data, IDictionary<string, object?>? globalVariables = null)
@@ -74,15 +61,7 @@ public class ManiaLink
 
     public Task<string> RenderAsync(ExpandoObject data) => RenderAsync((IDictionary<string, object?>)data);
 
-    private object? GetTransformerinstance()
-    {
-        if (_textTransformer == null)
-        {
-            throw new InvalidOperationException("Text transformer not initialized, call CompileAsync first.");
-        }
-
-        return Activator.CreateInstance(_textTransformer);
-    }
+    private object? GetTransformerinstance() => Activator.CreateInstance(_textTransformer);
 
     /// <summary>
     /// Render the manialink instance with the given data.
@@ -92,27 +71,11 @@ public class ManiaLink
     /// </returns>
     private Task<string> RenderInternalAsync(object? runnable)
     {
-        if (_textTransformer == null)
-        {
-            throw new InvalidOperationException("Text transformer not initialized, call CompileAsync first.");
-        }
-
         var method = _textTransformer.GetMethod("TransformText");
         var output = (string?)method?.Invoke(runnable, null);
 
         var result = output == null ? "" : ReplaceDefaultAttr.Replace(output, "");
         return Task.FromResult(result);
-    }
-
-    /// <summary>
-    /// Create empty manialink for this instance, used to hide displayed UI elements.
-    /// </summary>
-    /// <returns>
-    /// A string containing the empty manialink, ready to be send to the player(s).
-    /// </returns>
-    public string Hide()
-    {
-        return @$"<manialink id=""{_className}""></manialink>";
     }
 
     /// <summary>

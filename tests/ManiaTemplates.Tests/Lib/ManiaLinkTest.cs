@@ -66,12 +66,6 @@ public class ManiaLinkTest
             await _maniaLink.RenderAsync(new Dictionary<string, object?> { { "Name", "unit" } }, globals));
     }
 
-    [Fact]
-    public void Should_Create_Empty_Manialink_To_Hide()
-    {
-        Assert.Equal("<manialink id=\"MtTest\"></manialink>", _maniaLink.Hide());
-    }
-
     [Theory]
     [InlineData(3, null, "<manialink version=\"3\" id=\"MtTest\" name=\"EvoSC#-MtTest\">")]
     [InlineData(2, "ScoresTable", "<manialink version=\"2\" id=\"MtTest\" name=\"EvoSC#-MtTest\" layer=\"ScoresTable\">")]

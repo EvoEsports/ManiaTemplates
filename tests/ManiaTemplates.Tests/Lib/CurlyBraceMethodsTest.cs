@@ -5,13 +5,6 @@ namespace ManiaTemplates.Tests.Lib;
 
 public class CurlyBraceMethodsTest
 {
-    // [Fact]
-    // public void Should_Throw_Interpolation_Recursion_Exception()
-    // {
-    //     Assert.Throws<InterpolationRecursionException>(() => _transformer.PreventInterpolationRecursion("{{ {{ a }} {{ b }} }}"));
-    //     Assert.Throws<InterpolationRecursionException>(() => _transformer.PreventInterpolationRecursion("{{ {{ b }} }}"));
-    // }
-
     [Fact]
     public void Should_Throw_Curly_Brace_Count_Mismatch_Exception()
     {

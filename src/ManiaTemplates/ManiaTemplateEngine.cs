@@ -241,11 +241,6 @@ public class ManiaTemplateEngine
             preCompiledTemplate.Replace(@"throw new global::System.ArgumentNullException(""objectToConvert"");",
                 @"return """";");
 
-        if (writeTo != null)
-        {
-            // await File.WriteAllTextAsync(writeTo + ".cs", preCompiledTemplate);
-        }
-
         return new ManiaLink(className, preCompiledTemplate, assemblies);
     }
 
@@ -259,7 +254,7 @@ public class ManiaTemplateEngine
     /// Generates the contents for a markdown file describing all base components shipped with the template engine.
     /// </summary>
     public string GenerateComponentsMarkdown() =>
-        new MtComponentMarkdownGenerator { Components = BaseMtComponents }.Generate();
+        new MtComponentMarkdownGenerator { Engine = this, Components = BaseMtComponents }.Generate();
 
     public void RemoveTemplate(string name)
     {

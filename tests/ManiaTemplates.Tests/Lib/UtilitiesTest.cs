@@ -1,5 +1,4 @@
 using ManiaTemplates.Components;
-using ManiaTemplates.ControlElements;
 using ManiaTemplates.Languages;
 using ManiaTemplates.Lib;
 
@@ -7,15 +6,6 @@ namespace ManiaTemplates.Tests.Lib;
 
 public class UtilitiesTest
 {
-    [Theory]
-    [InlineData(null, "")]
-    [InlineData("  ", "")]
-    [InlineData("<frame><label/></frame>", "<frame>\n  <label />\n</frame>")]
-    public void Should_Format_Xml(string? input, string expected)
-    {
-        Assert.Equal(expected, Helper.PrettyXml(input), ignoreLineEndingDifferences: true);
-    }
-
     [Fact]
     public async Task Should_Load_Embedded_Resource()
     {
@@ -33,14 +23,12 @@ public class UtilitiesTest
     }
 
     [Theory]
-    [InlineData("test", "Mttest", "EvoSC#-Mttest")]
-    [InlineData("Folder.My-Template.mt", "MtFolderMyTemplate", "EvoSC#-MtFolderMyTemplate")]
-    [InlineData("Some.Window.xml", "MtSomeWindow", "EvoSC#-MtSomeWindow")]
-    public void Should_Convert_Template_Keys_To_Manialink_Identifiers(string key, string expectedId,
-        string expectedName)
+    [InlineData("test", "Mttest")]
+    [InlineData("Folder.My-Template.mt", "MtFolderMyTemplate")]
+    [InlineData("Some.Window.xml", "MtSomeWindow")]
+    public void Should_Convert_Template_Keys_To_Manialink_Identifiers(string key, string expectedId)
     {
         Assert.Equal(expectedId, ManialinkNameUtils.KeyToId(key));
-        Assert.Equal(expectedName, ManialinkNameUtils.KeyToName(key));
     }
 
     [Theory]
@@ -64,11 +52,10 @@ public class UtilitiesTest
 
         var snippet = new Snippet()
             .AppendSnippet(content)
-            .AppendSnippet(1, content)
-            .AppendSnippet(null, content);
+            .AppendSnippet(content);
 
-        Assert.Equal(new[] { "a", "b", "a", "b", "a", "b" }, snippet);
-        Assert.Equal("a,b,a,b,a,b", snippet.ToString(","));
+        Assert.Equal(new[] { "a", "b", "a", "b" }, snippet);
+        Assert.Equal("a,b,a,b", snippet.ToString(","));
     }
 
     [Fact]
@@ -78,30 +65,5 @@ public class UtilitiesTest
 
         Assert.Equal("<#= (value) #>", language.InsertResult("value"));
         Assert.Equal("<#= Security.Escape(value) #>", language.InsertResultEscaped("value"));
-    }
-
-    [Fact]
-    public void Should_Create_Component_Node()
-    {
-        var component = new MtComponent
-        {
-            TemplateContent = "<label/>",
-            HasSlot = true,
-            ImportedComponents = new MtComponentMap(),
-            Properties = new(),
-            Namespaces = new(),
-            Scripts = new()
-        };
-        var attributes = new MtComponentAttributes();
-        var context = new MtDataContext("context");
-
-        var node = new MtComponentNode("Comp", component, attributes, "<Comp/>", context);
-
-        Assert.Equal("Comp", node.Tag);
-        Assert.Same(component, node.MtComponent);
-        Assert.Same(attributes, node.Attributes);
-        Assert.Equal("<Comp/>", node.TemplateContent);
-        Assert.Same(context, node.Context);
-        Assert.True(node.HasSlot);
     }
 }

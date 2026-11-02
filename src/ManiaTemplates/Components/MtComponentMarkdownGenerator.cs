@@ -1,40 +1,48 @@
-﻿using System.Collections.Generic;
-
-namespace ManiaTemplates.Components;
+﻿namespace ManiaTemplates.Components;
 
 public class MtComponentMarkdownGenerator
 {
+    public required ManiaTemplateEngine Engine { get; init; }
     public required MtComponentMap Components { get; init; }
-    
+
+    /// <summary>
+    /// Generates a markdown document listing the given components with their attributes.
+    /// </summary>
     public string Generate()
     {
         var output = new List<string>
         {
             "# Component list",
-            "This list contains available components and their attributes.\n"
+            "",
+            "This list contains available components and their attributes.",
         };
 
-        // foreach (var (componentTag, component) in Components)
-        // {
-        //     if (component.HasSlot)
-        //     {
-        //         output.Add($"``<{componentTag}> ... </{componentTag}>``");
-        //     }
-        //     else
-        //     {
-        //         output.Add($"``<{componentTag} />``");
-        //     }
-        //     
-        //     output.Add("\n\n");
-        //     output.Add("| Attribute  | Type   | Default |");
-        //     output.Add("|------------|--------|---------|");
-        //
-        //     foreach (var property in component.Properties.Values)
-        //     {
-        //         output.Add($"| {property.Name} | {property.Type} | {property.Default} |");
-        //     }
-        // }
+        foreach (var (componentTag, componentImport) in Components)
+        {
+            var component = Engine.GetComponent(componentImport.TemplateKey);
 
-        return string.Join('\n', output);
+            output.Add("");
+            output.Add($"## {componentTag}");
+            output.Add("");
+            output.Add(component.HasSlot
+                ? $"`<{componentTag}> ... </{componentTag}>`"
+                : $"`<{componentTag} />`");
+
+            if (component.Properties.Count == 0)
+            {
+                continue;
+            }
+
+            output.Add("");
+            output.Add("| Attribute | Type | Default |");
+            output.Add("|-----------|------|---------|");
+
+            foreach (var property in component.Properties.Values)
+            {
+                output.Add($"| {property.Name} | {property.Type} | {property.Default} |");
+            }
+        }
+
+        return string.Join('\n', output) + '\n';
     }
 }
