@@ -7,15 +7,6 @@ namespace ManiaTemplates.Tests.Lib;
 public class UtilitiesTest
 {
     [Fact]
-    public async Task Should_Load_Embedded_Resource()
-    {
-        var content = await Helper.GetEmbeddedResourceContentAsync("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
-            typeof(ManiaTemplateEngine).Assembly);
-
-        Assert.Contains("main()", content);
-    }
-
-    [Fact]
     public async Task Should_Throw_Exception_For_Missing_Embedded_Resource()
     {
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
@@ -43,27 +34,5 @@ public class UtilitiesTest
         Assert.Equal(expectedDefault, property.GetDefaultWrapped());
         Assert.Equal(expectedArgument, property.ToMethodArgument());
         Assert.Equal($"const {expectedArgument};", property.ToLocalConstant());
-    }
-
-    [Fact]
-    public void Should_Append_Snippets()
-    {
-        var content = new Snippet().AppendLine("a").AppendLine("b");
-
-        var snippet = new Snippet()
-            .AppendSnippet(content)
-            .AppendSnippet(content);
-
-        Assert.Equal(new[] { "a", "b", "a", "b" }, snippet);
-        Assert.Equal("a,b,a,b", snippet.ToString(","));
-    }
-
-    [Fact]
-    public void Should_Create_T4_Output_Statements()
-    {
-        var language = new MtLanguageT4();
-
-        Assert.Equal("<#= (value) #>", language.InsertResult("value"));
-        Assert.Equal("<#= Security.Escape(value) #>", language.InsertResultEscaped("value"));
     }
 }

@@ -1,4 +1,3 @@
-using System.Reflection;
 using FluentAssertions;
 using ManiaTemplates.Components;
 using ManiaTemplates.Exceptions;
@@ -55,8 +54,7 @@ public class MtComponentTest
             </component>
         """;
         
-        _engine.GetType().GetField("_maniaScripts", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(_engine,
-            new Dictionary<string, string> { { "res", "<!--main(){}-->" } });
+        _engine.AddManiaScriptFromString("res", "<!--main(){}-->");
         
         var expected = new MtComponent
         {

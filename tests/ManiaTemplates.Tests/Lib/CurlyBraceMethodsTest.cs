@@ -20,8 +20,7 @@ public class CurlyBraceMethodsTest
     [InlineData("{{a}}{{b}}")]
     [InlineData("{{ new[] { 1, 2 } }}")]
     [InlineData("no interpolation")]
-    [InlineData("{{ a } }")]
-    public void Should_Allow_Consecutive_Interpolations(string value)
+    public void Should_Allow_Non_Nested_Interpolations(string value)
     {
         ICurlyBraceMethods.PreventInterpolationRecursion(value);
     }

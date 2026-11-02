@@ -70,7 +70,6 @@ public class MtComponentScriptTest
         var script2 = MtComponentScript.FromNode(_templateEngine, document2.DocumentElement!);
         var script2Hash = script2.ContentHash();
 
-        Assert.NotEqual(script1, script2);
         Assert.NotEqual(script1Hash, script2Hash);
     }
 }

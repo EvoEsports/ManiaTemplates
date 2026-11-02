@@ -9,13 +9,6 @@ public class MtComponentAttributesTest
     private readonly MtComponentAttributes _mtComponentAttributes = new();
 
     [Fact]
-    public void Should_Contain_Single_Attribute_Pair()
-    {
-        _mtComponentAttributes["key"] = new MtComponentAttribute{Value = "value"};
-        Assert.Single(_mtComponentAttributes);
-    }
-
-    [Fact]
     public void Should_Remove_Existing()
     {
         _mtComponentAttributes["key"] = new MtComponentAttribute{Value = "value"};

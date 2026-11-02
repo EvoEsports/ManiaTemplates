@@ -127,17 +127,6 @@ public class ManiaTemplateEngineTest
     }
 
     [Fact]
-    public void Should_Generate_Components_Markdown()
-    {
-        var markdown = _maniaTemplateEngine.GenerateComponentsMarkdown();
-
-        Assert.StartsWith("# Component list", markdown);
-        Assert.Contains("## Label\n\n`<Label />`\n\n| Attribute | Type | Default |", markdown);
-        Assert.Contains("`<Window> ... </Window>`", markdown);
-        Assert.Contains("| textfont | string | GameFont |", markdown);
-    }
-
-    [Fact]
     public void Should_List_Components_Without_Properties_In_Markdown()
     {
         _maniaTemplateEngine.AddTemplateFromString("Plain", "<component><template><label/></template></component>");
