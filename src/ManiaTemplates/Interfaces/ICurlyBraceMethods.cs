@@ -35,6 +35,7 @@ public interface ICurlyBraceMethods
         Regex? interpolationPattern = null)
     {
         PreventCurlyBraceCountMismatch(value);
+        PreventInterpolationRecursion(value);
 
         var output = value;
         var pattern = interpolationPattern ?? TemplateInterpolationRegex;
@@ -51,6 +52,27 @@ public interface ICurlyBraceMethods
         }
 
         return output;
+    }
+
+    /// <summary>
+    /// Checks whether double interpolation exists ({{ {{ a }} {{ b }} }}) and throws exception if so.
+    /// </summary>
+    public static void PreventInterpolationRecursion(string value)
+    {
+        var start = value.IndexOf("{{", StringComparison.Ordinal);
+        while (start >= 0)
+        {
+            var end = value.IndexOf("}}", start + 2, StringComparison.Ordinal);
+            var nextStart = value.IndexOf("{{", start + 2, StringComparison.Ordinal);
+
+            if (nextStart >= 0 && (end < 0 || nextStart < end))
+            {
+                throw new InterpolationRecursionException(
+                    $"Double interpolation found in: {value}. You must not use double curly braces inside other double curly braces.");
+            }
+
+            start = end < 0 ? -1 : value.IndexOf("{{", end + 2, StringComparison.Ordinal);
+        }
     }
 
     /// <summary>

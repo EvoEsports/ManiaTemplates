@@ -94,6 +94,43 @@ public class MtScriptTransformerTest
     }
 
     [Fact]
+    public void Should_Throw_Exception_For_Multiple_Main_Methods()
+    {
+        var component = new MtComponent
+        {
+            TemplateContent = "",
+            HasSlot = false,
+            ImportedComponents = new MtComponentMap(),
+            Properties = new(),
+            Namespaces = new(),
+            Scripts = new()
+            {
+                new() { Content = "main() { log(1); }", HasMainMethod = true, Once = false },
+                new() { Content = "main() { log(2); }", HasMainMethod = true, Once = false }
+            }
+        };
+
+        Assert.Throws<DuplicateMainManiaScriptException>(() => _scriptTransformer.CreateManiaScriptBlock(component));
+    }
+
+    [Fact]
+    public void Should_Allow_Same_Main_Method_Multiple_Times()
+    {
+        var component = new MtComponent
+        {
+            TemplateContent = "",
+            HasSlot = false,
+            ImportedComponents = new MtComponentMap(),
+            Properties = new(),
+            Namespaces = new(),
+            Scripts = new() { new() { Content = "main() { log(1); }", HasMainMethod = true, Once = true } }
+        };
+
+        _scriptTransformer.CreateManiaScriptBlock(component);
+        _scriptTransformer.CreateManiaScriptBlock(component);
+    }
+
+    [Fact]
     public void Should_Throw_Exception_For_Redefined_Struct()
     {
         var component = ComponentWithScripts(
