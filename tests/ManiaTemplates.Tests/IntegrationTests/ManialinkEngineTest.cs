@@ -804,4 +804,42 @@ public class ManialinkEngineTest
         var template = _maniaTemplateEngine.RenderAsync("FallthroughTest", new { }, assemblies).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
+
+    [Fact]
+    public async void Should_Overwrite_Root_Element_Attributes_With_Fallthrough_Attributes()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("HelloLabel",
+            "<component><template><label text=\"hello\" textcolor=\"000\"/></template></component>");
+        _maniaTemplateEngine.AddTemplateFromString("FallthroughOverwrite", """
+            <component>
+                <import component="HelloLabel" as="HelloLabel"/>
+                <template>
+                    <HelloLabel textcolor="FF0058"/>
+                </template>
+            </component>
+            """);
+
+        var result = await _maniaTemplateEngine.RenderAsync("FallthroughOverwrite", new { },
+            new[] { typeof(ManiaTemplateEngine).Assembly });
+
+        Assert.Contains("<label text=\"hello\" textcolor=\"FF0058\" />", result);
+    }
+
+    [Fact]
+    public async void Should_Throw_Exception_For_Empty_Slot_Name()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("SlotsComponent",
+            "<component><template><frame><slot/></frame></template></component>");
+        _maniaTemplateEngine.AddTemplateFromString("EmptySlotName", """
+            <component>
+                <import component="SlotsComponent" as="SlotsComponent"/>
+                <template>
+                    <SlotsComponent><template slot=" "><label/></template></SlotsComponent>
+                </template>
+            </component>
+            """);
+
+        await Assert.ThrowsAsync<EmptyNodeAttributeException>(() =>
+            _maniaTemplateEngine.RenderAsync("EmptySlotName", new { }, new[] { typeof(ManiaTemplateEngine).Assembly }));
+    }
 }
