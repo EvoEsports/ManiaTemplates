@@ -98,4 +98,30 @@ public class MtComponentTest
 
         Assert.Throws<MissingAttributeException>(() => MtComponent.FromTemplate(_engine, component));
     }
+
+    [Theory]
+    [InlineData("my-prop")]
+    [InlineData("1prop")]
+    [InlineData("@class")]
+    [InlineData("class")]
+    [InlineData("checked")]
+    [InlineData("__internal")]
+    [InlineData("")]
+    public void Should_Reject_Invalid_Property_Names(string name)
+    {
+        var component = $"<component><property type=\"string\" name=\"{name}\"/></component>";
+
+        Assert.Throws<InvalidPropertyNameException>(() => MtComponent.FromTemplate(_engine, component));
+    }
+
+    [Theory]
+    [InlineData("value")]
+    [InlineData("var")]
+    [InlineData("_private")]
+    public void Should_Allow_Contextual_Keywords_As_Property_Names(string name)
+    {
+        var component = $"<component><property type=\"string\" name=\"{name}\"/></component>";
+
+        Assert.Contains(name, MtComponent.FromTemplate(_engine, component).Properties.Keys);
+    }
 }

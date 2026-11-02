@@ -2,6 +2,7 @@
 using System.Xml;
 using ManiaTemplates.Exceptions;
 using ManiaTemplates.Lib;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace ManiaTemplates.Components;
 
@@ -201,6 +202,14 @@ public class MtComponent
         if (type == null)
         {
             throw new MissingAttributeException($"Missing attribute 'type' for element '{node.OuterXml}'.");
+        }
+
+        //Properties become variables of the generated code, names starting with __ are used for internal variables
+        if (!SyntaxFacts.IsValidIdentifier(name) || SyntaxFacts.GetKeywordKind(name) != SyntaxKind.None ||
+            name.StartsWith("__"))
+        {
+            throw new InvalidPropertyNameException(
+                $"The property name '{name}' must be a valid C# variable name, not a C# keyword and not starting with __.");
         }
 
         var property = new MtComponentProperty
