@@ -82,6 +82,18 @@ public class MtScriptTransformerTest
     }
 
     [Fact]
+    public void Should_Throw_Exception_For_Redefined_Constant()
+    {
+        var component = ComponentWithScripts(
+            "#Const C_Size 10",
+            "#Const  C_Size   10",
+            "#Const C_Size 20"
+        );
+
+        Assert.Throws<DuplicateManiaScriptConstantException>(() => _scriptTransformer.CreateManiaScriptBlock(component));
+    }
+
+    [Fact]
     public void Should_Throw_Exception_For_Redefined_Struct()
     {
         var component = ComponentWithScripts(

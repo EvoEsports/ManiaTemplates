@@ -16,6 +16,7 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
     private static readonly Regex ManiaScriptIncludeRegex = new(@"#Include\s+""(.+?)""\s+as\s+([_a-zA-Z]+)");
     private static readonly Regex ManiaScriptConstantRegex = new(@"#Const\s+([a-zA-Z_:]+)\s+.+");
     private static readonly Regex ManiaScriptStructRegex = new(@"(?s)#Struct\s+([_a-zA-Z]+)\s*\{.+?\}");
+    private static readonly Regex WhitespaceRegex = new(@"\s+");
 
     public string CreateManiaScriptBlock(MtComponent component)
     {
@@ -107,9 +108,23 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
         while (constantMatcher.Success)
         {
             var match = constantMatcher.ToString();
-            _maniaScriptConstants.TryAdd(constantMatcher.Groups[1].Value, match);
+            var constantName = constantMatcher.Groups[1].Value;
+            var constantDefinition = match.Trim();
+
+            if (_maniaScriptConstants.TryGetValue(constantName, out var existingConstantDefinition))
+            {
+                if (WhitespaceRegex.Replace(constantDefinition, " ") != WhitespaceRegex.Replace(existingConstantDefinition, " "))
+                {
+                    throw new DuplicateManiaScriptConstantException(
+                        $"Can't redefine constant {constantName}, because it is already defined as: {existingConstantDefinition}.");
+                }
+            }
+            else
+            {
+                _maniaScriptConstants.Add(constantName, constantDefinition);
+            }
+
             output = output.Replace(match, "");
-            //TODO: exceptions double constant
 
             constantMatcher = constantMatcher.NextMatch();
         }
