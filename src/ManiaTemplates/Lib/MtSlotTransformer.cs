@@ -30,11 +30,11 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
         var slotArguments = ParseSlotArguments(slotName, attributeList, context);
         RegisterSlotArguments(parentComponent, slotName, slotArguments);
         var slotArgumentsList = slotArguments.Select(argument =>
-            MtNames.MethodCallArgument(argument.Name, argument.Variable));
+            MtCodeNames.MethodCallArgument(argument.Name, argument.Variable));
 
         return new StringBuilder()
             .AppendLine(maniaTemplateLanguage.FeatureBlockStart())
-            .AppendLine($"{MtNames.SlotRendererVariable(slotName)}?.Invoke({string.Join(", ", slotArgumentsList)});")
+            .AppendLine($"{MtCodeNames.SlotRendererVariable(slotName)}?.Invoke({string.Join(", ", slotArgumentsList)});")
             .Append(maniaTemplateLanguage.FeatureBlockEnd())
             .ToString();
     }
@@ -52,7 +52,7 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
         var contentsByName = new Dictionary<string, XmlNode>();
         var namedSlotTemplates = new HashSet<string>();
 
-        //Iterate over a copy, as named slot templates are removed from the node
+        // Iterate over a copy, as named slot templates are removed from the node
         foreach (var childNode in componentNode.ChildNodes.Cast<XmlNode>().ToList())
         {
             if (childNode.Name != MtTransformer.FragmentTag)
@@ -60,7 +60,7 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
                 continue;
             }
 
-            //Get the name from the slot attribute, or default if not found.
+            // Get the name from the slot attribute, or default if not found.
             var slotName = childNode.Attributes?["slot"]?.Value.ToLower() ?? "default";
 
             if (slotName.Trim().Length == 0)
@@ -71,7 +71,7 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
 
             if (slotName == "default")
             {
-                //Do not strip contents for default slot from node
+                // Do not strip contents for default slot from node
                 continue;
             }
 
@@ -89,7 +89,7 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
 
             if (component.Slots.Contains(slotName))
             {
-                //Only add templates, if the component does have a fitting slot
+                // Only add templates, if the component does have a fitting slot
                 contentsByName[slotName] = childNode.Clone();
             }
 
@@ -130,13 +130,13 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
     {
         var methodArguments = new List<string>();
 
-        //Add slot render methods.
+        // Add slot render methods.
         AppendSlotRendererParameters(parentComponent, methodArguments);
 
-        //Add the variables available in the slot, properties of the rendered component are available everywhere.
+        // Add the variables available in the slot, properties of the rendered component are available everywhere.
         methodArguments.AddRange(context.Select(variable => $"{variable.Value} {variable.Key}"));
 
-        _slotRenderMethods.Add(maniaTemplateLanguage.RenderMethod(MtNames.SlotRenderMethod(scope, slotName),
+        _slotRenderMethods.Add(maniaTemplateLanguage.RenderMethod(MtCodeNames.SlotRenderMethod(scope, slotName),
             methodArguments, slotContent));
     }
 
@@ -147,17 +147,17 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
     public string CreateSlotRendererLambda(int scope, MtComponent component, string slotName,
         MtDataContext slotContext, MtComponent parentComponent)
     {
-        //The lambda parameters are named differently, to not collide with the variables around the component
+        // The lambda parameters are named differently, to not collide with the variables around the component
         var parameters = GetSlotArguments(component, slotName).Keys
             .Select((name, index) => (Name: name, Parameter: $"__slotArgument{index}"))
             .ToDictionary(argument => argument.Name, argument => argument.Parameter);
 
         var arguments = slotContext.Keys
-            .Select(name => MtNames.MethodCallArgument(name, parameters.GetValueOrDefault(name, name)))
-            .Concat(parentComponent.Slots.Select(MtNames.SlotRendererVariable).Select(MtNames.MethodCallArgument));
+            .Select(name => MtCodeNames.MethodCallArgument(name, parameters.GetValueOrDefault(name, name)))
+            .Concat(parentComponent.Slots.Select(MtCodeNames.SlotRendererVariable).Select(MtCodeNames.MethodCallArgument));
 
         return $"({string.Join(", ", parameters.Values)}) => " +
-               $"{MtNames.SlotRenderMethod(scope, slotName)}({string.Join(", ", arguments)})";
+               $"{MtCodeNames.SlotRenderMethod(scope, slotName)}({string.Join(", ", arguments)})";
     }
 
     /// <summary>
@@ -167,9 +167,9 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
     {
         foreach (var slotName in component.Slots)
         {
-            var delegateName = MtNames.SlotRendererDelegate(component, slotName);
+            var delegateName = MtCodeNames.SlotRendererDelegate(component, slotName);
             _slotRendererDelegates.Add(delegateName);
-            arguments.Add($"{delegateName}? {MtNames.SlotRendererVariable(slotName)}");
+            arguments.Add($"{delegateName}? {MtCodeNames.SlotRendererVariable(slotName)}");
         }
     }
 
@@ -220,7 +220,7 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
         var arguments = new List<(string Name, string Variable, string Type)>();
         foreach (var (name, attribute) in attributeList)
         {
-            if (!IStringMethods.IsVariableName(name))
+            if (!StringUtils.IsVariableName(name))
             {
                 throw new InvalidSlotArgumentException(
                     $"The argument {name} of the slot {slotName} must be a valid variable name, not a C# keyword and not starting with __.");
@@ -251,7 +251,7 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
             slotArguments[argument.Name] = argument.Type;
         }
 
-        var delegateName = MtNames.SlotRendererDelegate(component, slotName);
+        var delegateName = MtCodeNames.SlotRendererDelegate(component, slotName);
         if (!_slotArguments.TryGetValue(delegateName, out var registeredArguments))
         {
             _slotArguments[delegateName] = slotArguments;
@@ -271,7 +271,7 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
     /// </summary>
     private MtDataContext GetSlotArguments(MtComponent component, string slotName)
     {
-        return _slotArguments.GetValueOrDefault(MtNames.SlotRendererDelegate(component, slotName)) ??
+        return _slotArguments.GetValueOrDefault(MtCodeNames.SlotRendererDelegate(component, slotName)) ??
                new MtDataContext();
     }
 }

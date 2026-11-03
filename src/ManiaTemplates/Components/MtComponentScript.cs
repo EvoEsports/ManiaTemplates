@@ -76,7 +76,7 @@ public class MtComponentScript
 
         foreach (XmlNode childNode in node.ChildNodes)
         {
-            //Text, CDATA, comments and whitespace
+            // Text, CDATA, comments and whitespace
             if (childNode is not XmlCharacterData)
             {
                 return null;

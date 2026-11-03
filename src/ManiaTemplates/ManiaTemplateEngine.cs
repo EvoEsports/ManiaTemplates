@@ -80,7 +80,7 @@ public class ManiaTemplateEngine
         }
 
         AddManiaScriptFromString("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
-            Helper.GetEmbeddedResourceContentAsync("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
+            EmbeddedResourceUtils.GetEmbeddedResourceContentAsync("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
                 Assembly.GetExecutingAssembly()).Result);
 
         return coreComponents;
@@ -155,7 +155,7 @@ public class ManiaTemplateEngine
     public void LoadTemplateFromEmbeddedResource(string resourcePath)
     {
         var templateContent =
-            Helper.GetEmbeddedResourceContentAsync(resourcePath, Assembly.GetCallingAssembly()).Result;
+            EmbeddedResourceUtils.GetEmbeddedResourceContentAsync(resourcePath, Assembly.GetCallingAssembly()).Result;
         AddTemplateFromString(resourcePath, templateContent);
     }
 
@@ -223,7 +223,7 @@ public class ManiaTemplateEngine
 
         templateSettings.CompilerOptions = "-nullable:enable";
         templateSettings.Name = className;
-        //Without namespace the generated class can be found by its name
+        // Without namespace the generated class can be found by its name
         templateSettings.Namespace = "";
 
         var preCompiledTemplate =
@@ -236,7 +236,7 @@ public class ManiaTemplateEngine
                 $"Failed to pre-process '{mtComponent.TemplateContent}'.");
         }
 
-        //Parse null to empty strings
+        // Parse null to empty strings
         preCompiledTemplate =
             preCompiledTemplate.Replace(@"throw new global::System.ArgumentNullException(""objectToConvert"");",
                 @"return """";");

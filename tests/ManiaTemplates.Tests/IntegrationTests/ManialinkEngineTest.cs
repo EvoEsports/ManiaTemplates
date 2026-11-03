@@ -482,7 +482,7 @@ public class ManialinkEngineTest
     [Fact]
     public void Should_Not_Pass_Loop_Variables_Into_Component_Templates()
     {
-        //The component uses a component with a slot and declares a loop variable with the same name as the outer loop
+        // The component uses a component with a slot and declares a loop variable with the same name as the outer loop
         _maniaTemplateEngine.AddTemplateFromString("LoopComponent", """
             <component>
                 <template>

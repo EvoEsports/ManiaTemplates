@@ -2,7 +2,7 @@
 
 namespace ManiaTemplates.Lib;
 
-public abstract class Helper
+internal static class EmbeddedResourceUtils
 {
     /// <summary>
     /// Gets the embedded resources contents of the given assembly.

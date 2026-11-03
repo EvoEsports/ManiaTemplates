@@ -7,7 +7,7 @@ namespace ManiaTemplates.Lib;
 /// <summary>
 /// Names of the methods, delegates and variables in the generated code.
 /// </summary>
-internal static class MtNames
+internal static class MtCodeNames
 {
     private static readonly Regex NonWordCharacterRegex = new(@"\W");
 

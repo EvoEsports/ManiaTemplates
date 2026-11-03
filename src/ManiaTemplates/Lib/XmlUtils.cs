@@ -1,10 +1,10 @@
-﻿using System.Text;
+using System.Text;
 using System.Xml;
 using ManiaTemplates.Components;
 
-namespace ManiaTemplates.Interfaces;
+namespace ManiaTemplates.Lib;
 
-public interface IXmlMethods : ICurlyBraceMethods
+internal static class XmlUtils
 {
     /// <summary>
     /// Parses the attributes of a XmlNode to an MtComponentAttributes-instance.
@@ -38,7 +38,7 @@ public interface IXmlMethods : ICurlyBraceMethods
 
         foreach (var (attributeName, attribute) in attributeList)
         {
-            var newAttribute = @$"{attributeName}=""{ReplaceCurlyBraces(attribute.Value, curlyContentWrapper)}""";
+            var newAttribute = @$"{attributeName}=""{CurlyBraceUtils.ReplaceCurlyBraces(attribute.Value, curlyContentWrapper)}""";
 
             if (!attribute.IsFallthroughAttribute)
             {

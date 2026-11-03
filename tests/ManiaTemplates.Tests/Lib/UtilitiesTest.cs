@@ -10,7 +10,7 @@ public class UtilitiesTest
     public async Task Should_Throw_Exception_For_Missing_Embedded_Resource()
     {
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            Helper.GetEmbeddedResourceContentAsync("Missing.Resource", typeof(ManiaTemplateEngine).Assembly));
+            EmbeddedResourceUtils.GetEmbeddedResourceContentAsync("Missing.Resource", typeof(ManiaTemplateEngine).Assembly));
     }
 
     [Theory]

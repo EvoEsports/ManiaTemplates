@@ -65,10 +65,10 @@ internal class MtControlFlowTransformer(IManiaTemplateLanguage maniaTemplateLang
     /// Conditions of a chain are rendered as separate if-blocks sharing a variable that tracks whether a condition
     /// was met, which allows rendering comments between them.
     /// </summary>
-    public Snippet CreateConditionBlock(Snippet input, MtCondition condition, string? conditionChainVariable)
+    public MtCodeSnippet CreateConditionBlock(MtCodeSnippet input, MtCondition condition, string? conditionChainVariable)
     {
-        var snippet = new Snippet();
-        var expression = ICurlyBraceMethods.RemoveCurlyBraces(condition.Expression);
+        var snippet = new MtCodeSnippet();
+        var expression = CurlyBraceUtils.RemoveCurlyBraces(condition.Expression);
 
         snippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart());
 
@@ -111,9 +111,9 @@ internal class MtControlFlowTransformer(IManiaTemplateLanguage maniaTemplateLang
     /// Wraps the snippet in a loop, exposing the zero-based iteration index to the loop body.
     /// The surrounding block scopes the iteration counter, so sibling loops do not collide.
     /// </summary>
-    public Snippet CreateLoopBlock(Snippet input, MtLoop loop)
+    public MtCodeSnippet CreateLoopBlock(MtCodeSnippet input, MtLoop loop)
     {
-        var snippet = new Snippet();
+        var snippet = new MtCodeSnippet();
         snippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart());
         snippet.AppendLine("{");
         snippet.AppendLine($"var {loop.CounterVariableName} = 0;");

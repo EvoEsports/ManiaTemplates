@@ -7,7 +7,7 @@ using ManiaTemplates.Interfaces;
 
 namespace ManiaTemplates.Lib;
 
-public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICurlyBraceMethods
+public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage)
 {
     private readonly Dictionary<string, string> _maniaScriptIncludes = new();
     private readonly Dictionary<string, string> _maniaScriptConstants = new();
@@ -35,10 +35,10 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
             }
 
             renderMethod.AppendLine(
-                ICurlyBraceMethods.ReplaceCurlyBracesWithRawOutput(
+                CurlyBraceUtils.ReplaceCurlyBracesWithRawOutput(
                     ExtractManiaScriptDirectives(script.Content),
-                    content => templateLanguage.InsertResult($"Security.EscapeManiaScript({content})"),
-                    content => templateLanguage.InsertResult($"Security.EscapeRawManiaScript({content})")
+                    content => templateLanguage.InsertResult($"MtEscaper.EscapeManiaScript({content})"),
+                    content => templateLanguage.InsertResult($"MtEscaper.EscapeRawManiaScript({content})")
                 )
             );
 

@@ -76,7 +76,7 @@ public class ManiaLink
     private Task<string> RenderInternalAsync(object? runnable)
     {
         var method = _textTransformer.GetMethod("TransformText");
-        //Errors of the template are thrown as they are, instead of wrapped in a TargetInvocationException
+        // Errors of the template are thrown as they are, instead of wrapped in a TargetInvocationException
         var output = (string?)method?.Invoke(runnable, BindingFlags.DoNotWrapExceptions, null, null, null);
 
         var result = output == null

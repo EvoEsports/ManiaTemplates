@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Xml;
 using ManiaTemplates.Exceptions;
-using ManiaTemplates.Interfaces;
 using ManiaTemplates.Lib;
 
 namespace ManiaTemplates.Components;
@@ -89,7 +88,7 @@ public class MtComponent
     private static XmlNode FindComponentNode(string templateContent)
     {
         var doc = new XmlDocument();
-        doc.LoadXml(MtSpecialCharEscaper.EscapeXmlSpecialCharsInAttributes(templateContent));
+        doc.LoadXml(XmlAttributeEscaper.EscapeXmlSpecialCharsInAttributes(templateContent));
 
         foreach (XmlNode node in doc.ChildNodes)
         {
@@ -204,7 +203,7 @@ public class MtComponent
             throw new MissingAttributeException($"Missing attribute 'type' for element '{node.OuterXml}'.");
         }
 
-        if (!IStringMethods.IsVariableName(name))
+        if (!StringUtils.IsVariableName(name))
         {
             throw new InvalidPropertyNameException(
                 $"The property name '{name}' must be a valid C# variable name, not a C# keyword and not starting with __.");

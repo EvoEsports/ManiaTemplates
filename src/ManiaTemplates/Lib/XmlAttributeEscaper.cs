@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace ManiaTemplates.Lib;
 
-public abstract class MtSpecialCharEscaper
+internal static class XmlAttributeEscaper
 {
     private static Dictionary<string, string> _map = new()
     {
@@ -38,7 +38,7 @@ public abstract class MtSpecialCharEscaper
     {
         var outputXml = attributeWithQuoteOrApostrophePattern.Replace(SubstituteStrings(input, _map), attributeMatch =>
         {
-            //Only escape the attribute value, keeping the attribute name and quotes
+            // Only escape the attribute value, keeping the attribute name and quotes
             var value = attributeMatch.Groups[1];
             var valueStart = value.Index - attributeMatch.Index;
 

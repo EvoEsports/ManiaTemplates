@@ -47,7 +47,7 @@ scriptText3
 }
 private void Render_Component_MtContext1ForEachLoop1_(SlotRenderer_MtContext1_default? __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
 #>
-<frame pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" z-index="<#= Security.Escape(zIndex) #>">
+<frame pos="<#= MtEscaper.Escape(x) #> <#= MtEscaper.Escape(y) #>" size="<#= MtEscaper.Escape(w) #> <#= MtEscaper.Escape(h) #>" z-index="<#= MtEscaper.Escape(zIndex) #>">
 <#+
 __slotRenderer_default?.Invoke();
 #>
@@ -56,12 +56,12 @@ __slotRenderer_default?.Invoke();
 }
 private void Render_Component_MtContext4ForEachLoop1_ForEachLoop1_(double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0, string halign = $"left", string valign = $"center", double opacity = 1.0, int zIndex = 0, int events = 0, string action = $"", string url = $"", string manialink = $"", string style = $"", string textfont = $"GameFont", double textsize = 1.0, string textcolor = $"", string focusareacolor1 = $"", string focusareacolor2 = $"", string text = $"", string textprefix = $"", int bold = 0, int autonewline = 0, int maxline = 0, int translate = 0, string textid = $"", string id = $"") {
 #>
-<label pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" halign="<#= Security.Escape(halign) #>" valign="<#= Security.Escape(valign) #>" opacity="<#= Security.Escape(opacity) #>" z-index="<#= Security.Escape(zIndex) #>" ScriptEvents="<#= Security.Escape(events) #>" action="<#= Security.Escape(action) #>" url="<#= Security.Escape(url) #>" manialink="<#= Security.Escape(manialink) #>" style="<#= Security.Escape(style) #>" textfont="<#= Security.Escape(textfont) #>" textsize="<#= Security.Escape(textsize) #>" textcolor="<#= Security.Escape(textcolor) #>" focusareacolor1="<#= Security.Escape(focusareacolor1) #>" focusareacolor2="<#= Security.Escape(focusareacolor2) #>" text="<#= Security.Escape(text) #>" textprefix="<#= Security.Escape(textprefix) #>" textemboss="<#= Security.Escape(bold) #>" autonewline="<#= Security.Escape(autonewline) #>" maxline="<#= Security.Escape(maxline) #>" translate="<#= Security.Escape(translate) #>" textid="<#= Security.Escape(textid) #>" id="<#= Security.Escape(id) #>" />
+<label pos="<#= MtEscaper.Escape(x) #> <#= MtEscaper.Escape(y) #>" size="<#= MtEscaper.Escape(w) #> <#= MtEscaper.Escape(h) #>" halign="<#= MtEscaper.Escape(halign) #>" valign="<#= MtEscaper.Escape(valign) #>" opacity="<#= MtEscaper.Escape(opacity) #>" z-index="<#= MtEscaper.Escape(zIndex) #>" ScriptEvents="<#= MtEscaper.Escape(events) #>" action="<#= MtEscaper.Escape(action) #>" url="<#= MtEscaper.Escape(url) #>" manialink="<#= MtEscaper.Escape(manialink) #>" style="<#= MtEscaper.Escape(style) #>" textfont="<#= MtEscaper.Escape(textfont) #>" textsize="<#= MtEscaper.Escape(textsize) #>" textcolor="<#= MtEscaper.Escape(textcolor) #>" focusareacolor1="<#= MtEscaper.Escape(focusareacolor1) #>" focusareacolor2="<#= MtEscaper.Escape(focusareacolor2) #>" text="<#= MtEscaper.Escape(text) #>" textprefix="<#= MtEscaper.Escape(textprefix) #>" textemboss="<#= MtEscaper.Escape(bold) #>" autonewline="<#= MtEscaper.Escape(autonewline) #>" maxline="<#= MtEscaper.Escape(maxline) #>" translate="<#= MtEscaper.Escape(translate) #>" textid="<#= MtEscaper.Escape(textid) #>" id="<#= MtEscaper.Escape(id) #>" />
 <#+
 }
 private void Render_Component_MtContext1(SlotRenderer_MtContext1_default? __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
 #>
-<frame pos="<#= Security.Escape(x) #> <#= Security.Escape(y) #>" size="<#= Security.Escape(w) #> <#= Security.Escape(h) #>" z-index="<#= Security.Escape(zIndex) #>">
+<frame pos="<#= MtEscaper.Escape(x) #> <#= MtEscaper.Escape(y) #>" size="<#= MtEscaper.Escape(w) #> <#= MtEscaper.Escape(h) #>" z-index="<#= MtEscaper.Escape(zIndex) #>">
 <#+
 __slotRenderer_default?.Invoke();
 #>

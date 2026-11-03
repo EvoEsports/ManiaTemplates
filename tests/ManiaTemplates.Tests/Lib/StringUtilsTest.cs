@@ -1,8 +1,8 @@
-using ManiaTemplates.Interfaces;
+using ManiaTemplates.Lib;
 
 namespace ManiaTemplates.Tests.Lib;
 
-public class StringMethodsTest
+public class StringUtilsTest
 {
     [Theory]
     [InlineData("string", true)]
@@ -17,6 +17,13 @@ public class StringMethodsTest
     [InlineData("int", false)]
     public void Should_Detect_String_Type(string type, bool expected)
     {
-        Assert.Equal(expected, IStringMethods.IsStringType(type));
+        Assert.Equal(expected, StringUtils.IsStringType(type));
+    }
+
+    [Fact]
+    public void Should_Wrap_Strings_In_Quotes()
+    {
+        Assert.Equal(@"$""unit test""", StringUtils.WrapStringInQuotes("unit test"));
+        Assert.Equal(@"$""""", StringUtils.WrapStringInQuotes(""));
     }
 }

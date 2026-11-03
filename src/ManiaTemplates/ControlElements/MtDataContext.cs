@@ -22,7 +22,7 @@ public class MtDataContext : Dictionary<string, string>
         
         foreach (var (name, type) in otherContext)
         {
-            clone[name] = type; //TODO: prevent duplicate?
+            clone[name] = type; // TODO: prevent duplicate?
         }
 
         return clone;

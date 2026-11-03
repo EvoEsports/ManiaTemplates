@@ -1,14 +1,14 @@
 ﻿namespace ManiaTemplates.Lib;
 
-public class Snippet : List<string>
+public class MtCodeSnippet : List<string>
 {
-    public Snippet AppendLine(string str)
+    public MtCodeSnippet AppendLine(string str)
     {
         Add(str);
         return this;
     }
 
-    public Snippet AppendSnippet(Snippet content)
+    public MtCodeSnippet AppendSnippet(MtCodeSnippet content)
     {
         foreach (var line in content)
         {

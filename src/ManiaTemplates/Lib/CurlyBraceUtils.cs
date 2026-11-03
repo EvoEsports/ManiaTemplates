@@ -1,12 +1,12 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using ManiaTemplates.Exceptions;
 
-namespace ManiaTemplates.Interfaces;
+namespace ManiaTemplates.Lib;
 
-public interface ICurlyBraceMethods
+internal static class CurlyBraceUtils
 {
-    protected static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
-    protected static readonly Regex TemplateRawInterpolationRegex = new(@"\{!\s*(.+?)\s*!\}");
+    private static readonly Regex TemplateInterpolationRegex = new(@"\{\{\s*(.+?)\s*\}\}");
+    private static readonly Regex TemplateRawInterpolationRegex = new(@"\{!\s*(.+?)\s*!\}");
 
     /// <summary>
     /// Takes the contents of double curly braces in a string and wraps them into something else.
