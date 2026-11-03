@@ -29,7 +29,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// </summary>
     private const string FragmentTag = "template";
 
-    private static readonly Regex SlotArgumentNameRegex = new(@"^(?!__)[A-Za-z_]\w*$");
     private static readonly Regex SlotArgumentValueRegex = new(@"^\{\{\s*([A-Za-z_]\w*)\s*\}\}$");
     private static readonly Regex NonWordCharacterRegex = new(@"\W");
 
@@ -655,10 +654,10 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         var arguments = new List<(string Name, string Variable, string Type)>();
         foreach (var (name, attribute) in attributeList)
         {
-            if (!SlotArgumentNameRegex.IsMatch(name))
+            if (!IStringMethods.IsVariableName(name))
             {
                 throw new InvalidSlotArgumentException(
-                    $"The argument {name} of the slot {slotName} must be a valid variable name, not starting with __.");
+                    $"The argument {name} of the slot {slotName} must be a valid variable name, not a C# keyword and not starting with __.");
             }
 
             var variable = SlotArgumentValueRegex.Match(attribute.Value);

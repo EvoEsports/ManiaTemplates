@@ -728,6 +728,7 @@ public class ManialinkEngineTest
     [InlineData("<slot item=\"title\"/>")]
     [InlineData("<slot __item=\"{{ title }}\"/>")]
     [InlineData("<slot item=\"{{ title }}\"/><slot/>")]
+    [InlineData("<slot class=\"{{ title }}\"/>")]
     [InlineData("<slot item=\"{{ title }}\"/><slot foreach=\"int i in new[] { 1 }\" item=\"{{ i }}\"/>")]
     public async Task Should_Throw_Exception_For_Invalid_Slot_Arguments(string componentTemplate)
     {
