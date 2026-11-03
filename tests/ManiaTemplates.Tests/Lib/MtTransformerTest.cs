@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Collections.Concurrent;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Xml;
 using ManiaTemplates.Components;
@@ -62,29 +63,26 @@ public class MtTransformerTest
     [Fact]
     public void Should_Build_Manialink()
     {
-        var components = new Dictionary<string, MtComponent>
+        var components = new ConcurrentDictionary<string, MtComponent>
         {
+            ["newGraph.mt"] = new MtComponent
             {
-                "newGraph.mt",
-                new MtComponent
-                {
-                    Namespaces = new() { "GraphNamespace" },
-                    Properties =
-                        new()
-                        {
-                            { "arg1", new() { Name = "arg1", Type = "string", Default = "" } },
-                            { "arg2", new() { Name = "arg2", Type = "int", Default = "0" } },
-                            { "arg3", new() { Name = "arg3", Type = "test" } }
-                        },
-                    Scripts = new List<MtComponentScript>()
+                Namespaces = new() { "GraphNamespace" },
+                Properties =
+                    new()
                     {
-                        new() { Content = "GraphScript", HasMainMethod = false, Once = false },
-                        new() { Content = "GraphScript", HasMainMethod = false, Once = true },
+                        { "arg1", new() { Name = "arg1", Type = "string", Default = "" } },
+                        { "arg2", new() { Name = "arg2", Type = "int", Default = "0" } },
+                        { "arg3", new() { Name = "arg3", Type = "test" } }
                     },
-                    HasSlot = false,
-                    ImportedComponents = new MtComponentMap(),
-                    TemplateContent = ""
-                }
+                Scripts = new List<MtComponentScript>()
+                {
+                    new() { Content = "GraphScript", HasMainMethod = false, Once = false },
+                    new() { Content = "GraphScript", HasMainMethod = false, Once = true },
+                },
+                HasSlot = false,
+                ImportedComponents = new MtComponentMap(),
+                TemplateContent = ""
             }
         };
 

@@ -9,13 +9,19 @@ using Mono.TextTemplating;
 
 namespace ManiaTemplates;
 
+/// <summary>
+/// Renders templates to manialinks. The engine is thread-safe, so templates can be pre-processed and rendered in
+/// parallel.
+/// </summary>
 public class ManiaTemplateEngine
 {
     private readonly IManiaTemplateLanguage _maniaTemplateLanguage = new MtLanguageT4();
-    private readonly Dictionary<string, MtComponent> _components = new();
-    private readonly Dictionary<string, string> _templates = new();
-    private readonly Dictionary<string, string> _maniaScripts = new();
-    private readonly ConcurrentDictionary<string, ManiaLink> _preProcessed = new();
+    private readonly ConcurrentDictionary<string, MtComponent> _components = new();
+    private readonly ConcurrentDictionary<string, string> _templates = new();
+    private readonly ConcurrentDictionary<string, string> _maniaScripts = new();
+
+    // Lazy makes sure a template is compiled once, even if it is rendered by multiple threads at the same time
+    private readonly ConcurrentDictionary<string, Lazy<ManiaLink>> _preProcessed = new();
     public readonly ConcurrentDictionary<string, object?> GlobalVariables = new();
     protected internal MtComponentMap BaseMtComponents { get; }
 
@@ -80,8 +86,8 @@ public class ManiaTemplateEngine
         }
 
         AddManiaScriptFromString("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
-            EmbeddedResourceUtils.GetEmbeddedResourceContentAsync("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
-                Assembly.GetExecutingAssembly()).Result);
+            EmbeddedResourceUtils.GetEmbeddedResourceContent("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
+                Assembly.GetExecutingAssembly()));
 
         return coreComponents;
     }
@@ -91,32 +97,31 @@ public class ManiaTemplateEngine
     /// </summary>
     public MtComponent GetComponent(string key)
     {
-        if (_components.TryGetValue(key, out var cachedComponent))
-        {
-            return cachedComponent;
-        }
-
-        var component = MtComponent.FromTemplate(this, _templates[key]);
-        _components.Add(key, component);
-
-        return component;
+        return _components.GetOrAdd(key, templateKey => MtComponent.FromTemplate(this, _templates[templateKey]));
     }
 
     /// <summary>
     /// PreProcesses a template-key for faster rendering.
     /// </summary>
-    public void PreProcess(string key, IEnumerable<Assembly> assemblies, string? writeTo = null)
+    public Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies)
     {
-        _preProcessed[key] = PreProcessComponent(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies, writeTo);
+        // Compiling takes a while, running it on the thread pool allows pre-processing templates in parallel
+        return Task.Run(() => PreProcess(key, assemblies, null));
     }
 
     /// <summary>
-    /// PreProcesses a template-key for faster rendering.
+    /// PreProcesses a template-key for faster rendering and writes the generated T4 template to the given directory,
+    /// which helps debugging templates.
     /// </summary>
-    public async Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies)
+    public Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies, string writeTo)
     {
-        _preProcessed[key] =
-            await PreProcessComponentAsync(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies);
+        return Task.Run(() => PreProcess(key, assemblies, writeTo));
+    }
+
+    private void PreProcess(string key, IEnumerable<Assembly> assemblies, string? writeTo)
+    {
+        var maniaLink = PreProcessComponent(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies, writeTo);
+        _preProcessed[key] = new Lazy<ManiaLink>(maniaLink);
     }
 
     /// <summary>
@@ -124,15 +129,15 @@ public class ManiaTemplateEngine
     /// </summary>
     public async Task<string> RenderAsync(string key, dynamic data, IEnumerable<Assembly> assemblies)
     {
-        await CheckPreprocessingAsync(key, assemblies);
-        return await _preProcessed[key].RenderAsync(data, GlobalVariables);
+        var maniaLink = await GetPreProcessedAsync(key, assemblies).ConfigureAwait(false);
+        return await maniaLink.RenderAsync(data, GlobalVariables);
     }
 
     public async Task<string> RenderAsync(string key, IDictionary<string, object?> data,
         IEnumerable<Assembly> assemblies)
     {
-        await CheckPreprocessingAsync(key, assemblies);
-        return await _preProcessed[key].RenderAsync(data, GlobalVariables);
+        var maniaLink = await GetPreProcessedAsync(key, assemblies).ConfigureAwait(false);
+        return await maniaLink.RenderAsync(data, GlobalVariables).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -140,12 +145,37 @@ public class ManiaTemplateEngine
     /// </summary>
     public string Hide(string key) => ManiaLink.CreateHideManialink(ManialinkNameUtils.KeyToId(key));
 
-    private async Task CheckPreprocessingAsync(string key, IEnumerable<Assembly> assemblies)
+    /// <summary>
+    /// Returns the pre-processed template, compiling it on the thread pool if it has not been compiled yet.
+    /// </summary>
+    private async Task<ManiaLink> GetPreProcessedAsync(string key, IEnumerable<Assembly> assemblies)
     {
-        var assemblyList = assemblies.ToList();
-        if (!_preProcessed.ContainsKey(key))
+        if (_preProcessed.TryGetValue(key, out var preProcessed) && preProcessed.IsValueCreated)
         {
-            await PreProcessAsync(key, assemblyList);
+            return preProcessed.Value;
+        }
+
+        return await Task.Run(() => GetPreProcessed(key, assemblies)).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Returns the pre-processed template, compiling it if it has not been compiled yet.
+    /// A failed compilation is not cached, so the template is compiled again on the next call.
+    /// </summary>
+    private ManiaLink GetPreProcessed(string key, IEnumerable<Assembly> assemblies)
+    {
+        var preProcessed = _preProcessed.GetOrAdd(key, templateKey => new Lazy<ManiaLink>(() =>
+            PreProcessComponent(GetComponent(templateKey), ManialinkNameUtils.KeyToId(templateKey), assemblies,
+                null)));
+
+        try
+        {
+            return preProcessed.Value;
+        }
+        catch
+        {
+            _preProcessed.TryRemove(new KeyValuePair<string, Lazy<ManiaLink>>(key, preProcessed));
+            throw;
         }
     }
 
@@ -155,7 +185,7 @@ public class ManiaTemplateEngine
     public void LoadTemplateFromEmbeddedResource(string resourcePath)
     {
         var templateContent =
-            EmbeddedResourceUtils.GetEmbeddedResourceContentAsync(resourcePath, Assembly.GetCallingAssembly()).Result;
+            EmbeddedResourceUtils.GetEmbeddedResourceContent(resourcePath, Assembly.GetCallingAssembly());
         AddTemplateFromString(resourcePath, templateContent);
     }
 
@@ -164,7 +194,11 @@ public class ManiaTemplateEngine
     /// </summary>
     public void AddTemplateFromString(string templateKey, string templateContent)
     {
-        _templates.Add(templateKey, templateContent);
+        if (!_templates.TryAdd(templateKey, templateContent))
+        {
+            throw new ArgumentException($"A template with the key '{templateKey}' has already been added.",
+                nameof(templateKey));
+        }
     }
 
     /// <summary>
@@ -192,24 +226,14 @@ public class ManiaTemplateEngine
     /// Takes a MtComponent instance and prepares it for rendering.
     /// </summary>
     private ManiaLink PreProcessComponent(MtComponent mtComponent, string className, IEnumerable<Assembly> assemblies,
-        string? writeTo = null)
-    {
-        return PreProcessComponentAsync(mtComponent, className, assemblies, writeTo).Result;
-    }
-
-    /// <summary>
-    /// Takes a MtComponent instance and prepares it for rendering.
-    /// </summary>
-    private async Task<ManiaLink> PreProcessComponentAsync(MtComponent mtComponent, string className,
-        IEnumerable<Assembly> assemblies,
-        string? writeTo = null)
+        string? writeTo)
     {
         var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
 
         if (writeTo != null)
         {
-            await File.WriteAllTextAsync(Path.Combine(writeTo,className + ".tt"), t4Template);
+            File.WriteAllText(Path.Combine(writeTo, className + ".tt"), t4Template);
         }
 
         var generator = new TemplateGenerator();
@@ -253,12 +277,12 @@ public class ManiaTemplateEngine
 
     public void RemoveTemplate(string name)
     {
-        if (!_templates.Remove(name))
+        if (!_templates.TryRemove(name, out _))
         {
             throw new InvalidOperationException($"Template with name '{name}' does not exist.");
         }
 
-        _components.Remove(name);
+        _components.TryRemove(name, out _);
         // Drops the compiled template, which lives in the load context of the assemblies it was rendered
         // against, so unloading that context isn't blocked by a cached reference.
         _preProcessed.TryRemove(name, out _);
@@ -266,7 +290,7 @@ public class ManiaTemplateEngine
 
     public void RemoveManiaScript(string name)
     {
-        if (!_maniaScripts.Remove(name))
+        if (!_maniaScripts.TryRemove(name, out _))
         {
             throw new InvalidOperationException($"ManiaScript with name '{name}' does not exist.");
         }

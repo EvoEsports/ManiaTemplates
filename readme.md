@@ -39,6 +39,13 @@ await engine.PreProcessAsync("MapList", assemblies);
 var xml = await engine.RenderAsync("MapList", new { maps = GetMaps(), title = "Maps" }, assemblies);
 ````
 
+The engine is thread-safe. Compiling a template takes a moment, so `PreProcessAsync` and the first `RenderAsync` of a
+template compile it on the thread pool. Pre-processing many templates in parallel speeds up loading:
+
+````csharp
+await Task.WhenAll(templateKeys.Select(key => engine.PreProcessAsync(key, assemblies)));
+````
+
 The data can also be an `IDictionary<string, object?>`.
 Templates embedded in your assembly can be added using `LoadTemplateFromEmbeddedResource`, see
 [embedded resources](#embedded-resources).

@@ -116,13 +116,24 @@ public class ManiaTemplateEngineTest
     }
 
     [Fact]
-    public void Should_Write_T4_Template_When_Pre_Processing()
+    public async Task Should_Return_Failed_Task_When_Pre_Processing_Fails()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("Broken",
+            "<component><template><label text=\"{{ undefinedVariable }}\"/></template></component>");
+
+        var preProcessing = _maniaTemplateEngine.PreProcessAsync("Broken", _assemblies);
+
+        await Assert.ThrowsAsync<ManiaTemplateCompilationFailedException>(() => preProcessing);
+    }
+
+    [Fact]
+    public async Task Should_Write_T4_Template_When_Pre_Processing()
     {
         var directory = Directory.CreateTempSubdirectory("ManiaTemplatesTest");
         try
         {
             _maniaTemplateEngine.AddTemplateFromString("Label", LabelTemplate);
-            _maniaTemplateEngine.PreProcess("Label", _assemblies, directory.FullName);
+            await _maniaTemplateEngine.PreProcessAsync("Label", _assemblies, directory.FullName);
 
             var t4Template = File.ReadAllText(Path.Combine(directory.FullName, "MtLabel.tt"));
             Assert.Contains("<label text=", t4Template);
@@ -217,5 +228,53 @@ public class ManiaTemplateEngineTest
 
         Assert.Equal(componentsMarkdown, _maniaTemplateEngine.GenerateComponentsMarkdown(),
             ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public async Task Should_Pre_Process_And_Render_Templates_In_Parallel()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("Shared", LabelTemplate);
+        var keys = Enumerable.Range(0, 20).Select(i => $"Parallel{i}").ToList();
+        foreach (var key in keys)
+        {
+            _maniaTemplateEngine.AddTemplateFromString(key,
+                $"<component><import component=\"Shared\" as=\"Shared\"/><template><Shared text=\"{key}\"/></template></component>");
+        }
+
+        await Task.WhenAll(keys.Select(key => _maniaTemplateEngine.PreProcessAsync(key, _assemblies)));
+        var results = await Task.WhenAll(keys.Select(key =>
+            _maniaTemplateEngine.RenderAsync(key, new Dictionary<string, object?>(), _assemblies)));
+
+        for (var i = 0; i < keys.Count; i++)
+        {
+            Assert.Contains($"<label text=\"{keys[i]}\" />", results[i]);
+        }
+    }
+
+    [Fact]
+    public async Task Should_Compile_Template_Once_When_Rendered_In_Parallel()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("CompiledOnce", LabelTemplate);
+
+        var results = await Task.WhenAll(Enumerable.Range(0, 10).Select(_ =>
+            _maniaTemplateEngine.RenderAsync("CompiledOnce", new { text = "unit" }, _assemblies)));
+
+        Assert.All(results, result => Assert.Contains("<label text=\"unit\" />", result));
+        Assert.Single(AppDomain.CurrentDomain.GetAssemblies(),
+            assembly => assembly.GetName().Name!.StartsWith("ManiaTemplates.Templates.MtCompiledOnce."));
+    }
+
+    [Fact]
+    public async Task Should_Compile_Failed_Template_Again()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("NeedsGlobal",
+            "<component><template><label text=\"{{ serverName }}\"/></template></component>");
+
+        await Assert.ThrowsAsync<ManiaTemplateCompilationFailedException>(() =>
+            _maniaTemplateEngine.RenderAsync("NeedsGlobal", new { }, _assemblies));
+
+        _maniaTemplateEngine.GlobalVariables["serverName"] = "unit";
+        Assert.Contains("<label text=\"unit\" />",
+            await _maniaTemplateEngine.RenderAsync("NeedsGlobal", new { }, _assemblies));
     }
 }
