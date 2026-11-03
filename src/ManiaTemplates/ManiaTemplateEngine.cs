@@ -101,42 +101,51 @@ public class ManiaTemplateEngine
     }
 
     /// <summary>
-    /// PreProcesses a template-key for faster rendering.
+    /// PreProcesses a template-key for faster rendering, cancelling the token stops the compilation.
     /// </summary>
-    public Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies)
+    public Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies,
+        CancellationToken cancellationToken = default)
     {
         // Compiling takes a while, running it on the thread pool allows pre-processing templates in parallel
-        return Task.Run(() => PreProcess(key, assemblies, null));
+        return Task.Run(() => PreProcess(key, assemblies, null, cancellationToken), cancellationToken);
     }
 
     /// <summary>
     /// PreProcesses a template-key for faster rendering and writes the generated T4 template to the given directory,
     /// which helps debugging templates.
     /// </summary>
-    public Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies, string writeTo)
+    public Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies, string writeTo,
+        CancellationToken cancellationToken = default)
     {
-        return Task.Run(() => PreProcess(key, assemblies, writeTo));
+        return Task.Run(() => PreProcess(key, assemblies, writeTo, cancellationToken), cancellationToken);
     }
 
-    private void PreProcess(string key, IEnumerable<Assembly> assemblies, string? writeTo)
+    private void PreProcess(string key, IEnumerable<Assembly> assemblies, string? writeTo,
+        CancellationToken cancellationToken)
     {
-        var maniaLink = PreProcessComponent(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies, writeTo);
+        var maniaLink = PreProcessComponent(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies, writeTo,
+            cancellationToken);
         _preProcessed[key] = new Lazy<ManiaLink>(maniaLink);
     }
 
     /// <summary>
-    /// Renders a template in the given context.
+    /// Renders a template in the given context. Cancelling the token stops waiting for the template to be compiled,
+    /// the compilation itself continues, as other renders may wait for it.
     /// </summary>
-    public async Task<string> RenderAsync(string key, dynamic data, IEnumerable<Assembly> assemblies)
+    public async Task<string> RenderAsync(string key, dynamic data, IEnumerable<Assembly> assemblies,
+        CancellationToken cancellationToken = default)
     {
-        var maniaLink = await GetPreProcessedAsync(key, assemblies).ConfigureAwait(false);
+        var maniaLink = await GetPreProcessedAsync(key, assemblies, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         return await maniaLink.RenderAsync(data, GlobalVariables);
     }
 
+    /// <inheritdoc cref="RenderAsync(string, object, IEnumerable{Assembly}, CancellationToken)"/>
     public async Task<string> RenderAsync(string key, IDictionary<string, object?> data,
-        IEnumerable<Assembly> assemblies)
+        IEnumerable<Assembly> assemblies, CancellationToken cancellationToken = default)
     {
-        var maniaLink = await GetPreProcessedAsync(key, assemblies).ConfigureAwait(false);
+        var maniaLink = await GetPreProcessedAsync(key, assemblies, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         return await maniaLink.RenderAsync(data, GlobalVariables).ConfigureAwait(false);
     }
 
@@ -148,14 +157,19 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Returns the pre-processed template, compiling it on the thread pool if it has not been compiled yet.
     /// </summary>
-    private async Task<ManiaLink> GetPreProcessedAsync(string key, IEnumerable<Assembly> assemblies)
+    private async Task<ManiaLink> GetPreProcessedAsync(string key, IEnumerable<Assembly> assemblies,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_preProcessed.TryGetValue(key, out var preProcessed) && preProcessed.IsValueCreated)
         {
             return preProcessed.Value;
         }
 
-        return await Task.Run(() => GetPreProcessed(key, assemblies)).ConfigureAwait(false);
+        // The token only stops waiting, the compilation is shared with other renders of the same template
+        return await Task.Run(() => GetPreProcessed(key, assemblies), CancellationToken.None)
+            .WaitAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -166,7 +180,7 @@ public class ManiaTemplateEngine
     {
         var preProcessed = _preProcessed.GetOrAdd(key, templateKey => new Lazy<ManiaLink>(() =>
             PreProcessComponent(GetComponent(templateKey), ManialinkNameUtils.KeyToId(templateKey), assemblies,
-                null)));
+                null, CancellationToken.None)));
 
         try
         {
@@ -226,7 +240,7 @@ public class ManiaTemplateEngine
     /// Takes a MtComponent instance and prepares it for rendering.
     /// </summary>
     private ManiaLink PreProcessComponent(MtComponent mtComponent, string className, IEnumerable<Assembly> assemblies,
-        string? writeTo)
+        string? writeTo, CancellationToken cancellationToken)
     {
         var t4Template = ConvertComponentToT4Template(mtComponent, className);
         var ttFilename = $"{className}.tt";
@@ -236,6 +250,7 @@ public class ManiaTemplateEngine
             File.WriteAllText(Path.Combine(writeTo, className + ".tt"), t4Template);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         var generator = new TemplateGenerator();
         var parsedTemplate = generator.ParseTemplate(ttFilename, t4Template);
         var templateSettings = TemplatingEngine.GetSettings(generator, parsedTemplate);
@@ -260,7 +275,8 @@ public class ManiaTemplateEngine
             preCompiledTemplate.Replace(@"throw new global::System.ArgumentNullException(""objectToConvert"");",
                 @"return """";");
 
-        return new ManiaLink(className, preCompiledTemplate, assemblies);
+        cancellationToken.ThrowIfCancellationRequested();
+        return new ManiaLink(className, preCompiledTemplate, assemblies, cancellationToken);
     }
 
     /// <summary>

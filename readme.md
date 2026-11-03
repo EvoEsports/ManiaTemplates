@@ -46,6 +46,9 @@ template compile it on the thread pool. Pre-processing many templates in paralle
 await Task.WhenAll(templateKeys.Select(key => engine.PreProcessAsync(key, assemblies)));
 ````
 
+Both methods accept a `CancellationToken`. Cancelling `PreProcessAsync` stops the compilation, cancelling `RenderAsync`
+stops waiting for it, as other renders of the template may wait for the same compilation.
+
 The data can also be an `IDictionary<string, object?>`.
 Templates embedded in your assembly can be added using `LoadTemplateFromEmbeddedResource`, see
 [embedded resources](#embedded-resources).

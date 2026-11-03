@@ -43,13 +43,14 @@ internal static class TemplateCompiler
     /// <summary>
     /// Compiles the given pre-compiled template and returns the type declared by <paramref name="className"/>.
     /// </summary>
-    public static Type Compile(string className, string preCompiledTemplate, IEnumerable<Assembly> assemblies)
+    public static Type Compile(string className, string preCompiledTemplate, IEnumerable<Assembly> assemblies,
+        CancellationToken cancellationToken)
     {
         var assemblyList = assemblies as IReadOnlyCollection<Assembly> ?? assemblies.ToList();
         var loadContext = ResolveLoadContext(assemblyList);
 
         var syntaxTree = CSharpSyntaxTree.ParseText(preCompiledTemplate,
-            new CSharpParseOptions(LanguageVersion.Latest));
+            new CSharpParseOptions(LanguageVersion.Latest), cancellationToken: cancellationToken);
 
         var compilation = CSharpCompilation.Create(
             $"ManiaTemplates.Templates.{className}.{Interlocked.Increment(ref _assemblyCounter)}",
@@ -61,7 +62,7 @@ internal static class TemplateCompiler
                 usings: DefaultUsings));
 
         using var peStream = new MemoryStream();
-        var emitResult = compilation.Emit(peStream);
+        var emitResult = compilation.Emit(peStream, cancellationToken: cancellationToken);
 
         if (!emitResult.Success)
         {

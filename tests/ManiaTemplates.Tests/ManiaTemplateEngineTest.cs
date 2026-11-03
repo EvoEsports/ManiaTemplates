@@ -277,4 +277,40 @@ public class ManiaTemplateEngineTest
         Assert.Contains("<label text=\"unit\" />",
             await _maniaTemplateEngine.RenderAsync("NeedsGlobal", new { }, _assemblies));
     }
+
+    [Fact]
+    public async Task Should_Cancel_Pre_Processing()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("Label", LabelTemplate);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            _maniaTemplateEngine.PreProcessAsync("Label", _assemblies, new CancellationToken(true)));
+
+        Assert.Contains("<label text=\"unit\" />",
+            await _maniaTemplateEngine.RenderAsync("Label", new { text = "unit" }, _assemblies));
+    }
+
+    [Fact]
+    public async Task Should_Cancel_Rendering()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("Label", LabelTemplate);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            _maniaTemplateEngine.RenderAsync("Label", new { text = "unit" }, _assemblies, new CancellationToken(true)));
+    }
+
+    [Fact]
+    public async Task Should_Finish_Compilation_For_Other_Renders_When_A_Render_Is_Cancelled()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("SharedCompilation", LabelTemplate);
+        using var cancellation = new CancellationTokenSource();
+
+        var cancelledRender = _maniaTemplateEngine.RenderAsync("SharedCompilation", new { text = "cancelled" },
+            _assemblies, cancellation.Token);
+        var render = _maniaTemplateEngine.RenderAsync("SharedCompilation", new { text = "unit" }, _assemblies);
+        await cancellation.CancelAsync();
+
+        Assert.Contains("<label text=\"unit\" />", await render);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => cancelledRender);
+    }
 }

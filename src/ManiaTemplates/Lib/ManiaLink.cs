@@ -19,10 +19,11 @@ public class ManiaLink
     /// <summary>
     /// Creates an ManiaLink-instance from tag & pre-compiled template with given context.
     /// </summary>
-    public ManiaLink(string className, string preCompiledTemplate, IEnumerable<Assembly> assemblies)
+    public ManiaLink(string className, string preCompiledTemplate, IEnumerable<Assembly> assemblies,
+        CancellationToken cancellationToken = default)
     {
         _className = className;
-        _textTransformer = TemplateCompiler.Compile(className, preCompiledTemplate, assemblies);
+        _textTransformer = TemplateCompiler.Compile(className, preCompiledTemplate, assemblies, cancellationToken);
     }
 
     public Task<string> RenderAsync(object data, IDictionary<string, object?>? globalVariables = null)
