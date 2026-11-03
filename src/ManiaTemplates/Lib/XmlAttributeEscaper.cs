@@ -5,7 +5,8 @@ namespace ManiaTemplates.Lib;
 
 internal static class XmlAttributeEscaper
 {
-    private static Dictionary<string, string> _map = new()
+    // Entities already in the template are replaced by placeholders, so they are not escaped twice
+    private static readonly Dictionary<string, string> EntityPlaceholders = new()
     {
         { "&lt;", "§%lt%§" },
         { "&gt;", "§%gt%§" },
@@ -13,6 +14,8 @@ internal static class XmlAttributeEscaper
         { "&quot;", "§%quot%§" },
         { "&apos;", "§%apos%§" }
     };
+
+    private static readonly Dictionary<string, string> PlaceholderEntities = FlipMapping(EntityPlaceholders);
 
     public static readonly Regex XmlTagFinderRegex = new("<[\\w-]+(?:\\s+[\\w-]+=(?:\"[^\"]*\"|'[^']*'))+\\s*\\/?>");
     public static readonly Regex XmlTagAttributeMatcherDoubleQuote = new("[\\w-]+=\"([^\"]*)\"");
@@ -36,7 +39,7 @@ internal static class XmlAttributeEscaper
     /// </summary>
     public static string FindAndEscapeAttributes(string input, Regex attributeWithQuoteOrApostrophePattern)
     {
-        var outputXml = attributeWithQuoteOrApostrophePattern.Replace(SubstituteStrings(input, _map), attributeMatch =>
+        var outputXml = attributeWithQuoteOrApostrophePattern.Replace(SubstituteStrings(input, EntityPlaceholders), attributeMatch =>
         {
             // Only escape the attribute value, keeping the attribute name and quotes
             var value = attributeMatch.Groups[1];
@@ -47,7 +50,7 @@ internal static class XmlAttributeEscaper
                    + attributeMatch.Value[(valueStart + value.Length)..];
         });
 
-        return SubstituteStrings(outputXml, FlipMapping(_map));
+        return SubstituteStrings(outputXml, PlaceholderEntities);
     }
 
     /// <summary>

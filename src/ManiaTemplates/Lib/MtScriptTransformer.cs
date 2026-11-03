@@ -27,10 +27,11 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage)
         {
             EnsureSingleMainMethod(script);
 
+            var scriptHash = script.ContentHash();
             if (script.Once)
             {
                 renderMethod.AppendLine(templateLanguage.FeatureBlockStart())
-                    .AppendLine($@"if(!__insertedOneTimeManiaScripts.Contains(""{script.ContentHash()}"")){{")
+                    .AppendLine($@"if(!__insertedOneTimeManiaScripts.Contains(""{scriptHash}"")){{")
                     .AppendLine(templateLanguage.FeatureBlockEnd());
             }
 
@@ -45,7 +46,7 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage)
             if (script.Once)
             {
                 renderMethod.AppendLine(templateLanguage.FeatureBlockStart())
-                    .AppendLine($@"__insertedOneTimeManiaScripts.Add(""{script.ContentHash()}"");")
+                    .AppendLine($@"__insertedOneTimeManiaScripts.Add(""{scriptHash}"");")
                     .AppendLine("}")
                     .AppendLine(templateLanguage.FeatureBlockEnd());
             }
@@ -101,82 +102,52 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage)
     /// </summary>
     private string ExtractManiaScriptDirectives(string maniaScriptSource)
     {
-        var output = maniaScriptSource;
-
-        var includeMatcher = ManiaScriptIncludeRegex.Match(output);
-        while (includeMatcher.Success)
+        // Each directive is removed from the script after registering it
+        var output = ManiaScriptIncludeRegex.Replace(maniaScriptSource, match =>
         {
-            var match = includeMatcher.ToString();
-            var libraryToInclude = includeMatcher.Groups[1].Value;
-            var includedAs = includeMatcher.Groups[2].Value;
+            var libraryToInclude = match.Groups[1].Value;
+            var includedAs = match.Groups[2].Value;
 
-            if (_maniaScriptIncludes.TryGetValue(includedAs, out var blockingLibrary))
+            if (!_maniaScriptIncludes.TryAdd(includedAs, libraryToInclude) &&
+                _maniaScriptIncludes[includedAs] != libraryToInclude)
             {
-                if (blockingLibrary != libraryToInclude)
-                {
-                    throw new DuplicateManiaScriptIncludeException(
-                        $"Can't include {libraryToInclude} as {includedAs}, because another include ({blockingLibrary}) blocks it.");
-                }
-            }
-            else
-            {
-                _maniaScriptIncludes.Add(includedAs, libraryToInclude);
+                throw new DuplicateManiaScriptIncludeException(
+                    $"Can't include {libraryToInclude} as {includedAs}, because another include ({_maniaScriptIncludes[includedAs]}) blocks it.");
             }
 
-            output = output.Replace(match, "");
-            includeMatcher = includeMatcher.NextMatch();
-        }
+            return "";
+        });
 
-        var constantMatcher = ManiaScriptConstantRegex.Match(output);
-        while (constantMatcher.Success)
+        output = ManiaScriptConstantRegex.Replace(output, match =>
         {
-            var match = constantMatcher.ToString();
-            var constantName = constantMatcher.Groups[1].Value;
-            var constantDefinition = match.Trim();
+            var constantName = match.Groups[1].Value;
+            var constantDefinition = match.Value.Trim();
 
-            if (_maniaScriptConstants.TryGetValue(constantName, out var existingConstantDefinition))
+            if (!_maniaScriptConstants.TryAdd(constantName, constantDefinition) &&
+                WhitespaceRegex.Replace(constantDefinition, " ") !=
+                WhitespaceRegex.Replace(_maniaScriptConstants[constantName], " "))
             {
-                if (WhitespaceRegex.Replace(constantDefinition, " ") != WhitespaceRegex.Replace(existingConstantDefinition, " "))
-                {
-                    throw new DuplicateManiaScriptConstantException(
-                        $"Can't redefine constant {constantName}, because it is already defined as: {existingConstantDefinition}.");
-                }
-            }
-            else
-            {
-                _maniaScriptConstants.Add(constantName, constantDefinition);
+                throw new DuplicateManiaScriptConstantException(
+                    $"Can't redefine constant {constantName}, because it is already defined as: {_maniaScriptConstants[constantName]}.");
             }
 
-            output = output.Replace(match, "");
+            return "";
+        });
 
-            constantMatcher = constantMatcher.NextMatch();
-        }
-
-        var structMatcher = ManiaScriptStructRegex.Match(output);
-        while (structMatcher.Success)
+        return ManiaScriptStructRegex.Replace(output, match =>
         {
-            var structName = structMatcher.Groups[1].Value;
-            var structDefinition = structMatcher.ToString().Trim();
+            var structName = match.Groups[1].Value;
+            var structDefinition = match.Value.Trim();
 
-            if (_maniaScriptStructs.TryGetValue(structName, out var existingStructDefinition))
+            if (!_maniaScriptStructs.TryAdd(structName, structDefinition) &&
+                string.Compare(structDefinition, _maniaScriptStructs[structName], CultureInfo.CurrentCulture,
+                    CompareOptions.IgnoreCase | CompareOptions.IgnoreSymbols) != 0)
             {
-                if (string.Compare(structDefinition, existingStructDefinition, CultureInfo.CurrentCulture,
-                        CompareOptions.IgnoreCase | CompareOptions.IgnoreSymbols) != 0)
-                {
-                    throw new DuplicateManiaScriptStructException(
-                        $"Can't redefine struct {structName}, because it is already defined as: {existingStructDefinition}.");
-                }
-            }
-            else
-            {
-                _maniaScriptStructs.Add(structName, structDefinition);
+                throw new DuplicateManiaScriptStructException(
+                    $"Can't redefine struct {structName}, because it is already defined as: {_maniaScriptStructs[structName]}.");
             }
 
-            output = output.Replace(structDefinition, "");
-
-            structMatcher = structMatcher.NextMatch();
-        }
-
-        return output;
+            return "";
+        });
     }
 }

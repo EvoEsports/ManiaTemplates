@@ -103,22 +103,11 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     {
         var imports = new StringBuilder();
 
-        foreach (var propertyValue in engine.GlobalVariables.Values)
-        {
-            if (propertyValue is null)
-            {
-                continue;
-            }
+        var globalVariableNamespaces = engine.GlobalVariables.Values
+            .Select(value => value?.GetType().Namespace)
+            .Where(nameSpace => nameSpace != null && nameSpace != "System");
 
-            var nameSpace = propertyValue.GetType().Namespace;
-
-            if (nameSpace != "System")
-            {
-                imports.AppendLine(maniaTemplateLanguage.Context($@"import namespace=""{nameSpace}"""));
-            }
-        }
-
-        foreach (var nameSpace in _namespaces)
+        foreach (var nameSpace in globalVariableNamespaces.Concat(_namespaces))
         {
             imports.AppendLine(maniaTemplateLanguage.Context($@"import namespace=""{nameSpace}"""));
         }
@@ -444,11 +433,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             var scriptRenderMethod = CreateComponentScriptsRenderMethod(component, scriptRenderMethodName);
             _maniaScriptRenderMethods.TryAdd(scriptRenderMethodName, scriptRenderMethod);
 
-            var scriptArguments = new List<string>();
-
-            // add method arguments with defaults
-            scriptArguments.AddRange(component.Properties.Values.OrderBy(property => property.Default != null)
-                .Select(property => property.Name));
+            var scriptArguments = GetPropertiesInParameterOrder(component).Select(property => property.Name);
 
             body.AppendLine(maniaTemplateLanguage.FeatureBlockStart())
                 .AppendLine(
@@ -460,7 +445,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Creates the method which renders the contents of a component.
+    /// Creates the method which renders the scripts of a component.
     /// </summary>
     private string CreateComponentScriptsRenderMethod(MtComponent component, string renderMethodName)
     {
@@ -477,10 +462,14 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// </summary>
     private static void AppendComponentPropertiesArgumentsList(MtComponent component, List<string> arguments)
     {
-        arguments.AddRange(component.Properties.Values
-            .OrderBy(property => property.Default != null)
-            .Select(property => property.ToMethodArgument()));
+        arguments.AddRange(GetPropertiesInParameterOrder(component).Select(property => property.ToMethodArgument()));
     }
+
+    /// <summary>
+    /// Returns the properties of a component, properties with default value last, as required for method parameters.
+    /// </summary>
+    private static IEnumerable<MtComponentProperty> GetPropertiesInParameterOrder(MtComponent component) =>
+        component.Properties.Values.OrderBy(property => property.Default != null);
 
     /// <summary>
     /// Creates the context of a component template, which contains the properties of the component.
@@ -497,7 +486,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Creates a dummy DoNothing() method that returns a empty string.
+    /// Creates the fields tracking the inserted one-time scripts and the methods rendering the scripts of components.
     /// </summary>
     private string CreateInsertedManiaScriptsList()
     {

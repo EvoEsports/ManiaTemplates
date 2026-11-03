@@ -19,11 +19,8 @@ internal static class CurlyBraceUtils
         Func<string, string> curlyRawContentWrapper
     )
     {
-        var output = value;
-        output = ReplaceCurlyBraces(output, curlyRawContentWrapper, TemplateRawInterpolationRegex);
-        output = ReplaceCurlyBraces(output, curlyContentWrapper);
-
-        return output;
+        var output = ReplaceCurlyBraces(value, curlyRawContentWrapper, TemplateRawInterpolationRegex);
+        return ReplaceCurlyBraces(output, curlyContentWrapper);
     }
 
     /// <summary>
@@ -42,21 +39,8 @@ internal static class CurlyBraceUtils
         PreventCurlyBraceCountMismatch(value);
         PreventInterpolationRecursion(value);
 
-        var output = value;
-        var pattern = interpolationPattern ?? TemplateInterpolationRegex;
-        var matches = pattern.Match(value);
-
-        while (matches.Success)
-        {
-            var match = matches.Groups[0].Value.Trim();
-            var content = matches.Groups[1].Value.Trim();
-
-            output = output.Replace(match, curlyContentWrapper(content));
-
-            matches = matches.NextMatch();
-        }
-
-        return output;
+        return (interpolationPattern ?? TemplateInterpolationRegex)
+            .Replace(value, match => curlyContentWrapper(match.Groups[1].Value.Trim()));
     }
 
     /// <summary>
@@ -86,7 +70,7 @@ internal static class CurlyBraceUtils
     public static void PreventCurlyBraceCountMismatch(string value)
     {
         var openCurlyBraces = 0;
-        foreach (var character in value.ToCharArray())
+        foreach (var character in value)
         {
             if (character == '{')
             {

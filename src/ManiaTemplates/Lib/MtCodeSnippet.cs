@@ -10,11 +10,7 @@ public class MtCodeSnippet : List<string>
 
     public MtCodeSnippet AppendSnippet(MtCodeSnippet content)
     {
-        foreach (var line in content)
-        {
-            AppendLine(line);
-        }
-
+        AddRange(content);
         return this;
     }
 

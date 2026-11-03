@@ -91,9 +91,9 @@ public class ManiaTemplateEngine
     /// </summary>
     public MtComponent GetComponent(string key)
     {
-        if (_components.ContainsKey(key))
+        if (_components.TryGetValue(key, out var cachedComponent))
         {
-            return _components[key];
+            return cachedComponent;
         }
 
         var component = MtComponent.FromTemplate(this, _templates[key]);
@@ -172,12 +172,10 @@ public class ManiaTemplateEngine
     /// </summary>
     public void AddManiaScriptFromString(string scriptKey, string maniaScript)
     {
-        if (_maniaScripts.ContainsKey(scriptKey))
+        if (!_maniaScripts.TryAdd(scriptKey, maniaScript))
         {
             throw new ManiaScriptAlreadyExistsException($"ManiaScript '{scriptKey}' already exists.");
         }
-
-        _maniaScripts.Add(scriptKey, maniaScript);
     }
 
     /// <summary>
@@ -185,12 +183,9 @@ public class ManiaTemplateEngine
     /// </summary>
     public string GetManiaScript(string scriptKey)
     {
-        if (!_maniaScripts.ContainsKey(scriptKey))
-        {
-            throw new ManiaScriptNotFoundException($"ManiaScript '{scriptKey}' not found.");
-        }
-
-        return _maniaScripts[scriptKey];
+        return _maniaScripts.TryGetValue(scriptKey, out var maniaScript)
+            ? maniaScript
+            : throw new ManiaScriptNotFoundException($"ManiaScript '{scriptKey}' not found.");
     }
 
     /// <summary>
@@ -258,12 +253,11 @@ public class ManiaTemplateEngine
 
     public void RemoveTemplate(string name)
     {
-        if (!_templates.ContainsKey(name))
+        if (!_templates.Remove(name))
         {
             throw new InvalidOperationException($"Template with name '{name}' does not exist.");
         }
 
-        _templates.Remove(name);
         _components.Remove(name);
         // Drops the compiled template, which lives in the load context of the assemblies it was rendered
         // against, so unloading that context isn't blocked by a cached reference.
@@ -272,11 +266,9 @@ public class ManiaTemplateEngine
 
     public void RemoveManiaScript(string name)
     {
-        if (!_maniaScripts.ContainsKey(name))
+        if (!_maniaScripts.Remove(name))
         {
             throw new InvalidOperationException($"ManiaScript with name '{name}' does not exist.");
         }
-
-        _maniaScripts.Remove(name);
     }
 }

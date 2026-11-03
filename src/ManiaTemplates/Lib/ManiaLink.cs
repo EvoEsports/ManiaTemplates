@@ -27,7 +27,7 @@ public class ManiaLink
 
     public Task<string> RenderAsync(object data, IDictionary<string, object?>? globalVariables = null)
     {
-        var runnable = GetTransformerinstance();
+        var runnable = CreateTransformerInstance();
         var dataType = data.GetType();
         AddGlobalVariablesToTextTransformer(runnable, globalVariables);
         foreach (var dt in dataType.GetProperties())
@@ -40,7 +40,7 @@ public class ManiaLink
 
     public Task<string> RenderAsync(IDictionary<string, object?> data, IDictionary<string, object?>? globalVariables = null)
     {
-        var runnable = GetTransformerinstance();
+        var runnable = CreateTransformerInstance();
         AddGlobalVariablesToTextTransformer(runnable, globalVariables);
         foreach (var (key, value) in data)
         {
@@ -65,7 +65,7 @@ public class ManiaLink
 
     public Task<string> RenderAsync(ExpandoObject data) => RenderAsync((IDictionary<string, object?>)data);
 
-    private object? GetTransformerinstance() => Activator.CreateInstance(_textTransformer);
+    private object? CreateTransformerInstance() => Activator.CreateInstance(_textTransformer);
 
     /// <summary>
     /// Render the manialink instance with the given data.
@@ -110,11 +110,7 @@ public class ManiaLink
     /// </summary>
     public static string OpenTag(string name, int version = 3, string? displayLayer = null)
     {
-        var layer = "";
-        if (displayLayer != null)
-        {
-            layer += $@" layer=""{displayLayer}""";
-        }
+        var layer = displayLayer == null ? "" : $@" layer=""{displayLayer}""";
 
         return $@"<manialink version=""{version}"" id=""{name}"" name=""EvoSC#-{name}""{layer}>";
     }
