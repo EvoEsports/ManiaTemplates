@@ -9,19 +9,19 @@ using Microsoft.CodeAnalysis.CSharp;
 namespace ManiaTemplates.Lib;
 
 /// <summary>
-/// Compiles pre-processed ManiaTemplates template classes into assemblies that live in the same
-/// <see cref="AssemblyLoadContext"/> as the assemblies the template is rendered against.
+/// Compiles pre-processed ManiaTemplates template classes into assemblies that live in the
+/// <see cref="AssemblyLoadContext"/> of the template.
 /// </summary>
 /// <remarks>
-/// A template references the types it renders with (module settings, models, ...). Those types may live in a
-/// collectible load context. Emitting the compiled template into that same context keeps the type identities
-/// intact and lets both the template and the assemblies it binds to be unloaded together.
+/// A template uses the types of its own assembly and of the assemblies it references (module settings, models, ...).
+/// Those types may live in a collectible load context. Emitting the compiled template into the context of the
+/// template's assembly keeps the type identities intact and lets both be unloaded together.
 /// </remarks>
 internal static class TemplateCompiler
 {
     private static int _assemblyCounter;
 
-    // Mirrors the implicit usings of the previous Roslyn scripting based compilation.
+    // Namespaces every template can use without importing them
     private static readonly string[] DefaultUsings =
     [
         "System",
@@ -33,21 +33,22 @@ internal static class TemplateCompiler
         "System.Threading.Tasks"
     ];
 
+    // Files of the default load context never change, so their references are cached by path
     private static readonly ConcurrentDictionary<string, MetadataReference> FileReferenceCache = new();
 
-    // Keyed weakly on purpose: a module's load context is collectible, and a strong key here would
-    // keep every module that ever compiled a template alive for the lifetime of the process.
-    private static readonly ConditionalWeakTable<AssemblyLoadContext, IReadOnlyList<MetadataReference>>
-        ReferenceCache = new();
+    // A collectible load context may be loaded again with another version of its files, so its references are cached
+    // per context. Keyed weakly, as a strong key would keep every context that compiled a template alive.
+    private static readonly ConditionalWeakTable<AssemblyLoadContext, ConcurrentDictionary<string, MetadataReference>>
+        LoadContextReferenceCache = new();
 
     /// <summary>
-    /// Compiles the given pre-compiled template and returns the type declared by <paramref name="className"/>.
+    /// Compiles the given pre-compiled template into the given load context and returns the type declared by
+    /// <paramref name="className"/>. The template can use the types of the given assemblies, of the load context and
+    /// of the host.
     /// </summary>
-    public static Type Compile(string className, string preCompiledTemplate, IEnumerable<Assembly> assemblies,
-        CancellationToken cancellationToken)
+    public static Type Compile(string className, string preCompiledTemplate, AssemblyLoadContext loadContext,
+        IReadOnlyCollection<Assembly> assemblies, CancellationToken cancellationToken)
     {
-        var assemblyList = assemblies as IReadOnlyCollection<Assembly> ?? assemblies.ToList();
-        var loadContext = ResolveLoadContext(assemblyList);
 
         var syntaxTree = CSharpSyntaxTree.ParseText(preCompiledTemplate,
             new CSharpParseOptions(LanguageVersion.Latest), cancellationToken: cancellationToken);
@@ -55,7 +56,7 @@ internal static class TemplateCompiler
         var compilation = CSharpCompilation.Create(
             $"ManiaTemplates.Templates.{className}.{Interlocked.Increment(ref _assemblyCounter)}",
             [syntaxTree],
-            GetReferences(loadContext, assemblyList),
+            BuildReferences(loadContext, assemblies),
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
                 nullableContextOptions: NullableContextOptions.Enable,
                 allowUnsafe: true,
@@ -79,8 +80,8 @@ internal static class TemplateCompiler
         Assembly compiled;
         try
         {
-            // Loading into the same context the template's assemblies were loaded into is what keeps the types
-            // the template binds to identical to the ones the caller passed in.
+            // Loading into the context of the template is what keeps the types the template binds to identical to
+            // the ones of the template's assemblies.
             compiled = loadContext.LoadFromStream(peStream);
         }
         catch (Exception ex)
@@ -99,24 +100,6 @@ internal static class TemplateCompiler
         return type;
     }
 
-    /// <summary>
-    /// Picks the load context the template should be emitted into, preferring a non-default context so
-    /// collectible module assemblies can be referenced without being duplicated.
-    /// </summary>
-    private static AssemblyLoadContext ResolveLoadContext(IEnumerable<Assembly> assemblies)
-    {
-        foreach (var assembly in assemblies)
-        {
-            var context = AssemblyLoadContext.GetLoadContext(assembly);
-            if (context != null && context != AssemblyLoadContext.Default)
-            {
-                return context;
-            }
-        }
-
-        return AssemblyLoadContext.Default;
-    }
-
     private static Type? FindType(Assembly assembly, string className)
     {
         var type = assembly.GetType(className);
@@ -127,12 +110,6 @@ internal static class TemplateCompiler
 
         // The template class may end up inside the configured namespace, so fall back to a name lookup.
         return assembly.GetTypes().FirstOrDefault(t => t.Name == className);
-    }
-
-    private static IReadOnlyList<MetadataReference> GetReferences(AssemblyLoadContext loadContext,
-        IReadOnlyCollection<Assembly> templateAssemblies)
-    {
-        return ReferenceCache.GetValue(loadContext, context => BuildReferences(context, templateAssemblies));
     }
 
     private static IReadOnlyList<MetadataReference> BuildReferences(AssemblyLoadContext loadContext,
@@ -147,7 +124,23 @@ internal static class TemplateCompiler
                 return;
             }
 
-            references.TryAdd(assembly.GetName().Name!, GetFileReference(assembly.Location));
+            references.TryAdd(assembly.GetName().Name!, GetFileReference(assembly));
+        }
+
+        // The first assembly of a name wins, so the assemblies of the template come before other loaded ones, which
+        // may contain another version, e.g. of a module that is reloaded while its old version is unloading.
+
+        // The template's assembly and the assemblies it references, e.g. the assemblies of a module and the export
+        // assemblies of other modules.
+        foreach (var assembly in templateAssemblies)
+        {
+            Add(assembly);
+        }
+
+        // Other assemblies loaded into the load context of the template, e.g. libraries of a module.
+        foreach (var assembly in loadContext.Assemblies)
+        {
+            Add(assembly);
         }
 
         // The host's assemblies (EvoSC.Common, ManiaTemplates, ...) provide the shared types templates use.
@@ -156,23 +149,12 @@ internal static class TemplateCompiler
             Add(assembly);
         }
 
-        // Types from the render context, e.g. a collectible module's settings interfaces.
-        foreach (var assembly in templateAssemblies)
-        {
-            Add(assembly);
-        }
-
-        // Types shared inside the load context of the template, e.g. exported module contracts.
-        foreach (var assembly in loadContext.Assemblies)
-        {
-            Add(assembly);
-        }
-
         // Assemblies of the framework and the host are only loaded when they are used, so the ones that are not
         // loaded yet are referenced by their files. Loaded assemblies come first, as they are used at runtime.
         foreach (var path in GetPlatformAssemblyPaths())
         {
-            references.TryAdd(Path.GetFileNameWithoutExtension(path), GetFileReference(path));
+            references.TryAdd(Path.GetFileNameWithoutExtension(path),
+                FileReferenceCache.GetOrAdd(path, static file => MetadataReference.CreateFromFile(file)));
         }
 
         return references.Values.ToList();
@@ -188,8 +170,17 @@ internal static class TemplateCompiler
             StringSplitOptions.RemoveEmptyEntries) ?? [];
     }
 
-    private static MetadataReference GetFileReference(string path)
+    /// <summary>
+    /// Creates the reference to the file of an assembly, cached per load context.
+    /// </summary>
+    private static MetadataReference GetFileReference(Assembly assembly)
     {
-        return FileReferenceCache.GetOrAdd(path, static p => MetadataReference.CreateFromFile(p));
+        var loadContext = AssemblyLoadContext.GetLoadContext(assembly);
+        var cache = loadContext == null || loadContext == AssemblyLoadContext.Default
+            ? FileReferenceCache
+            : LoadContextReferenceCache.GetValue(loadContext,
+                static _ => new ConcurrentDictionary<string, MetadataReference>());
+
+        return cache.GetOrAdd(assembly.Location, static path => MetadataReference.CreateFromFile(path));
     }
 }

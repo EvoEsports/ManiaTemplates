@@ -1,5 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Loader;
 using ManiaTemplates.Components;
 using ManiaTemplates.Exceptions;
 using ManiaTemplates.Interfaces;
@@ -16,12 +18,37 @@ namespace ManiaTemplates;
 public class ManiaTemplateEngine
 {
     private readonly IManiaTemplateLanguage _maniaTemplateLanguage = new MtLanguageT4();
-    private readonly ConcurrentDictionary<string, MtComponent> _components = new();
-    private readonly ConcurrentDictionary<string, string> _templates = new();
+    private readonly ConcurrentDictionary<string, RegisteredTemplate> _templates = new();
     private readonly ConcurrentDictionary<string, string> _maniaScripts = new();
 
-    // Lazy makes sure a template is compiled once, even if it is rendered by multiple threads at the same time
-    private readonly ConcurrentDictionary<string, Lazy<ManiaLink>> _preProcessed = new();
+    // Compiled templates are dropped when a template they were built from is removed or replaced, or when one of their
+    // load contexts unloads, as they would keep it alive
+    private readonly ConcurrentDictionary<string, CompiledTemplate> _compiledTemplates = new();
+
+    // The tables do not keep the load contexts alive, as their values do not reference the contexts
+    private readonly ConditionalWeakTable<AssemblyLoadContext, object> _watchedLoadContexts = new();
+    private readonly ConditionalWeakTable<AssemblyLoadContext, object> _unloadingLoadContexts = new();
+
+    /// <summary>
+    /// A template with the assembly it was loaded from, which decides the load context it is compiled into, and the
+    /// assemblies containing the types it uses.
+    /// </summary>
+    internal sealed record RegisteredTemplate(string Content, Assembly? Assembly, IReadOnlyList<Assembly> References)
+    {
+        public IEnumerable<Assembly> Assemblies => Assembly == null ? References : References.Prepend(Assembly);
+    }
+
+    /// <summary>
+    /// A compiled template with the templates it was built from, its own and the ones of all imported components, and
+    /// the collectible load contexts of their assemblies.
+    /// </summary>
+    private sealed record CompiledTemplate(ManiaLink ManiaLink, IReadOnlyDictionary<string, RegisteredTemplate> Templates,
+        IReadOnlyList<AssemblyLoadContext> LoadContexts);
+
+    /// <summary>
+    /// Variables available in all templates, like services or settings. They are added to templates when they are
+    /// compiled, so templates compiled before a variable was added can't use it.
+    /// </summary>
     public readonly ConcurrentDictionary<string, object?> GlobalVariables = new();
     protected internal MtComponentMap BaseMtComponents { get; }
 
@@ -95,58 +122,67 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Gets a MtComponent-instance for the given key.
     /// </summary>
-    public MtComponent GetComponent(string key)
+    public MtComponent GetComponent(string key) => MtComponent.FromTemplate(this, _templates[key].Content);
+
+    /// <summary>
+    /// Gets a MtComponent-instance for the given key, together with the template it was created from.
+    /// </summary>
+    internal (RegisteredTemplate Template, MtComponent Component) GetComponentWithTemplate(string key)
     {
-        return _components.GetOrAdd(key, templateKey => MtComponent.FromTemplate(this, _templates[templateKey]));
+        var template = _templates[key];
+        return (template, MtComponent.FromTemplate(this, template.Content));
     }
 
     /// <summary>
     /// PreProcesses a template-key for faster rendering, cancelling the token stops the compilation.
     /// </summary>
-    public Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies,
-        CancellationToken cancellationToken = default)
+    public Task PreProcessAsync(string key, CancellationToken cancellationToken = default)
     {
         // Compiling takes a while, running it on the thread pool allows pre-processing templates in parallel
-        return Task.Run(() => PreProcess(key, assemblies, null, cancellationToken), cancellationToken);
+        return Task.Run(() => PreProcess(key, null, cancellationToken), cancellationToken);
     }
 
     /// <summary>
     /// PreProcesses a template-key for faster rendering and writes the generated T4 template to the given directory,
     /// which helps debugging templates.
     /// </summary>
-    public Task PreProcessAsync(string key, IEnumerable<Assembly> assemblies, string writeTo,
-        CancellationToken cancellationToken = default)
+    public Task PreProcessAsync(string key, string writeTo, CancellationToken cancellationToken = default)
     {
-        return Task.Run(() => PreProcess(key, assemblies, writeTo, cancellationToken), cancellationToken);
+        return Task.Run(() => PreProcess(key, writeTo, cancellationToken), cancellationToken);
     }
 
-    private void PreProcess(string key, IEnumerable<Assembly> assemblies, string? writeTo,
-        CancellationToken cancellationToken)
+    private ManiaLink PreProcess(string key, string? writeTo, CancellationToken cancellationToken)
     {
-        var maniaLink = PreProcessComponent(GetComponent(key), ManialinkNameUtils.KeyToId(key), assemblies, writeTo,
-            cancellationToken);
-        _preProcessed[key] = new Lazy<ManiaLink>(maniaLink);
+        var compiled = Compile(key, _templates[key], writeTo, cancellationToken);
+        _compiledTemplates[key] = compiled;
+
+        // Checked after adding, as a template may be removed or a load context may unload at the same time
+        if (!IsCurrent(compiled))
+        {
+            _compiledTemplates.TryRemove(new KeyValuePair<string, CompiledTemplate>(key, compiled));
+        }
+
+        return compiled.ManiaLink;
     }
 
     /// <summary>
-    /// Renders a template in the given context. Cancelling the token stops waiting for the template to be compiled,
-    /// the compilation itself continues, as other renders may wait for it.
+    /// Renders a template with the given data, an object with properties or a dictionary. The template is compiled
+    /// first, if it has not been compiled yet, cancelling the token stops the compilation.
     /// </summary>
-    public async Task<string> RenderAsync(string key, dynamic data, IEnumerable<Assembly> assemblies,
-        CancellationToken cancellationToken = default)
+    public async Task<string> RenderAsync(string key, object data, CancellationToken cancellationToken = default)
     {
-        var maniaLink = await GetPreProcessedAsync(key, assemblies, cancellationToken).ConfigureAwait(false);
+        var maniaLink = _compiledTemplates.TryGetValue(key, out var compiled) && IsCurrent(compiled)
+            ? compiled.ManiaLink
+            : await Task.Run(() => PreProcess(key, null, cancellationToken), cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        return await maniaLink.RenderAsync(data, GlobalVariables);
-    }
 
-    /// <inheritdoc cref="RenderAsync(string, object, IEnumerable{Assembly}, CancellationToken)"/>
-    public async Task<string> RenderAsync(string key, IDictionary<string, object?> data,
-        IEnumerable<Assembly> assemblies, CancellationToken cancellationToken = default)
-    {
-        var maniaLink = await GetPreProcessedAsync(key, assemblies, cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        return await maniaLink.RenderAsync(data, GlobalVariables).ConfigureAwait(false);
+        // A type check instead of dynamic dispatch, as the runtime binder caches the types it is called with, which
+        // would keep collectible load contexts alive
+        var rendering = data is IDictionary<string, object?> dictionary
+            ? maniaLink.RenderAsync(dictionary, GlobalVariables)
+            : maniaLink.RenderAsync(data, GlobalVariables);
+
+        return await rendering.ConfigureAwait(false);
     }
 
     /// <summary>
@@ -155,63 +191,52 @@ public class ManiaTemplateEngine
     public string Hide(string key) => ManiaLink.CreateHideManialink(ManialinkNameUtils.KeyToId(key));
 
     /// <summary>
-    /// Returns the pre-processed template, compiling it on the thread pool if it has not been compiled yet.
+    /// Adds a template from an embedded resource of the calling assembly, which is compiled into the load context of
+    /// that assembly.
     /// </summary>
-    private async Task<ManiaLink> GetPreProcessedAsync(string key, IEnumerable<Assembly> assemblies,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        if (_preProcessed.TryGetValue(key, out var preProcessed) && preProcessed.IsValueCreated)
-        {
-            return preProcessed.Value;
-        }
-
-        // The token only stops waiting, the compilation is shared with other renders of the same template
-        return await Task.Run(() => GetPreProcessed(key, assemblies), CancellationToken.None)
-            .WaitAsync(cancellationToken)
-            .ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Returns the pre-processed template, compiling it if it has not been compiled yet.
-    /// A failed compilation is not cached, so the template is compiled again on the next call.
-    /// </summary>
-    private ManiaLink GetPreProcessed(string key, IEnumerable<Assembly> assemblies)
-    {
-        var preProcessed = _preProcessed.GetOrAdd(key, templateKey => new Lazy<ManiaLink>(() =>
-            PreProcessComponent(GetComponent(templateKey), ManialinkNameUtils.KeyToId(templateKey), assemblies,
-                null, CancellationToken.None)));
-
-        try
-        {
-            return preProcessed.Value;
-        }
-        catch
-        {
-            _preProcessed.TryRemove(new KeyValuePair<string, Lazy<ManiaLink>>(key, preProcessed));
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Used to add components for ManiaTemplates. These components may not be rendered individually.
-    /// </summary>
+    // Not inlined, as the calling assembly would be the one of the caller's caller otherwise
+    [MethodImpl(MethodImplOptions.NoInlining)]
     public void LoadTemplateFromEmbeddedResource(string resourcePath)
     {
-        var templateContent =
-            EmbeddedResourceUtils.GetEmbeddedResourceContent(resourcePath, Assembly.GetCallingAssembly());
-        AddTemplateFromString(resourcePath, templateContent);
+        var assembly = Assembly.GetCallingAssembly();
+        AddTemplate(resourcePath,
+            new RegisteredTemplate(EmbeddedResourceUtils.GetEmbeddedResourceContent(resourcePath, assembly), assembly,
+                []));
     }
 
     /// <summary>
-    /// Used to add components for ManiaTemplates. These components may not be rendered individually.
+    /// Adds a template, which is compiled into the default load context and can use the types of the host.
     /// </summary>
     public void AddTemplateFromString(string templateKey, string templateContent)
     {
-        if (!_templates.TryAdd(templateKey, templateContent))
+        AddTemplate(templateKey, new RegisteredTemplate(templateContent, null, []));
+    }
+
+    /// <summary>
+    /// Adds a template loaded from the given assembly, like a template of a plugin. It is compiled into the load
+    /// context of the assembly and can use the types of the assembly, of the referenced assemblies, of its load context
+    /// and of the host. The template is removed, when the load context of one of the assemblies unloads.
+    /// </summary>
+    public void AddTemplateFromString(string templateKey, string templateContent, Assembly assembly,
+        params IEnumerable<Assembly> references)
+    {
+        AddTemplate(templateKey, new RegisteredTemplate(templateContent, assembly, references.ToList()));
+    }
+
+    private void AddTemplate(string templateKey, RegisteredTemplate template)
+    {
+        if (!_templates.TryAdd(templateKey, template))
         {
             throw new ArgumentException($"A template with the key '{templateKey}' has already been added.",
                 nameof(templateKey));
+        }
+
+        WatchLoadContexts(template.Assemblies);
+
+        // The load context may have started unloading while the template was added
+        if (GetLoadContexts(template.Assemblies).Any(IsUnloading))
+        {
+            RemoveTemplateAndCompilations(templateKey, template);
         }
     }
 
@@ -237,12 +262,16 @@ public class ManiaTemplateEngine
     }
 
     /// <summary>
-    /// Takes a MtComponent instance and prepares it for rendering.
+    /// Compiles the given template of the key, together with the templates of all components it imports, into the
+    /// load context of the template's assembly.
     /// </summary>
-    private ManiaLink PreProcessComponent(MtComponent mtComponent, string className, IEnumerable<Assembly> assemblies,
-        string? writeTo, CancellationToken cancellationToken)
+    private CompiledTemplate Compile(string key, RegisteredTemplate template, string? writeTo,
+        CancellationToken cancellationToken)
     {
-        var t4Template = ConvertComponentToT4Template(mtComponent, className);
+        var mtComponent = MtComponent.FromTemplate(this, template.Content);
+        var className = ManialinkNameUtils.KeyToId(key);
+        var transformer = new MtTransformer(this, _maniaTemplateLanguage);
+        var t4Template = transformer.BuildManialink(mtComponent, className);
         var ttFilename = $"{className}.tt";
 
         if (writeTo != null)
@@ -275,15 +304,98 @@ public class ManiaTemplateEngine
             preCompiledTemplate.Replace(@"throw new global::System.ArgumentNullException(""objectToConvert"");",
                 @"return """";");
 
+        // The imported components are part of the compiled template, so it uses their types as well
+        var templates = new Dictionary<string, RegisteredTemplate>(transformer.ImportedTemplates) { [key] = template };
+        var assemblies = templates.Values.SelectMany(usedTemplate => usedTemplate.Assemblies).Distinct().ToList();
+        var loadContext = template.Assembly == null
+            ? AssemblyLoadContext.Default
+            : AssemblyLoadContext.GetLoadContext(template.Assembly) ?? AssemblyLoadContext.Default;
+
         cancellationToken.ThrowIfCancellationRequested();
-        return new ManiaLink(className, preCompiledTemplate, assemblies, cancellationToken);
+        var maniaLink = new ManiaLink(className, preCompiledTemplate, loadContext, assemblies, cancellationToken);
+
+        return new CompiledTemplate(maniaLink, templates, GetLoadContexts(assemblies).ToList());
     }
 
     /// <summary>
-    /// Converts a component instance into a renderable instance.
+    /// Checks whether the template was compiled from the current templates and none of its load contexts is unloading.
     /// </summary>
-    private string ConvertComponentToT4Template(MtComponent mtComponent, string className) =>
-        new MtTransformer(this, _maniaTemplateLanguage).BuildManialink(mtComponent, className);
+    private bool IsCurrent(CompiledTemplate compiled) =>
+        compiled.Templates.All(template =>
+            _templates.TryGetValue(template.Key, out var current) && ReferenceEquals(current, template.Value)) &&
+        !compiled.LoadContexts.Any(IsUnloading);
+
+    /// <summary>
+    /// Returns the collectible load contexts of the assemblies, which may unload.
+    /// </summary>
+    private static IEnumerable<AssemblyLoadContext> GetLoadContexts(IEnumerable<Assembly> assemblies) =>
+        assemblies.Select(AssemblyLoadContext.GetLoadContext)
+            .OfType<AssemblyLoadContext>()
+            .Where(loadContext => loadContext.IsCollectible)
+            .Distinct();
+
+    /// <summary>
+    /// Watches the collectible load contexts of the assemblies, to remove the templates using them when they unload.
+    /// </summary>
+    private void WatchLoadContexts(IEnumerable<Assembly> assemblies)
+    {
+        foreach (var loadContext in GetLoadContexts(assemblies))
+        {
+            if (!_watchedLoadContexts.TryAdd(loadContext, new object()))
+            {
+                continue;
+            }
+
+            // The load context only references the engine weakly, so it does not keep a discarded engine alive.
+            // A context that is not unloaded explicitly raises the event from its finalizer, where the engine may be
+            // collected already.
+            var engine = new WeakReference<ManiaTemplateEngine>(this);
+            loadContext.Unloading += context =>
+            {
+                if (engine.TryGetTarget(out var target))
+                {
+                    target.RemoveUnloadingLoadContext(context);
+                }
+            };
+        }
+    }
+
+    private bool IsUnloading(AssemblyLoadContext loadContext) => _unloadingLoadContexts.TryGetValue(loadContext, out _);
+
+    /// <summary>
+    /// Removes the templates using the assemblies of an unloading load context, and the templates compiled with them.
+    /// </summary>
+    private void RemoveUnloadingLoadContext(AssemblyLoadContext loadContext)
+    {
+        _unloadingLoadContexts.AddOrUpdate(loadContext, new object());
+
+        foreach (var (key, template) in _templates)
+        {
+            if (GetLoadContexts(template.Assemblies).Contains(loadContext))
+            {
+                RemoveTemplateAndCompilations(key, template);
+            }
+        }
+
+        RemoveCompilations(compiled => compiled.LoadContexts.Contains(loadContext));
+    }
+
+    private void RemoveTemplateAndCompilations(string key, RegisteredTemplate template)
+    {
+        _templates.TryRemove(new KeyValuePair<string, RegisteredTemplate>(key, template));
+        RemoveCompilations(compiled => compiled.Templates.ContainsKey(key));
+    }
+
+    private void RemoveCompilations(Func<CompiledTemplate, bool> predicate)
+    {
+        foreach (var pair in _compiledTemplates)
+        {
+            if (predicate(pair.Value))
+            {
+                _compiledTemplates.TryRemove(pair);
+            }
+        }
+    }
 
     /// <summary>
     /// Generates the contents for a markdown file describing all base components shipped with the template engine.
@@ -291,19 +403,22 @@ public class ManiaTemplateEngine
     public string GenerateComponentsMarkdown() =>
         new MtComponentMarkdownGenerator { Engine = this, Components = BaseMtComponents }.Generate();
 
+    /// <summary>
+    /// Removes a template, together with its compiled version and the compiled templates importing it.
+    /// </summary>
     public void RemoveTemplate(string name)
     {
-        if (!_templates.TryRemove(name, out _))
+        if (!_templates.TryGetValue(name, out var template))
         {
             throw new InvalidOperationException($"Template with name '{name}' does not exist.");
         }
 
-        _components.TryRemove(name, out _);
-        // Drops the compiled template, which lives in the load context of the assemblies it was rendered
-        // against, so unloading that context isn't blocked by a cached reference.
-        _preProcessed.TryRemove(name, out _);
+        RemoveTemplateAndCompilations(name, template);
     }
 
+    /// <summary>
+    /// Removes a ManiaScript. Compiled templates keep the content they were compiled with.
+    /// </summary>
     public void RemoveManiaScript(string name)
     {
         if (!_maniaScripts.TryRemove(name, out _))

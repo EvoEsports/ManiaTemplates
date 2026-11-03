@@ -7,7 +7,7 @@ engine.AddTemplateFromString("Template", args[0]);
 
 try
 {
-    Console.Write(await engine.RenderAsync("Template", new { }, [typeof(ManiaTemplateEngine).Assembly]));
+    Console.Write(await engine.RenderAsync("Template", new { }));
 }
 catch (Exception exception)
 {

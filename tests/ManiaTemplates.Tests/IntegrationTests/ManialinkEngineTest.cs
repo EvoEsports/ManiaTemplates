@@ -12,9 +12,9 @@ public class ManialinkEngineTest
     public async Task Should_Convert_Templates_To_Result(string template, dynamic data, string expected)
     {
         _maniaTemplateEngine.AddTemplateFromString("test", template);
-        await _maniaTemplateEngine.PreProcessAsync("test", new[] { typeof(ManiaTemplateEngine).Assembly });
+        await _maniaTemplateEngine.PreProcessAsync("test");
 
-        string result = await _maniaTemplateEngine.RenderAsync("test", data, new[] { typeof(ManiaTemplateEngine).Assembly });
+        string result = await _maniaTemplateEngine.RenderAsync("test", data);
 
         Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
     }
@@ -25,7 +25,6 @@ public class ManialinkEngineTest
         var componentTemplate = File.ReadAllText("IntegrationTests/templates/global-variables.mt");
         var componentWithGlobalVariable = File.ReadAllText("IntegrationTests/templates/component-using-gvar.mt");
         var expectedOutput = File.ReadAllText("IntegrationTests/expected/global-variables.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("ComponentGlobalVariable", componentWithGlobalVariable);
         _maniaTemplateEngine.AddTemplateFromString("GlobalVariables", componentTemplate);
@@ -39,7 +38,7 @@ public class ManialinkEngineTest
         _maniaTemplateEngine.GlobalVariables["complex"] = new ComplexDataType();
         _maniaTemplateEngine.GlobalVariables["list"] = new List<int> { 3, 6, 9 };
 
-        var pendingResult = _maniaTemplateEngine.RenderAsync("GlobalVariables", new { }, assemblies);
+        var pendingResult = _maniaTemplateEngine.RenderAsync("GlobalVariables", new { });
         var result = pendingResult.Result;
 
         Assert.Equal(expectedOutput, result, ignoreLineEndingDifferences: true);
@@ -56,7 +55,6 @@ public class ManialinkEngineTest
         var namedSlotsTemplate = File.ReadAllText("IntegrationTests/templates/named-slots.mt");
         var componentTemplate = File.ReadAllText("IntegrationTests/templates/component-multi-slot.mt");
         var expected = File.ReadAllText($"IntegrationTests/expected/named-slots.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("NamedSlots", namedSlotsTemplate);
         _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", componentTemplate);
@@ -64,7 +62,7 @@ public class ManialinkEngineTest
         var result = _maniaTemplateEngine.RenderAsync("NamedSlots", new
         {
             testVariable = "UnitTest"
-        }, assemblies).Result;
+        }).Result;
 
         Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
     }
@@ -75,12 +73,11 @@ public class ManialinkEngineTest
         var componentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component-multi-slot.mt");
         var namedSlotsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/consecutive-named-slots.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/consecutive-named-slots.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", componentTemplate);
         _maniaTemplateEngine.AddTemplateFromString("ConsecutiveNamedSlots", namedSlotsTemplate);
 
-        var result = _maniaTemplateEngine.RenderAsync("ConsecutiveNamedSlots", new { }, assemblies).Result;
+        var result = _maniaTemplateEngine.RenderAsync("ConsecutiveNamedSlots", new { }).Result;
         Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
     }
 
@@ -90,12 +87,11 @@ public class ManialinkEngineTest
         var componentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component-multi-slot.mt");
         var slotTemplates = await File.ReadAllTextAsync("IntegrationTests/templates/slot-templates.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/slot-templates.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", componentTemplate);
         _maniaTemplateEngine.AddTemplateFromString("SlotTemplates", slotTemplates);
 
-        var result = _maniaTemplateEngine.RenderAsync("SlotTemplates", new { show = false }, assemblies).Result;
+        var result = _maniaTemplateEngine.RenderAsync("SlotTemplates", new { show = false }).Result;
         Assert.Equal(expected, result, ignoreLineEndingDifferences: true);
     }
 
@@ -119,8 +115,7 @@ public class ManialinkEngineTest
             """);
 
         await Assert.ThrowsAsync<UnsupportedAttributeException>(() =>
-            _maniaTemplateEngine.RenderAsync("ControlFlowOnSlot", new { list = new List<int>() },
-                new[] { typeof(ManiaTemplateEngine).Assembly }));
+            _maniaTemplateEngine.RenderAsync("ControlFlowOnSlot", new { list = new List<int>() }));
     }
 
     [Fact]
@@ -150,14 +145,13 @@ public class ManialinkEngineTest
                 </template>
             </component>
             """);
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly };
 
-        var shown = _maniaTemplateEngine.RenderAsync("ControlFlowSlotsUsage", new { show = true }, assemblies).Result;
+        var shown = _maniaTemplateEngine.RenderAsync("ControlFlowSlotsUsage", new { show = true }).Result;
         Assert.Contains("<label text=\"item 1\" />", shown);
         Assert.Contains("<label text=\"item 2\" />", shown);
         Assert.Equal(1, shown.Split("<label text=\"footer\" />").Length - 1);
 
-        var hidden = _maniaTemplateEngine.RenderAsync("ControlFlowSlotsUsage", new { show = false }, assemblies).Result;
+        var hidden = _maniaTemplateEngine.RenderAsync("ControlFlowSlotsUsage", new { show = false }).Result;
         Assert.Contains("<label text=\"item 2\" />", hidden);
         Assert.Equal(1, hidden.Split("<label text=\"footer\" />").Length - 1);
     }
@@ -196,8 +190,7 @@ public class ManialinkEngineTest
             </component>
             """);
 
-        var template = _maniaTemplateEngine.RenderAsync("ChainSlotsUsage", new { mode },
-            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+        var template = _maniaTemplateEngine.RenderAsync("ChainSlotsUsage", new { mode }).Result;
 
         foreach (var name in new[] { "first", "second", "third" })
         {
@@ -226,8 +219,7 @@ public class ManialinkEngineTest
             """);
 
         await Assert.ThrowsAsync<DuplicateSlotException>(() =>
-            _maniaTemplateEngine.RenderAsync("MultipleSlotTemplates", new { },
-                new[] { typeof(ManiaTemplateEngine).Assembly }));
+            _maniaTemplateEngine.RenderAsync("MultipleSlotTemplates", new { }));
     }
 
     [Fact]
@@ -250,8 +242,7 @@ public class ManialinkEngineTest
             </component>
             """);
 
-        var template = _maniaTemplateEngine.RenderAsync("RepeatedNamedSlotUsage", new { },
-            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+        var template = _maniaTemplateEngine.RenderAsync("RepeatedNamedSlotUsage", new { }).Result;
 
         Assert.Equal(2, template.Split("<label text=\"footer\" />").Length - 1);
     }
@@ -283,8 +274,7 @@ public class ManialinkEngineTest
             </component>
             """);
 
-        var template = _maniaTemplateEngine.RenderAsync("UniqueArgsUsage", new { },
-            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+        var template = _maniaTemplateEngine.RenderAsync("UniqueArgsUsage", new { }).Result;
 
         var labels = template.Split('\n').Where(line => line.StartsWith("<label")).ToArray();
         Assert.Equal(new[]
@@ -303,13 +293,12 @@ public class ManialinkEngineTest
         var slotRecursionInnerTemplate =
             await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-inner.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/single-slot-unfilled.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("SlotRecursionOuterTwo", slotRecursionOuterTwoTemplate);
         _maniaTemplateEngine.AddTemplateFromString("SlotRecursionOuter", slotRecursionOuterTemplate);
         _maniaTemplateEngine.AddTemplateFromString("SlotRecursionInner", slotRecursionInnerTemplate);
 
-        var template = _maniaTemplateEngine.RenderAsync("SlotRecursionInner", new { }, assemblies).Result;
+        var template = _maniaTemplateEngine.RenderAsync("SlotRecursionInner", new { }).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 
@@ -320,7 +309,6 @@ public class ManialinkEngineTest
         var testWrapperTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");
         var testComponentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/property-test.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("PropertyTest", propertyTestTemplate);
         _maniaTemplateEngine.AddTemplateFromString("Wrapper", testWrapperTemplate);
@@ -329,7 +317,7 @@ public class ManialinkEngineTest
         var template = _maniaTemplateEngine.RenderAsync("PropertyTest", new
         {
             testVariable = "integration"
-        }, assemblies).Result;
+        }).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 
@@ -340,13 +328,12 @@ public class ManialinkEngineTest
         var containerTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slots/container.mt");
         var windowTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slots/window.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/slots/manialink.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("Base", baseTemplate);
         _maniaTemplateEngine.AddTemplateFromString("Container", containerTemplate);
         _maniaTemplateEngine.AddTemplateFromString("Window", windowTemplate);
 
-        var template = _maniaTemplateEngine.RenderAsync("Base", new { }, assemblies).Result;
+        var template = _maniaTemplateEngine.RenderAsync("Base", new { }).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 
@@ -357,13 +344,12 @@ public class ManialinkEngineTest
         var testComponentWithLoop = await File.ReadAllTextAsync("IntegrationTests/templates/component-with-loop.mt");
         var containerTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/loop-test.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("TestComponent", testComponent);
         _maniaTemplateEngine.AddTemplateFromString("TestComponentWithLoop", testComponentWithLoop);
         _maniaTemplateEngine.AddTemplateFromString("LoopTest", containerTemplate);
 
-        var template = _maniaTemplateEngine.RenderAsync("LoopTest", new { }, assemblies).Result;
+        var template = _maniaTemplateEngine.RenderAsync("LoopTest", new { }).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 
@@ -373,7 +359,6 @@ public class ManialinkEngineTest
         var testComponent = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test-component.mt");
         var forLoopTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/for-loop-test.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/for-loop-test.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("TestComponent", testComponent);
         _maniaTemplateEngine.AddTemplateFromString("ForLoopTest", forLoopTemplate);
@@ -382,7 +367,7 @@ public class ManialinkEngineTest
         {
             count = 3,
             names = new List<string> { "a", "b" }
-        }, assemblies).Result;
+        }).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 
@@ -392,7 +377,6 @@ public class ManialinkEngineTest
         var testComponent = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test-component.mt");
         var foreachTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/foreach-variables-test.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/foreach-variables-test.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("TestComponent", testComponent);
         _maniaTemplateEngine.AddTemplateFromString("ForeachVariablesTest", foreachTemplate);
@@ -401,7 +385,7 @@ public class ManialinkEngineTest
         {
             scores = new Dictionary<string, int> { { "a", 1 }, { "b", 2 } },
             entries = new List<(string, (int, bool))> { ("x", (5, true)), ("y", (7, false)) }
-        }, assemblies).Result;
+        }).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 
@@ -411,7 +395,6 @@ public class ManialinkEngineTest
         var testComponent = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test-component.mt");
         var conditionsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/conditions-test.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/conditions-test.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("TestComponent", testComponent);
         _maniaTemplateEngine.AddTemplateFromString("ConditionsTest", conditionsTemplate);
@@ -420,7 +403,7 @@ public class ManialinkEngineTest
         {
             numbers = new List<int> { 1, 2, 3, 4 },
             empty = new List<int>()
-        }, assemblies).Result;
+        }).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 
@@ -440,8 +423,7 @@ public class ManialinkEngineTest
             $"<component><property type=\"List<int>\" name=\"list\"/><template>{templateContent}</template></component>");
 
         await Assert.ThrowsAsync<InvalidConditionException>(() =>
-            _maniaTemplateEngine.RenderAsync("InvalidCondition", new { list = new List<int>() },
-                new[] { typeof(ManiaTemplateEngine).Assembly }));
+            _maniaTemplateEngine.RenderAsync("InvalidCondition", new { list = new List<int>() }));
     }
 
     [Fact]
@@ -451,7 +433,6 @@ public class ManialinkEngineTest
         var fragmentRootComponent = await File.ReadAllTextAsync("IntegrationTests/templates/component-fragment-root.mt");
         var fragmentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/fragment-test.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/fragment-test.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", slotsComponent);
         _maniaTemplateEngine.AddTemplateFromString("FragmentRoot", fragmentRootComponent);
@@ -460,7 +441,7 @@ public class ManialinkEngineTest
         var template = _maniaTemplateEngine.RenderAsync("FragmentTest", new
         {
             numbers = new List<int> { 1, 2 }
-        }, assemblies).Result;
+        }).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 
@@ -473,8 +454,7 @@ public class ManialinkEngineTest
             $"<component><template>{templateContent}</template></component>");
 
         await Assert.ThrowsAsync<UnsupportedAttributeException>(() =>
-            _maniaTemplateEngine.RenderAsync("InvalidFragment", new { },
-                new[] { typeof(ManiaTemplateEngine).Assembly }));
+            _maniaTemplateEngine.RenderAsync("InvalidFragment", new { }));
     }
 
     [Fact]
@@ -502,8 +482,7 @@ public class ManialinkEngineTest
             </component>
             """);
 
-        var template = _maniaTemplateEngine.RenderAsync("ComponentInLoop", new { },
-            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+        var template = _maniaTemplateEngine.RenderAsync("ComponentInLoop", new { }).Result;
 
         Assert.Equal(4, template.Split("<label text=\"inner 7\" />").Length - 1);
     }
@@ -522,7 +501,7 @@ public class ManialinkEngineTest
             """);
 
         var exception = await Assert.ThrowsAsync<ParsingForeachLoopFailedException>(() =>
-            _maniaTemplateEngine.RenderAsync("ReusedVariable", new { }, new[] { typeof(ManiaTemplateEngine).Assembly }));
+            _maniaTemplateEngine.RenderAsync("ReusedVariable", new { }));
         Assert.Contains("The variable i is already declared", exception.Message);
     }
 
@@ -548,8 +527,7 @@ public class ManialinkEngineTest
             </component>
             """);
 
-        var template = _maniaTemplateEngine.RenderAsync("StringTypesUsage", new { },
-            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+        var template = _maniaTemplateEngine.RenderAsync("StringTypesUsage", new { }).Result;
 
         Assert.Contains("<label text=\"a, b\" />", template);
         Assert.Contains("<label text=\"c and d\" />", template);
@@ -561,12 +539,11 @@ public class ManialinkEngineTest
         var itemListComponent = await File.ReadAllTextAsync("IntegrationTests/templates/item-list.mt");
         var slotArgumentsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slot-arguments-test.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/slot-arguments-test.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("ItemList", itemListComponent);
         _maniaTemplateEngine.AddTemplateFromString("SlotArgumentsTest", slotArgumentsTemplate);
 
-        var template = _maniaTemplateEngine.RenderAsync("SlotArgumentsTest", new { prefix = "P" }, assemblies).Result;
+        var template = _maniaTemplateEngine.RenderAsync("SlotArgumentsTest", new { prefix = "P" }).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 
@@ -595,8 +572,7 @@ public class ManialinkEngineTest
             </component>
             """);
 
-        var template = _maniaTemplateEngine.RenderAsync("RepeatedSlotUsage", new { },
-            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+        var template = _maniaTemplateEngine.RenderAsync("RepeatedSlotUsage", new { }).Result;
 
         Assert.Equal(3, template.Split("<label text=\"T\" />").Length - 1);
     }
@@ -622,8 +598,7 @@ public class ManialinkEngineTest
             </component>
             """);
 
-        var template = _maniaTemplateEngine.RenderAsync("TwiceUsedUsage", new { },
-            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+        var template = _maniaTemplateEngine.RenderAsync("TwiceUsedUsage", new { }).Result;
 
         Assert.Contains("<label text=\"first A\" />", template);
         Assert.Contains("<label text=\"second B\" />", template);
@@ -658,8 +633,7 @@ public class ManialinkEngineTest
             </component>
             """);
 
-        var template = _maniaTemplateEngine.RenderAsync("ForwardUsage", new { },
-            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+        var template = _maniaTemplateEngine.RenderAsync("ForwardUsage", new { }).Result;
 
         Assert.Contains("<label text=\"Y\" />", template);
     }
@@ -686,8 +660,7 @@ public class ManialinkEngineTest
             </component>
             """);
 
-        var template = _maniaTemplateEngine.RenderAsync("NamedArgsUsage", new { },
-            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+        var template = _maniaTemplateEngine.RenderAsync("NamedArgsUsage", new { }).Result;
 
         Assert.Contains("<label text=\"total 5\" />", template);
     }
@@ -714,8 +687,7 @@ public class ManialinkEngineTest
             """);
 
         var source = new Dictionary<string, List<int>> { ["a"] = new() { 1, 2 }, ["b"] = new() { 3 } };
-        var template = _maniaTemplateEngine.RenderAsync("GenericArgsUsage", new { source },
-            new[] { typeof(ManiaTemplateEngine).Assembly }).Result;
+        var template = _maniaTemplateEngine.RenderAsync("GenericArgsUsage", new { source }).Result;
 
         Assert.Contains("<label text=\"2\" />", template);
     }
@@ -742,8 +714,7 @@ public class ManialinkEngineTest
             """);
 
         await Assert.ThrowsAsync<InvalidSlotArgumentException>(() =>
-            _maniaTemplateEngine.RenderAsync("InvalidSlotArguments", new { },
-                new[] { typeof(ManiaTemplateEngine).Assembly }));
+            _maniaTemplateEngine.RenderAsync("InvalidSlotArguments", new { }));
     }
 
     [Fact]
@@ -763,7 +734,7 @@ public class ManialinkEngineTest
             """);
 
         var exception = await Assert.ThrowsAsync<InvalidSlotArgumentException>(() =>
-            _maniaTemplateEngine.RenderAsync("SlotArgumentConflict", new { }, new[] { typeof(ManiaTemplateEngine).Assembly }));
+            _maniaTemplateEngine.RenderAsync("SlotArgumentConflict", new { }));
         Assert.Contains("The argument item passed to the slot default of <ItemList> conflicts", exception.Message);
     }
 
@@ -784,7 +755,7 @@ public class ManialinkEngineTest
             """);
 
         await Assert.ThrowsAsync<ParsingForeachLoopFailedException>(() =>
-            _maniaTemplateEngine.RenderAsync("SlotLoopVariable", new { }, new[] { typeof(ManiaTemplateEngine).Assembly }));
+            _maniaTemplateEngine.RenderAsync("SlotLoopVariable", new { }));
     }
 
     [Fact]
@@ -794,13 +765,12 @@ public class ManialinkEngineTest
         var fallthroughAttributesTestComponent = await File.ReadAllTextAsync("IntegrationTests/templates/fallthrough-attributes.mt");
         var multiChildComponent = await File.ReadAllTextAsync("IntegrationTests/templates/component-multiple-elements.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/fallthrough-test.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
         
         _maniaTemplateEngine.AddTemplateFromString("Wrapper", wrapperComponent);
         _maniaTemplateEngine.AddTemplateFromString("MultiChild", multiChildComponent);
         _maniaTemplateEngine.AddTemplateFromString("FallthroughTest", fallthroughAttributesTestComponent);
         
-        var template = _maniaTemplateEngine.RenderAsync("FallthroughTest", new { }, assemblies).Result;
+        var template = _maniaTemplateEngine.RenderAsync("FallthroughTest", new { }).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 
@@ -818,8 +788,7 @@ public class ManialinkEngineTest
             </component>
             """);
 
-        var result = await _maniaTemplateEngine.RenderAsync("FallthroughOverwrite", new { },
-            new[] { typeof(ManiaTemplateEngine).Assembly });
+        var result = await _maniaTemplateEngine.RenderAsync("FallthroughOverwrite", new { });
 
         Assert.Contains("<label text=\"hello\" textcolor=\"FF0058\" />", result);
     }
@@ -839,7 +808,7 @@ public class ManialinkEngineTest
             """);
 
         await Assert.ThrowsAsync<EmptyNodeAttributeException>(() =>
-            _maniaTemplateEngine.RenderAsync("EmptySlotName", new { }, new[] { typeof(ManiaTemplateEngine).Assembly }));
+            _maniaTemplateEngine.RenderAsync("EmptySlotName", new { }));
     }
 
     [Fact]
@@ -854,9 +823,8 @@ public class ManialinkEngineTest
                 </template>
             </component>
             """);
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly };
 
-        Assert.Contains("<label text=\"open\" />", await _maniaTemplateEngine.RenderAsync("BraceCondition", new { c = '{' }, assemblies));
-        Assert.Contains("<label text=\"close\" />", await _maniaTemplateEngine.RenderAsync("BraceCondition", new { c = '}' }, assemblies));
+        Assert.Contains("<label text=\"open\" />", await _maniaTemplateEngine.RenderAsync("BraceCondition", new { c = '{' }));
+        Assert.Contains("<label text=\"close\" />", await _maniaTemplateEngine.RenderAsync("BraceCondition", new { c = '}' }));
     }
 }
