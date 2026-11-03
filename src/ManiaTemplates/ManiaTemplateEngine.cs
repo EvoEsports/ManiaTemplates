@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using ManiaTemplates.Components;
 using ManiaTemplates.Exceptions;
 using ManiaTemplates.Interfaces;
@@ -19,8 +18,6 @@ public class ManiaTemplateEngine
     private readonly ConcurrentDictionary<string, ManiaLink> _preProcessed = new();
     public readonly ConcurrentDictionary<string, object?> GlobalVariables = new();
     protected internal MtComponentMap BaseMtComponents { get; }
-
-    private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplates \{((?:.|\n)+)\}");
 
     public ManiaTemplateEngine()
     {
@@ -226,7 +223,8 @@ public class ManiaTemplateEngine
 
         templateSettings.CompilerOptions = "-nullable:enable";
         templateSettings.Name = className;
-        templateSettings.Namespace = "ManiaTemplates";
+        //Without namespace the generated class can be found by its name
+        templateSettings.Namespace = "";
 
         var preCompiledTemplate =
             generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings,
@@ -237,9 +235,6 @@ public class ManiaTemplateEngine
             throw new ManiaTemplatePreProcessingFailedException(
                 $"Failed to pre-process '{mtComponent.TemplateContent}'.");
         }
-
-        //Remove namespace wrapper
-        preCompiledTemplate = NamespaceWrapperMatcher.Replace(preCompiledTemplate, "$1");
 
         //Parse null to empty strings
         preCompiledTemplate =
