@@ -27,6 +27,11 @@ public interface ICurlyBraceMethods
     }
 
     /// <summary>
+    /// Removes the double curly braces around expressions, like in conditions written as if="{{ expression }}".
+    /// </summary>
+    public static string RemoveCurlyBraces(string value) => TemplateInterpolationRegex.Replace(value, "$1");
+
+    /// <summary>
     /// Takes the contents of double curly braces in a string and wraps them into something else.
     /// The second argument takes a string-argument and returns the newly wrapped string.
     /// The third argument is an optional regex pattern to find substrings to replace.

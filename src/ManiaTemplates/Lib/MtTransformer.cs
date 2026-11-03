@@ -1,7 +1,6 @@
 ﻿using System.CodeDom;
 using System.Dynamic;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Xml;
 using ManiaTemplates.Components;
 using ManiaTemplates.ControlElements;
@@ -15,22 +14,17 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     : IXmlMethods, IStringMethods
 {
     private readonly MtScriptTransformer _scriptTransformer = new(maniaTemplateLanguage);
+    private readonly MtSlotTransformer _slotTransformer = new(maniaTemplateLanguage);
+    private readonly MtControlFlowTransformer _controlFlowTransformer = new(maniaTemplateLanguage);
     private readonly List<string> _namespaces = [];
-    private readonly List<MtComponentSlot> _slots = [];
     private readonly Dictionary<string, string> _renderMethods = new();
     private readonly Dictionary<string, string> _maniaScriptRenderMethods = new();
-    private readonly Dictionary<string, MtDataContext> _slotArguments = new();
-    private readonly HashSet<string> _slotRendererDelegates = [];
     private int _loopDepth;
-    private int _conditionChainCount;
 
     /// <summary>
     /// Tag of nodes that only render their children, without producing an element themselves.
     /// </summary>
-    private const string FragmentTag = "template";
-
-    private static readonly Regex SlotArgumentValueRegex = new(@"^\{\{\s*([A-Za-z_]\w*)\s*\}\}$");
-    private static readonly Regex NonWordCharacterRegex = new(@"\W");
+    internal const string FragmentTag = "template";
 
     /// <summary>
     /// Creates the target language template, which can be pre-processed for faster rendering.
@@ -46,7 +40,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             IXmlMethods.NodeFromString(rootComponent.TemplateContent),
             engine.BaseMtComponents.Overload(rootComponent.ImportedComponents),
             new MtDataContext(),
-            rootComponent,
             rootComponent
         );
 
@@ -64,7 +57,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
             CreateInsertedManiaScriptsList(),
             CreateBodyRenderMethod(body, rootComponent),
             CreateRenderMethodsBlock(),
-            CreateSlotRendererDelegates()
+            _slotTransformer.CreateSlotRendererDelegates()
         };
 
         return maniaTemplateLanguage.OptimizeOutput(template.ToString());
@@ -76,7 +69,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private string CreateBodyRenderMethod(string body, MtComponent rootComponent)
     {
         var methodArguments = new List<string>();
-        AppendSlotRenderArgumentsToList(rootComponent, methodArguments);
+        _slotTransformer.AppendSlotRendererParameters(rootComponent, methodArguments);
         var bodyRenderMethod = new StringBuilder($"private void RenderBody({string.Join(',', methodArguments)}) {{\n");
 
         //Root mania script block
@@ -166,145 +159,44 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Process a ManiaTemplate node.
+    /// Processes the children of a node, applying the conditions and loops placed on them.
+    /// Fallthrough attributes are applied to the child, if it is the only one.
     /// </summary>
-    private string ProcessNode(XmlNode node, MtComponentMap componentMap, MtDataContext oldContext,
-        MtComponent rootComponent, MtComponent parentComponent,
-        Dictionary<string, string>? fallthroughAttributesMap = null)
+    private string ProcessNode(XmlNode node, MtComponentMap componentMap, MtDataContext context,
+        MtComponent parentComponent, Dictionary<string, string>? fallthroughAttributes = null)
     {
         Snippet snippet = [];
+        var childFallthroughAttributes = node.ChildNodes.Count == 1 ? fallthroughAttributes : null;
 
         var nodeId = 1;
         string? openConditionChainVariable = null;
         foreach (XmlNode childNode in node.ChildNodes)
         {
-            var subSnippet = new Snippet();
-            var tag = childNode.Name;
             var attributeList = IXmlMethods.GetAttributes(childNode);
-            var currentContext = oldContext;
-
-            var loop = attributeList.PullLoop(oldContext, nodeId, _loopDepth + 1);
+            var loop = attributeList.PullLoop(context, nodeId, _loopDepth + 1);
             var condition = attributeList.PullCondition();
 
-            if (loop != null && condition != null)
-            {
-                throw new InvalidConditionException(
-                    $"The {condition.AttributeName} attribute on <{tag}> must not be combined with a {loop.Keyword} loop, put them on separate nodes instead.");
-            }
-
-            var conditionChainVariable = GetConditionChainVariable(childNode, tag, condition, openConditionChainVariable);
+            MtControlFlowTransformer.EnsureLoopAndConditionAreNotCombined(childNode.Name, loop, condition);
+            var conditionChainVariable =
+                _controlFlowTransformer.GetConditionChainVariable(childNode, condition, openConditionChainVariable);
 
             if (loop != null)
             {
-                currentContext = loop.Context;
                 _loopDepth++;
             }
 
-            if (componentMap.TryGetValue(tag, out var importedComponent))
-            {
-                //Node is a component
-                var component = engine.GetComponent(importedComponent.TemplateKey);
-                var componentRenderMethodCall = ProcessComponentNode(
-                    childNode,
-                    component,
-                    parentComponent,
-                    currentContext,
-                    attributeList,
-                    rootComponent,
-                    componentMap
-                );
-
-                subSnippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart())
-                    .AppendLine(componentRenderMethodCall)
-                    .AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
-            }
-            else
-            {
-                //Node is regular xml-node
-                switch (tag)
-                {
-                    case "#text":
-                        subSnippet.AppendLine(childNode.InnerText);
-                        break;
-                    case "#comment":
-                        subSnippet.AppendLine($"<!-- {childNode.InnerText} -->");
-                        break;
-                    case "slot":
-                        var slotName = attributeList.PullName().ToLower();
-                        var slotArguments = ParseSlotArguments(slotName, attributeList, currentContext);
-                        RegisterSlotArguments(parentComponent, slotName, slotArguments);
-                        var slotArgumentsList = slotArguments.Select(argument =>
-                            CreateMethodCallArgument(argument.Name, argument.Variable));
-                        subSnippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart())
-                            .AppendLine(
-                                $"{GetSlotRendererVariableName(slotName)}?.Invoke({string.Join(", ", slotArgumentsList)});")
-                            .AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
-                        break;
-                    case FragmentTag:
-                        //Fragments only render their children, which allows grouping nodes for conditions and loops
-                        if (attributeList.ContainsKey("slot"))
-                        {
-                            EnsureSlotTemplateHasNoControlFlow(loop, condition);
-                        }
-
-                        EnsureFragmentHasNoAttributes(attributeList);
-                        subSnippet.AppendLine(ProcessNode(childNode, componentMap, currentContext, rootComponent,
-                            parentComponent: parentComponent));
-                        break;
-
-                    default:
-                    {
-                        var hasChildren = childNode.HasChildNodes;
-
-                        if (fallthroughAttributesMap != null && node.ChildNodes.Count == 1)
-                        {
-                            foreach (var (originalAttributeName, aliasAttributeName) in fallthroughAttributesMap)
-                            {
-                                if (attributeList.ContainsKey(originalAttributeName))
-                                {
-                                    //Overwrite existing attribute with fallthrough value
-                                    attributeList[originalAttributeName] = new MtComponentAttribute
-                                    {
-                                        Value = maniaTemplateLanguage.InsertResultEscaped(aliasAttributeName)
-                                    };
-                                }
-                                else
-                                {
-                                    //Resolve alias on node
-                                    attributeList.Add(originalAttributeName, new MtComponentAttribute
-                                    {
-                                        Value = maniaTemplateLanguage.InsertResultEscaped(aliasAttributeName),
-                                        Alias = aliasAttributeName,
-                                        IsFallthroughAttribute = true
-                                    });
-                                }
-                            }
-                        }
-
-                        subSnippet.AppendLine(IXmlMethods.CreateOpeningTag(tag, attributeList, hasChildren,
-                            curlyContentWrapper: maniaTemplateLanguage.InsertResultEscaped));
-
-                        if (hasChildren)
-                        {
-                            subSnippet.AppendLine(
-                                ProcessNode(childNode, componentMap, currentContext, rootComponent,
-                                    parentComponent: parentComponent));
-                            subSnippet.AppendLine(IXmlMethods.CreateClosingTag(tag));
-                        }
-
-                        break;
-                    }
-                }
-            }
+            var childSnippet = new Snippet().AppendLine(ProcessChildNode(childNode, attributeList, componentMap,
+                loop?.Context ?? context, parentComponent, loop, condition, childFallthroughAttributes));
 
             if (condition != null)
             {
-                subSnippet = CreateConditionBlock(subSnippet, condition, conditionChainVariable);
+                childSnippet =
+                    _controlFlowTransformer.CreateConditionBlock(childSnippet, condition, conditionChainVariable);
             }
 
             if (loop != null)
             {
-                subSnippet = CreateLoopBlock(subSnippet, loop);
+                childSnippet = _controlFlowTransformer.CreateLoopBlock(childSnippet, loop);
                 _loopDepth--;
             }
 
@@ -314,7 +206,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 openConditionChainVariable = condition?.Type == MtConditionType.Else ? null : conditionChainVariable;
             }
 
-            snippet.AppendSnippet(subSnippet);
+            snippet.AppendSnippet(childSnippet);
             nodeId++;
         }
 
@@ -322,65 +214,104 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Goes through the children of a component node and extracts the node containing the content of each slot.
-    /// All children that are not a template filling a named slot, are the content of the "default" slot.
+    /// Processes a single node, depending on whether it is a component, text, comment, slot, fragment or element.
     /// </summary>
-    /// <returns>
-    /// A map of slot names and the nodes containing their contents.
-    /// </returns>
-    private static Dictionary<string, XmlNode> GetSlotNodesGroupedBySlotName(XmlNode componentNode,
-        MtComponent component)
+    private string ProcessChildNode(XmlNode node, MtComponentAttributes attributeList, MtComponentMap componentMap,
+        MtDataContext context, MtComponent parentComponent, MtLoop? loop, MtCondition? condition,
+        Dictionary<string, string>? fallthroughAttributes)
     {
-        var contentsByName = new Dictionary<string, XmlNode>();
-        var namedSlotTemplates = new HashSet<string>();
-
-        //Iterate over a copy, as named slot templates are removed from the node
-        foreach (var childNode in componentNode.ChildNodes.Cast<XmlNode>().ToList())
+        if (componentMap.TryGetValue(node.Name, out var importedComponent))
         {
-            if (childNode.Name != "template")
-            {
-                continue;
-            }
-
-            //Get the name from the slot attribute, or default if not found.
-            var slotName = childNode.Attributes?["slot"]?.Value.ToLower() ?? "default";
-
-            if (slotName.Trim().Length == 0)
-            {
-                throw new EmptyNodeAttributeException(
-                    $"There's a template tag with empty slot name in <{componentNode.Name}></>.");
-            }
-
-            if (slotName == "default")
-            {
-                //Do not strip contents for default slot from node
-                continue;
-            }
-
-            if (!namedSlotTemplates.Add(slotName))
-            {
-                throw new DuplicateSlotException(
-                    $"""There are multiple templates for the slot "{slotName}" in <{componentNode.Name}></>.""");
-            }
-
-            if (childNode.Attributes!.Count > 1)
-            {
-                throw new UnsupportedAttributeException(
-                    $"Templates filling a slot only support the slot attribute, found: {string.Join(", ", childNode.Attributes.Cast<XmlAttribute>().Select(attribute => attribute.Name).Where(name => name != "slot"))}. Place conditions and loops inside the template instead.");
-            }
-
-            if (component.Slots.Contains(slotName))
-            {
-                //Only add templates, if the component does have a fitting slot
-                contentsByName[slotName] = childNode.Clone();
-            }
-
-            componentNode.RemoveChild(childNode);
+            var component = engine.GetComponent(importedComponent.TemplateKey);
+            return new StringBuilder()
+                .AppendLine(maniaTemplateLanguage.FeatureBlockStart())
+                .AppendLine(ProcessComponentNode(node, component, parentComponent, context, attributeList,
+                    componentMap))
+                .Append(maniaTemplateLanguage.FeatureBlockEnd())
+                .ToString();
         }
 
-        contentsByName["default"] = componentNode;
+        return node.Name switch
+        {
+            "#text" => node.InnerText,
+            "#comment" => $"<!-- {node.InnerText} -->",
+            "slot" => _slotTransformer.CreateSlotCall(parentComponent, attributeList, context),
+            FragmentTag => ProcessFragmentNode(node, attributeList, componentMap, context, parentComponent, loop,
+                condition),
+            _ => ProcessElementNode(node, attributeList, componentMap, context, parentComponent,
+                fallthroughAttributes)
+        };
+    }
 
-        return contentsByName;
+    /// <summary>
+    /// Processes a fragment, which only renders its children and allows grouping nodes for conditions and loops.
+    /// </summary>
+    private string ProcessFragmentNode(XmlNode node, MtComponentAttributes attributeList,
+        MtComponentMap componentMap, MtDataContext context, MtComponent parentComponent, MtLoop? loop,
+        MtCondition? condition)
+    {
+        if (attributeList.ContainsKey("slot"))
+        {
+            MtSlotTransformer.EnsureSlotTemplateHasNoControlFlow(loop, condition);
+        }
+
+        EnsureFragmentHasNoAttributes(attributeList);
+
+        return ProcessNode(node, componentMap, context, parentComponent);
+    }
+
+    /// <summary>
+    /// Processes a regular XML element and its children.
+    /// </summary>
+    private string ProcessElementNode(XmlNode node, MtComponentAttributes attributeList,
+        MtComponentMap componentMap, MtDataContext context, MtComponent parentComponent,
+        Dictionary<string, string>? fallthroughAttributes)
+    {
+        if (fallthroughAttributes != null)
+        {
+            ApplyFallthroughAttributes(attributeList, fallthroughAttributes);
+        }
+
+        var element = new StringBuilder(IXmlMethods.CreateOpeningTag(node.Name, attributeList, node.HasChildNodes,
+            curlyContentWrapper: maniaTemplateLanguage.InsertResultEscaped));
+
+        if (node.HasChildNodes)
+        {
+            element.AppendLine()
+                .AppendLine(ProcessNode(node, componentMap, context, parentComponent))
+                .Append(IXmlMethods.CreateClosingTag(node.Name));
+        }
+
+        return element.ToString();
+    }
+
+    /// <summary>
+    /// Sets the attributes passed to a component, that are not properties of it, on its root element.
+    /// They are passed to the render method of the component as variables with an alias name.
+    /// </summary>
+    private void ApplyFallthroughAttributes(MtComponentAttributes attributeList,
+        Dictionary<string, string> fallthroughAttributes)
+    {
+        foreach (var (attributeName, aliasName) in fallthroughAttributes)
+        {
+            if (attributeList.ContainsKey(attributeName))
+            {
+                //Overwrite existing attribute with fallthrough value
+                attributeList[attributeName] = new MtComponentAttribute
+                {
+                    Value = maniaTemplateLanguage.InsertResultEscaped(aliasName)
+                };
+            }
+            else
+            {
+                attributeList.Add(attributeName, new MtComponentAttribute
+                {
+                    Value = maniaTemplateLanguage.InsertResultEscaped(aliasName),
+                    Alias = aliasName,
+                    IsFallthroughAttribute = true
+                });
+            }
+        }
     }
 
     /// <summary>
@@ -392,50 +323,15 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         MtComponent parentComponent,
         MtDataContext currentContext,
         MtComponentAttributes attributeList,
-        MtComponent rootComponent,
         MtComponentMap componentMap
     )
     {
         var scope = componentNode.GetHashCode();
         var templateContentNode = IXmlMethods.NodeFromString(component.TemplateContent);
-        var renderMethodName = GetComponentRenderMethodName(component, currentContext);
+        var renderMethodName = MtNames.ComponentRenderMethod(component, currentContext);
         var fallthroughAttributesAliasMap = new Dictionary<string, string>();
-
-        //Create available arguments
-        var componentRenderArguments = new List<string>();
-
-        //Attach attributes to render method call
-        foreach (var (attributeName, attribute) in attributeList)
-        {
-            bool isStringType;
-            string attributeNameAlias;
-
-            //Skip attributes that don't match component property name
-            if (component.Properties.TryGetValue(attributeName, out var componentProperty))
-            {
-                isStringType = componentProperty.IsStringType();
-                attributeNameAlias = attributeName;
-            }
-            else
-            {
-                if (templateContentNode.ChildNodes.Count != 1 || templateContentNode.FirstChild?.Name == FragmentTag)
-                {
-                    //Only add fallthrough attributes if the component template has only one root element
-                    continue;
-                }
-
-                isStringType = true;
-                attributeNameAlias = GetFallthroughAttributeAlias(attributeName);
-                fallthroughAttributesAliasMap[attributeName] = attributeNameAlias;
-            }
-
-            var methodArgument = isStringType
-                ? IStringMethods.WrapStringInQuotes(
-                    ICurlyBraceMethods.ReplaceCurlyBraces(attribute.Value, s => $"{{({s})}}"))
-                : ICurlyBraceMethods.ReplaceCurlyBraces(attribute.Value, s => $"({s})");
-
-            componentRenderArguments.Add(CreateMethodCallArgument(attributeNameAlias, methodArgument));
-        }
+        var componentRenderArguments = CreateComponentArguments(component, attributeList, templateContentNode,
+            fallthroughAttributesAliasMap);
 
         _namespaces.AddRange(component.Namespaces);
 
@@ -449,9 +345,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 templateContentNode,
                 componentMap.Overload(component.ImportedComponents),
                 CreateComponentContext(component),
-                rootComponent: rootComponent,
-                parentComponent: component,
-                fallthroughAttributesMap: fallthroughAttributesAliasMap
+                component,
+                fallthroughAttributesAliasMap
             );
             _loopDepth = loopDepth;
 
@@ -462,59 +357,66 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         }
 
         //Create slot render methods and pass them to the component
-        var slotNodes = GetSlotNodesGroupedBySlotName(componentNode, component);
+        var slotNodes = MtSlotTransformer.GetSlotNodesGroupedBySlotName(componentNode, component);
         foreach (var slotName in component.Slots)
         {
-            //The arguments passed by the slot are available in its contents in addition to the variables available where
-            //the component is used
-            var slotArguments = GetSlotArguments(component, slotName);
-            var slotContext = currentContext.Copy();
-
-            foreach (var (name, type) in slotArguments)
-            {
-                if (!slotContext.TryAdd(name, type))
-                {
-                    throw new InvalidSlotArgumentException(
-                        $"The argument {name} passed to the slot {slotName} of <{componentNode.Name}> conflicts with a variable of the same name, please rename the variable.");
-                }
-            }
+            var slotContext = _slotTransformer.CreateSlotContext(component, slotName, currentContext,
+                componentNode.Name);
 
             var slotContent = slotNodes.TryGetValue(slotName, out var slotNode)
-                ? ProcessNode(slotNode, componentMap, slotContext, rootComponent, parentComponent)
+                ? ProcessNode(slotNode, componentMap, slotContext, parentComponent)
                 : "";
 
-            _slots.Add(new MtComponentSlot
-            {
-                Scope = scope,
-                Name = slotName,
-                RenderMethodT4 = CreateSlotRenderMethod(scope, slotContext, slotName, slotContent, parentComponent)
-            });
-
-            componentRenderArguments.Add(CreateMethodCallArgument(GetSlotRendererVariableName(slotName),
-                CreateSlotRendererLambda(scope, slotName, slotContext, slotArguments, parentComponent)));
+            _slotTransformer.AddSlotRenderMethod(scope, slotContext, slotName, slotContent, parentComponent);
+            componentRenderArguments.Add(MtNames.MethodCallArgument(MtNames.SlotRendererVariable(slotName),
+                _slotTransformer.CreateSlotRendererLambda(scope, component, slotName, slotContext, parentComponent)));
         }
 
         return $"{renderMethodName}({string.Join(", ", componentRenderArguments)});\n";
     }
 
     /// <summary>
-    /// Creates the lambda passed to a component, which renders the content of a slot with the arguments passed by the
-    /// slot.
+    /// Converts the attributes of a component node to the arguments of its render method. Attributes that are not
+    /// properties of the component fall through to its root element, if the template has a single root element.
+    /// Their alias names are added to the given map.
     /// </summary>
-    private string CreateSlotRendererLambda(int scope, string slotName, MtDataContext slotContext,
-        MtDataContext slotArguments, MtComponent parentComponent)
+    private static List<string> CreateComponentArguments(MtComponent component, MtComponentAttributes attributeList,
+        XmlNode templateContentNode, Dictionary<string, string> fallthroughAttributesAliasMap)
     {
-        //The lambda parameters are named differently, to not collide with the variables around the component
-        var parameters = slotArguments.Keys
-            .Select((name, index) => (Name: name, Parameter: $"__slotArgument{index}"))
-            .ToDictionary(argument => argument.Name, argument => argument.Parameter);
+        var arguments = new List<string>();
+        var hasSingleRootElement =
+            templateContentNode.ChildNodes.Count == 1 && templateContentNode.FirstChild?.Name != FragmentTag;
 
-        var arguments = slotContext.Keys
-            .Select(name => CreateMethodCallArgument(name, parameters.GetValueOrDefault(name, name)))
-            .Concat(parentComponent.Slots.Select(GetSlotRendererVariableName).Select(CreateMethodCallArgument));
+        foreach (var (attributeName, attribute) in attributeList)
+        {
+            bool isStringType;
+            string attributeNameAlias;
 
-        return $"({string.Join(", ", parameters.Values)}) => " +
-               $"{GetSlotRenderMethodName(scope, slotName)}({string.Join(", ", arguments)})";
+            if (component.Properties.TryGetValue(attributeName, out var componentProperty))
+            {
+                isStringType = componentProperty.IsStringType();
+                attributeNameAlias = attributeName;
+            }
+            else if (hasSingleRootElement)
+            {
+                isStringType = true;
+                attributeNameAlias = MtNames.FallthroughAttributeAlias(attributeName);
+                fallthroughAttributesAliasMap[attributeName] = attributeNameAlias;
+            }
+            else
+            {
+                continue;
+            }
+
+            var methodArgument = isStringType
+                ? IStringMethods.WrapStringInQuotes(
+                    ICurlyBraceMethods.ReplaceCurlyBraces(attribute.Value, s => $"{{({s})}}"))
+                : ICurlyBraceMethods.ReplaceCurlyBraces(attribute.Value, s => $"({s})");
+
+            arguments.Add(MtNames.MethodCallArgument(attributeNameAlias, methodArgument));
+        }
+
+        return arguments;
     }
 
     /// <summary>
@@ -528,7 +430,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         var body = new StringBuilder(componentBody);
 
         //add slot render methods
-        AppendSlotRenderArgumentsToList(component, arguments);
+        _slotTransformer.AppendSlotRendererParameters(component, arguments);
 
         //add component properties as arguments with defaults
         AppendComponentPropertiesArgumentsList(component, arguments);
@@ -539,7 +441,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         //Insert mania scripts
         if (component.Scripts.Count > 0)
         {
-            var scriptRenderMethodName = GetComponentScriptsRenderMethodName(component);
+            var scriptRenderMethodName = MtNames.ComponentScriptsRenderMethod(component);
             var scriptRenderMethod = CreateComponentScriptsRenderMethod(component, scriptRenderMethodName);
             _maniaScriptRenderMethods.TryAdd(scriptRenderMethodName, scriptRenderMethod);
 
@@ -555,25 +457,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
                 .AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
         }
 
-        return CreateRenderMethod(renderMethodName, arguments, body.ToString());
-    }
-
-    /// <summary>
-    /// Creates the slot-render method for a given data context.
-    /// </summary>
-    private string CreateSlotRenderMethod(int scope, MtDataContext context, string slotName, string slotContent,
-        MtComponent parentComponent)
-    {
-        var methodArguments = new List<string>();
-        var methodName = GetSlotRenderMethodName(scope, slotName);
-
-        //Add slot render methods.
-        AppendSlotRenderArgumentsToList(parentComponent, methodArguments);
-
-        //Add the variables available in the slot, properties of the rendered component are available everywhere.
-        methodArguments.AddRange(context.Select(variable => $"{variable.Value} {variable.Key}"));
-
-        return CreateRenderMethod(methodName, methodArguments, slotContent);
+        return maniaTemplateLanguage.RenderMethod(renderMethodName, arguments, body.ToString());
     }
 
     /// <summary>
@@ -586,25 +470,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         //Add method arguments with defaults
         AppendComponentPropertiesArgumentsList(component, arguments);
 
-        return CreateRenderMethod(renderMethodName, arguments, _scriptTransformer.CreateManiaScriptBlock(component));
-    }
-
-    /// <summary>
-    /// Creates a method to render template contents.
-    /// </summary>
-    private string CreateRenderMethod(string name, IEnumerable<string> arguments, string body)
-    {
-        var renderMethod = new StringBuilder(maniaTemplateLanguage.FeatureBlockStart())
-            .Append($"private void {name}(")
-            .Append(string.Join(", ", arguments))
-            .AppendLine(") {");
-
-        return renderMethod.AppendLine(maniaTemplateLanguage.FeatureBlockEnd())
-            .AppendLine(body)
-            .AppendLine(maniaTemplateLanguage.FeatureBlockStart())
-            .Append('}')
-            .AppendLine(maniaTemplateLanguage.FeatureBlockEnd())
-            .ToString();
+        return maniaTemplateLanguage.RenderMethod(renderMethodName, arguments, _scriptTransformer.CreateManiaScriptBlock(component));
     }
 
     /// <summary>
@@ -615,19 +481,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         arguments.AddRange(component.Properties.Values
             .OrderBy(property => property.Default != null)
             .Select(property => property.ToMethodArgument()));
-    }
-
-    /// <summary>
-    /// Takes all available slots of a component and appends the slot render arguments to the given list.
-    /// </summary>
-    private void AppendSlotRenderArgumentsToList(MtComponent component, List<string> arguments)
-    {
-        foreach (var slotName in component.Slots)
-        {
-            var delegateName = GetSlotRendererDelegateName(component, slotName);
-            _slotRendererDelegates.Add(delegateName);
-            arguments.Add($"{delegateName}? {GetSlotRendererVariableName(slotName)}");
-        }
     }
 
     /// <summary>
@@ -642,88 +495,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         }
 
         return context;
-    }
-
-    /// <summary>
-    /// Parses the arguments a slot passes to its contents, which are variables available at the position of the slot,
-    /// like <![CDATA[<slot item="{{ item }}"/>]]>.
-    /// </summary>
-    private static List<(string Name, string Variable, string Type)> ParseSlotArguments(string slotName,
-        MtComponentAttributes attributeList, MtDataContext context)
-    {
-        var arguments = new List<(string Name, string Variable, string Type)>();
-        foreach (var (name, attribute) in attributeList)
-        {
-            if (!IStringMethods.IsVariableName(name))
-            {
-                throw new InvalidSlotArgumentException(
-                    $"The argument {name} of the slot {slotName} must be a valid variable name, not a C# keyword and not starting with __.");
-            }
-
-            var variable = SlotArgumentValueRegex.Match(attribute.Value);
-            if (!variable.Success || !context.TryGetValue(variable.Groups[1].Value, out var type))
-            {
-                throw new InvalidSlotArgumentException(
-                    $"The argument {name} of the slot {slotName} must pass a single variable available at the slot, like {name}=\"{{{{ variable }}}}\", found: {attribute.Value}");
-            }
-
-            arguments.Add((name, variable.Groups[1].Value, type));
-        }
-
-        return arguments;
-    }
-
-    /// <summary>
-    /// Registers the arguments a slot passes to its contents, which must be the same at every position of the slot.
-    /// </summary>
-    private void RegisterSlotArguments(MtComponent component, string slotName,
-        List<(string Name, string Variable, string Type)> arguments)
-    {
-        var slotArguments = new MtDataContext();
-        foreach (var argument in arguments)
-        {
-            slotArguments[argument.Name] = argument.Type;
-        }
-
-        var delegateName = GetSlotRendererDelegateName(component, slotName);
-        if (!_slotArguments.TryGetValue(delegateName, out var registeredArguments))
-        {
-            _slotArguments[delegateName] = slotArguments;
-            return;
-        }
-
-        if (registeredArguments.Count != slotArguments.Count || registeredArguments.Any(argument =>
-                !slotArguments.TryGetValue(argument.Key, out var type) || type != argument.Value))
-        {
-            throw new InvalidSlotArgumentException(
-                $"The slot {slotName} must pass arguments with the same names and types at every position.");
-        }
-    }
-
-    /// <summary>
-    /// Returns the arguments the slot of a component passes to its contents.
-    /// </summary>
-    private MtDataContext GetSlotArguments(MtComponent component, string slotName)
-    {
-        return _slotArguments.GetValueOrDefault(GetSlotRendererDelegateName(component, slotName)) ??
-               new MtDataContext();
-    }
-
-    /// <summary>
-    /// Creates the delegates rendering slots, receiving the arguments passed by the slot.
-    /// </summary>
-    private string CreateSlotRendererDelegates()
-    {
-        var delegates = new StringBuilder();
-        foreach (var delegateName in _slotRendererDelegates)
-        {
-            var parameters = (_slotArguments.GetValueOrDefault(delegateName) ?? new MtDataContext())
-                .Select(argument => $"{argument.Value} {argument.Key}");
-
-            delegates.AppendLine($"private delegate void {delegateName}({string.Join(", ", parameters)});");
-        }
-
-        return maniaTemplateLanguage.FeatureBlock(delegates.ToString()).ToString();
     }
 
     /// <summary>
@@ -747,23 +518,8 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         return new StringBuilder()
             .AppendJoin("\n", _renderMethods.Values)
             .AppendJoin("\n", _maniaScriptRenderMethods.Values)
-            .AppendJoin("\n", _slots.Select(slot => slot.RenderMethodT4))
+            .AppendJoin("\n", _slotTransformer.SlotRenderMethods)
             .ToString();
-    }
-
-    /// <summary>
-    /// Throws if a template filling a slot has a condition or loop, which have to be placed inside of it.
-    /// Conditions on these templates are ambiguous, as there is a single slot content, which is rendered by the component.
-    /// </summary>
-    private static void EnsureSlotTemplateHasNoControlFlow(MtLoop? loop, MtCondition? condition)
-    {
-        if (loop == null && condition == null)
-        {
-            return;
-        }
-
-        throw new UnsupportedAttributeException(
-            $"<{FragmentTag} slot> does not support conditions and loops, place them inside of it instead.");
     }
 
     /// <summary>
@@ -788,110 +544,6 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     }
 
     /// <summary>
-    /// Returns the name of the variable tracking whether a condition of the chain the node belongs to was met.
-    /// Returns null for nodes without condition and if-conditions not continued by an else-if or else.
-    /// </summary>
-    private string? GetConditionChainVariable(XmlNode node, string tag, MtCondition? condition,
-        string? openConditionChainVariable)
-    {
-        switch (condition?.Type)
-        {
-            case null:
-                return null;
-
-            case MtConditionType.If:
-                return IsConditionChainContinued(node) ? $"__conditionChain{++_conditionChainCount}" : null;
-
-            default:
-                return openConditionChainVariable ?? throw new InvalidConditionException(
-                    $"The {condition.AttributeName} attribute on <{tag}> must follow a node with an if or else-if attribute, only comments may be in between.");
-        }
-    }
-
-    /// <summary>
-    /// Checks whether the next sibling node, ignoring comments, continues a condition chain with else-if or else.
-    /// </summary>
-    private static bool IsConditionChainContinued(XmlNode node)
-    {
-        var sibling = node.NextSibling;
-        while (sibling is XmlComment)
-        {
-            sibling = sibling.NextSibling;
-        }
-
-        return sibling?.Attributes?["else-if"] != null || sibling?.Attributes?["else"] != null;
-    }
-
-    /// <summary>
-    /// Wraps the snippet in a condition block.
-    /// Conditions of a chain are rendered as separate if-blocks sharing a variable that tracks whether a condition
-    /// was met, which allows rendering comments between them.
-    /// </summary>
-    private Snippet CreateConditionBlock(Snippet input, MtCondition condition, string? conditionChainVariable)
-    {
-        var snippet = new Snippet();
-        var expression = ICurlyBraceMethods.TemplateInterpolationRegex.Replace(condition.Expression, "$1");
-
-        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart());
-
-        if (conditionChainVariable == null)
-        {
-            snippet.AppendLine($"if ({expression}) {{");
-        }
-        else
-        {
-            switch (condition.Type)
-            {
-                case MtConditionType.If:
-                    snippet.AppendLine($"var {conditionChainVariable} = false;");
-                    snippet.AppendLine($"if ({expression}) {{");
-                    break;
-                case MtConditionType.ElseIf:
-                    snippet.AppendLine($"if (!{conditionChainVariable} && ({expression})) {{");
-                    break;
-                default:
-                    snippet.AppendLine($"if (!{conditionChainVariable}) {{");
-                    break;
-            }
-
-            if (condition.Type != MtConditionType.Else)
-            {
-                snippet.AppendLine($"{conditionChainVariable} = true;");
-            }
-        }
-
-        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
-        snippet.AppendSnippet(input);
-        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine("}");
-        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
-
-        return snippet;
-    }
-
-    /// <summary>
-    /// Wraps the snippet in a loop, exposing the zero-based iteration index to the loop body.
-    /// The surrounding block scopes the iteration counter, so sibling loops do not collide.
-    /// </summary>
-    private Snippet CreateLoopBlock(Snippet input, MtLoop loop)
-    {
-        var snippet = new Snippet();
-        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine("{");
-        snippet.AppendLine($"var {loop.CounterVariableName} = 0;");
-        snippet.AppendLine($"{loop.Keyword} ({loop.Condition}) {{");
-        snippet.AppendLine($"var {loop.IndexVariableName} = {loop.CounterVariableName}++;");
-        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
-        snippet.AppendSnippet(input);
-        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine("}");
-        snippet.AppendLine("}");
-        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
-
-        return snippet;
-    }
-
-    /// <summary>
     /// Returns C# code representation of the type.
     /// </summary>
     /// <param name="type">The type.</param>
@@ -905,70 +557,5 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         using var codeProvider = new CSharpCodeProvider();
         var typeReference = new CodeTypeReference(type);
         return codeProvider.GetTypeOutput(typeReference);
-    }
-
-    /// <summary>
-    /// Returns the method name that renders the given component.
-    /// </summary>
-    private static string GetComponentRenderMethodName(MtComponent component, MtDataContext context)
-    {
-        return $"Render_Component_{component.Id()}{context}";
-    }
-
-    /// <summary>
-    /// Returns a valid variable name alias.
-    /// </summary>
-    private static string GetFallthroughAttributeAlias(string variableName)
-    {
-        return "FT_" + NonWordCharacterRegex.Replace(variableName.Replace("-", "HYPH"), "");
-    }
-
-    /// <summary>
-    /// Returns the method name that renders the scripts of a given component.
-    /// </summary>
-    private static string GetComponentScriptsRenderMethodName(MtComponent component)
-    {
-        return $"Render_ComponentScript_{component.Id()}";
-    }
-
-    /// <summary>
-    /// Returns the name of the method that renders the slot contents.
-    /// </summary>
-    private static string GetSlotRenderMethodName(int scope, string name)
-    {
-        return $"Render_Slot_{scope.GetHashCode()}_{name}";
-    }
-
-    /// <summary>
-    /// Returns the name of the delegate type rendering a slot of the given component.
-    /// </summary>
-    private static string GetSlotRendererDelegateName(MtComponent component, string slotName)
-    {
-        return $"SlotRenderer_{component.Id()}_{slotName}";
-    }
-
-    /// <summary>
-    /// Returns the name of the variable that renders a slot.
-    /// </summary>
-    private static string GetSlotRendererVariableName(string slotName)
-    {
-        return $"__slotRenderer_{slotName}";
-    }
-
-    /// <summary>
-    /// Formats local variables to be passed to a render method.
-    /// </summary>
-    private static string CreateMethodCallArgument(string argumentName)
-    {
-        return CreateMethodCallArgument(argumentName, argumentName);
-    }
-
-    /// <summary>
-    /// Formats local variables to be passed to a render method.
-    /// It uses the argument name if no value is passed as second argument.
-    /// </summary>
-    private static string CreateMethodCallArgument(string argumentName, string argumentValue)
-    {
-        return $"{argumentName}: {argumentValue}";
     }
 }

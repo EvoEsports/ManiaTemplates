@@ -843,4 +843,22 @@ public class ManialinkEngineTest
         await Assert.ThrowsAsync<EmptyNodeAttributeException>(() =>
             _maniaTemplateEngine.RenderAsync("EmptySlotName", new { }, new[] { typeof(ManiaTemplateEngine).Assembly }));
     }
+
+    [Fact]
+    public async Task Should_Allow_Single_Curly_Braces_In_Conditions()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("BraceCondition", """
+            <component>
+                <property type="char" name="c"/>
+                <template>
+                    <label if="c == '{'" text="open"/>
+                    <label else-if="{{ c == '}' }}" text="close"/>
+                </template>
+            </component>
+            """);
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly };
+
+        Assert.Contains("<label text=\"open\" />", await _maniaTemplateEngine.RenderAsync("BraceCondition", new { c = '{' }, assemblies));
+        Assert.Contains("<label text=\"close\" />", await _maniaTemplateEngine.RenderAsync("BraceCondition", new { c = '}' }, assemblies));
+    }
 }
