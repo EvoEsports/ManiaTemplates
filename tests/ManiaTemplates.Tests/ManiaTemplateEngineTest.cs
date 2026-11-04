@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ManiaTemplates.Components;
 using ManiaTemplates.Exceptions;
 
@@ -50,6 +51,27 @@ public class ManiaTemplateEngineTest
 
         await Assert.ThrowsAsync<ManiaTemplateCompilationFailedException>(() =>
             _maniaTemplateEngine.RenderAsync("Broken", new { }, _assemblies));
+    }
+
+    [Fact]
+    public async Task Should_Use_Framework_Types_Of_Assemblies_That_Are_Not_Loaded()
+    {
+        // The test host loads all framework assemblies, so the template is rendered by a plain process
+        var host = new ProcessStartInfo(Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet")
+        {
+            ArgumentList =
+            {
+                Path.Combine(AppContext.BaseDirectory, "ManiaTemplates.Host.dll"),
+                "<component><template><label text=\"{{ System.Formats.Tar.TarEntryType.Directory }}\"/></template></component>"
+            },
+            RedirectStandardOutput = true
+        };
+
+        using var process = Process.Start(host)!;
+        var output = await process.StandardOutput.ReadToEndAsync();
+        await process.WaitForExitAsync();
+
+        Assert.Contains("<label text=\"Directory\" />", output);
     }
 
     [Fact]
