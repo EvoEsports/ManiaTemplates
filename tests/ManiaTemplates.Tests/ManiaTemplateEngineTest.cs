@@ -75,6 +75,28 @@ public class ManiaTemplateEngineTest
     }
 
     [Fact]
+    public async Task Should_Keep_Default_Attributes_In_ManiaScript()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("Script", """
+            <component>
+                <template><label pos="0 0" text="unit"/></template>
+                <script><!--
+                main() {
+                    declare Text Empty="";
+                    declare Text Label = "<label pos="0 0" halign="left"/>";
+                }
+                --></script>
+            </component>
+            """);
+
+        var result = await _maniaTemplateEngine.RenderAsync("Script", new { }, _assemblies);
+
+        Assert.Contains("<label text=\"unit\" />", result);
+        Assert.Contains("declare Text Empty=\"\";", result);
+        Assert.Contains("declare Text Label = \"<label pos=\"0 0\" halign=\"left\"/>\";", result);
+    }
+
+    [Fact]
     public async Task Should_Throw_Exception_For_Missing_Component_Root()
     {
         _maniaTemplateEngine.AddTemplateFromString("NoRoot", "<template><label/></template>");
