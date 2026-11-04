@@ -37,7 +37,7 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
             renderMethod.AppendLine(
                 ICurlyBraceMethods.ReplaceCurlyBracesWithRawOutput(
                     ExtractManiaScriptDirectives(script.Content),
-                    templateLanguage.InsertResultEscaped,
+                    content => templateLanguage.InsertResult($"Security.EscapeManiaScript({content})"),
                     content => templateLanguage.InsertResult($"Security.EscapeRawManiaScript({content})")
                 )
             );

@@ -271,7 +271,8 @@ With the `once` attribute the script is added only a single time, even if the co
 Scripts are rendered inside of an XML comment (`<script><!-- ... --></script>`), so characters like `<` and `>` can be
 used.
 
-Scripts can use expressions too. `{{ }}` inserts the XML escaped value, `{! !}` inserts the raw value:
+Scripts can use expressions too. `{{ }}` inserts the value escaped for a ManiaScript string, so use it inside `"..."`.
+`{! !}` inserts the raw value:
 
 ````xml
 <component>

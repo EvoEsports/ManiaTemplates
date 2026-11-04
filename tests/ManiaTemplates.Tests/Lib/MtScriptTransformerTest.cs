@@ -190,10 +190,10 @@ public class MtScriptTransformerTest
             </component>
             """);
 
-        var result = await engine.RenderAsync("ScriptOutput", new { value = "<b>" },
+        var result = await engine.RenderAsync("ScriptOutput", new { value = @"<""b""> \" },
             new[] { typeof(ManiaTemplateEngine).Assembly });
 
-        Assert.Contains("main() { log(\"&lt;b&gt;\"); log(\"<b>\"); }", result);
+        Assert.Contains(@"main() { log(""<\""b\""> \\""); log(""<""b""> \""); }", result);
     }
 
     [Fact]
@@ -240,8 +240,8 @@ public class MtScriptTransformerTest
             """);
         var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly };
 
-        var result = await engine.RenderAsync("ScriptValues", new { value = "a --> b" }, assemblies);
-        Assert.Contains("log(\"a &#45;&#45;&gt; b\");", result);
+        var result = await engine.RenderAsync("ScriptValues", new { value = "a ---> b" }, assemblies);
+        Assert.Contains("log(\"a -\"^\"-\"^\"-> b\");", result);
 
         var exception = await Record.ExceptionAsync(() =>
             engine.RenderAsync("RawScriptValues", new { value = "a --> b" }, assemblies));
