@@ -36,6 +36,9 @@ await engine.PreProcessAsync("MapList");
 var xml = await engine.RenderAsync("MapList", new { maps = GetMaps(), title = "Maps" });
 ````
 
+Depend on `IManiaTemplateEngine` instead of `ManiaTemplateEngine`, e.g. in dependency injection, to mock the engine in
+tests.
+
 The engine is thread-safe. Compiling a template takes a moment, so `PreProcessAsync` and the first `RenderAsync` of a
 template compile it on the thread pool. Pre-processing many templates in parallel speeds up loading:
 
