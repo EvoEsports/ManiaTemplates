@@ -1,5 +1,8 @@
 ﻿namespace ManiaTemplates.Exceptions;
 
+/// <summary>
+/// Thrown when scripts of a manialink define the same #Const with different values.
+/// </summary>
 public class DuplicateManiaScriptConstantException : Exception
 {
     public DuplicateManiaScriptConstantException()

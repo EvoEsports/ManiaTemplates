@@ -7,6 +7,10 @@ using ManiaTemplates.Interfaces;
 
 namespace ManiaTemplates.Lib;
 
+/// <summary>
+/// Creates the script blocks of a manialink, moving ManiaScript directives into a shared block.
+/// </summary>
+/// <param name="templateLanguage">The template language the code is generated in.</param>
 public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage)
 {
     private readonly Dictionary<string, string> _maniaScriptIncludes = new();
@@ -19,6 +23,10 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage)
     private static readonly Regex ManiaScriptStructRegex = new(@"(?s)#Struct\s+([_a-zA-Z]+)\s*\{.+?\}");
     private static readonly Regex WhitespaceRegex = new(@"\s+");
 
+    /// <summary>
+    /// Creates the script block containing the scripts of the component.
+    /// </summary>
+    /// <param name="component">The component containing the scripts.</param>
     public string CreateManiaScriptBlock(MtComponent component)
     {
         var renderMethod = new StringBuilder("<script><!--").AppendLine();

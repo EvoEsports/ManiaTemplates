@@ -2,10 +2,24 @@
 
 namespace ManiaTemplates.Components;
 
+/// <summary>
+/// A property of a component, which is set with an attribute of the same name where the component is used.
+/// </summary>
 public class MtComponentProperty
 {
+    /// <summary>
+    /// The C# type of the property.
+    /// </summary>
     public required string Type { get; init; }
+
+    /// <summary>
+    /// The name of the property and of the attribute setting it.
+    /// </summary>
     public required string Name { get; init; }
+
+    /// <summary>
+    /// The default value used when the attribute is not set, the property is required if null.
+    /// </summary>
     public string? Default { get; init; }
 
     /// <summary>

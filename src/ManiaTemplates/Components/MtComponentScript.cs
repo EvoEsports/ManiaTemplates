@@ -6,11 +6,29 @@ using ManiaTemplates.Exceptions;
 
 namespace ManiaTemplates.Components;
 
+/// <summary>
+/// A ManiaScript of a component, defined inline or loaded from a registered ManiaScript resource.
+/// </summary>
 public class MtComponentScript
 {
+    /// <summary>
+    /// The ManiaScript code.
+    /// </summary>
     public required string Content { get; init; }
+
+    /// <summary>
+    /// Whether the script defines a main method, which is only allowed once per manialink.
+    /// </summary>
     public required bool HasMainMethod { get; init; }
+
+    /// <summary>
+    /// Whether the script is only rendered once, even if the component is used multiple times.
+    /// </summary>
     public required bool Once { get; init; }
+
+    /// <summary>
+    /// The nesting depth of the component using the script, which is currently not set.
+    /// </summary>
     public int Depth { get; set; }
 
     private static readonly Regex DetectMainMethodRegex = new(@"(?s)main\(\).*\{.*\}");
@@ -18,6 +36,8 @@ public class MtComponentScript
     /// <summary>
     /// Creates a MtComponentScript instance from a components script-node.
     /// </summary>
+    /// <param name="engine">The engine providing the ManiaScript of the resource attribute.</param>
+    /// <param name="node">The script node.</param>
     public static MtComponentScript FromNode(ManiaTemplateEngine engine, XmlNode node)
     {
         string? content = null;
@@ -125,6 +145,9 @@ public class MtComponentScript
         return string.Join("\n", scripts);
     }
 
+    /// <summary>
+    /// Returns a hash of the script, used to detect the same script used multiple times.
+    /// </summary>
     public string ContentHash()
     {
         return Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(Content)));

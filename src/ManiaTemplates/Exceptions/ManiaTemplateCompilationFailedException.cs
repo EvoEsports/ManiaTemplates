@@ -1,5 +1,8 @@
 namespace ManiaTemplates.Exceptions;
 
+/// <summary>
+/// Thrown when the pre-processed template fails to compile or load into its load context.
+/// </summary>
 public class ManiaTemplateCompilationFailedException : Exception
 {
     public ManiaTemplateCompilationFailedException()

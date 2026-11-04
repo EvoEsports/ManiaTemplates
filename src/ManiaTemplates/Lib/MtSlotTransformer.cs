@@ -12,6 +12,7 @@ namespace ManiaTemplates.Lib;
 /// Creates the code rendering slots: the calls at the position of a slot, the methods rendering the contents of a slot
 /// and the delegates passing the arguments of a slot to its contents.
 /// </summary>
+/// <param name="maniaTemplateLanguage">The template language the code is generated in.</param>
 internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
 {
     private readonly List<string> _slotRenderMethods = [];
@@ -23,6 +24,9 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
     /// <summary>
     /// Creates the call rendering the contents of a slot at the position of a slot-node.
     /// </summary>
+    /// <param name="parentComponent">The component containing the slot.</param>
+    /// <param name="attributeList">The attributes of the slot node.</param>
+    /// <param name="context">The variables available at the slot.</param>
     public string CreateSlotCall(MtComponent parentComponent, MtComponentAttributes attributeList,
         MtDataContext context)
     {
@@ -46,6 +50,8 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
     /// <returns>
     /// A map of slot names and the nodes containing their contents.
     /// </returns>
+    /// <param name="componentNode">The node using the component.</param>
+    /// <param name="component">The used component.</param>
     public static Dictionary<string, XmlNode> GetSlotNodesGroupedBySlotName(XmlNode componentNode,
         MtComponent component)
     {
@@ -105,6 +111,10 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
     /// Creates the context of the contents of a slot: the arguments passed by the slot are available in addition to
     /// the variables available where the component is used.
     /// </summary>
+    /// <param name="component">The component containing the slot.</param>
+    /// <param name="slotName">The name of the slot.</param>
+    /// <param name="context">The variables available where the component is used.</param>
+    /// <param name="componentTag">The tag of the component, used in error messages.</param>
     public MtDataContext CreateSlotContext(MtComponent component, string slotName, MtDataContext context,
         string componentTag)
     {
@@ -125,6 +135,11 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
     /// <summary>
     /// Adds the method rendering the contents of a slot, receiving the variables available in the slot.
     /// </summary>
+    /// <param name="scope">The id of the component usage the slot contents belong to.</param>
+    /// <param name="context">The variables available in the slot contents.</param>
+    /// <param name="slotName">The name of the slot.</param>
+    /// <param name="slotContent">The template contents of the slot.</param>
+    /// <param name="parentComponent">The component whose template contains the slot contents.</param>
     public void AddSlotRenderMethod(int scope, MtDataContext context, string slotName, string slotContent,
         MtComponent parentComponent)
     {
@@ -144,6 +159,11 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
     /// Creates the lambda passed to a component, which renders the content of a slot with the arguments passed by the
     /// slot.
     /// </summary>
+    /// <param name="scope">The id of the component usage the slot contents belong to.</param>
+    /// <param name="component">The component containing the slot.</param>
+    /// <param name="slotName">The name of the slot.</param>
+    /// <param name="slotContext">The variables available in the slot contents.</param>
+    /// <param name="parentComponent">The component whose template contains the slot contents.</param>
     public string CreateSlotRendererLambda(int scope, MtComponent component, string slotName,
         MtDataContext slotContext, MtComponent parentComponent)
     {
@@ -163,6 +183,8 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
     /// <summary>
     /// Takes all available slots of a component and appends the parameters receiving the slot renderers to the list.
     /// </summary>
+    /// <param name="component">The component whose slots are rendered.</param>
+    /// <param name="arguments">The parameters the slot renderers are appended to.</param>
     public void AppendSlotRendererParameters(MtComponent component, List<string> arguments)
     {
         foreach (var slotName in component.Slots)
@@ -199,6 +221,8 @@ internal class MtSlotTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
     /// Throws if a template filling a slot has a condition or loop, which have to be placed inside of it.
     /// Conditions on these templates are ambiguous, as there is a single slot content, which is rendered by the component.
     /// </summary>
+    /// <param name="loop">The loop of the template.</param>
+    /// <param name="condition">The condition of the template.</param>
     public static void EnsureSlotTemplateHasNoControlFlow(MtLoop? loop, MtCondition? condition)
     {
         if (loop == null && condition == null)

@@ -1,5 +1,8 @@
 ﻿namespace ManiaTemplates.Exceptions;
 
+/// <summary>
+/// Thrown when a script tag contains other nodes or the script contains '--', which would end the surrounding XML comment.
+/// </summary>
 public class InvalidManiaScriptException : Exception
 {
     public InvalidManiaScriptException()

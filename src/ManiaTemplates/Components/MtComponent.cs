@@ -4,20 +4,56 @@ using ManiaTemplates.Lib;
 
 namespace ManiaTemplates.Components;
 
+/// <summary>
+/// A parsed template with its imports, properties, scripts and slots.
+/// </summary>
 public class MtComponent
 {
+    /// <summary>
+    /// The contents of the template node, which are rendered by the component.
+    /// </summary>
     public required string TemplateContent { get; init; }
+
+    /// <summary>
+    /// Whether the template contains a slot.
+    /// </summary>
     public required bool HasSlot { get; init; }
+
+    /// <summary>
+    /// The layer the manialink is displayed on, set with the layer attribute of the template node.
+    /// </summary>
     public string? DisplayLayer { get; init; }
+
+    /// <summary>
+    /// The components imported by the template.
+    /// </summary>
     public required MtComponentMap ImportedComponents { get; init; }
+
+    /// <summary>
+    /// The properties of the component, mapped by their names.
+    /// </summary>
     public required Dictionary<string, MtComponentProperty> Properties { get; init; }
+
+    /// <summary>
+    /// The C# namespaces the template uses, imported with using nodes.
+    /// </summary>
     public required List<string> Namespaces { get; init; }
+
+    /// <summary>
+    /// The ManiaScripts of the component.
+    /// </summary>
     public required List<MtComponentScript> Scripts { get; init; }
+
+    /// <summary>
+    /// The names of the slots of the component, the unnamed slot is called default.
+    /// </summary>
     public HashSet<string> Slots { get; init; } = new();
 
     /// <summary>
     /// Creates a MtComponent instance from template contents.
     /// </summary>
+    /// <param name="engine">The engine providing the ManiaScripts referenced by the template.</param>
+    /// <param name="templateContent">The contents of the template.</param>
     public static MtComponent FromTemplate(ManiaTemplateEngine engine, string templateContent)
     {
         var foundComponents = new MtComponentMap();
@@ -167,6 +203,9 @@ public class MtComponent
         return slotNames;
     }
 
+    /// <summary>
+    /// Returns a name unique to this instance, used for generated code.
+    /// </summary>
     public string Id()
     {
         return "MtContext" + GetHashCode().ToString().Replace("-", "N");

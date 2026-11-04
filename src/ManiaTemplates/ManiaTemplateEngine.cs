@@ -33,8 +33,14 @@ public class ManiaTemplateEngine
     /// A template with the assembly it was loaded from, which decides the load context it is compiled into, and the
     /// assemblies containing the types it uses.
     /// </summary>
+    /// <param name="Content">The contents of the template.</param>
+    /// <param name="Assembly">The assembly the template was loaded from, null for templates of the host.</param>
+    /// <param name="References">The assemblies containing the types the template uses.</param>
     internal sealed record RegisteredTemplate(string Content, Assembly? Assembly, IReadOnlyList<Assembly> References)
     {
+        /// <summary>
+        /// The assembly of the template followed by its references.
+        /// </summary>
         public IEnumerable<Assembly> Assemblies => Assembly == null ? References : References.Prepend(Assembly);
     }
 
@@ -50,8 +56,15 @@ public class ManiaTemplateEngine
     /// compiled, so templates compiled before a variable was added can't use it.
     /// </summary>
     public readonly ConcurrentDictionary<string, object?> GlobalVariables = new();
+
+    /// <summary>
+    /// The core components available in all templates.
+    /// </summary>
     protected internal MtComponentMap BaseMtComponents { get; }
 
+    /// <summary>
+    /// Creates an engine with the core components loaded.
+    /// </summary>
     public ManiaTemplateEngine()
     {
         BaseMtComponents = LoadCoreComponents();
@@ -122,11 +135,13 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Gets a MtComponent-instance for the given key.
     /// </summary>
+    /// <param name="key">The key of the template.</param>
     public MtComponent GetComponent(string key) => MtComponent.FromTemplate(this, _templates[key].Content);
 
     /// <summary>
     /// Gets a MtComponent-instance for the given key, together with the template it was created from.
     /// </summary>
+    /// <param name="key">The key of the template.</param>
     internal (RegisteredTemplate Template, MtComponent Component) GetComponentWithTemplate(string key)
     {
         var template = _templates[key];
@@ -136,6 +151,8 @@ public class ManiaTemplateEngine
     /// <summary>
     /// PreProcesses a template-key for faster rendering, cancelling the token stops the compilation.
     /// </summary>
+    /// <param name="key">The key of the template.</param>
+    /// <param name="cancellationToken">Stops the compilation.</param>
     public Task PreProcessAsync(string key, CancellationToken cancellationToken = default)
     {
         // Compiling takes a while, running it on the thread pool allows pre-processing templates in parallel
@@ -146,6 +163,9 @@ public class ManiaTemplateEngine
     /// PreProcesses a template-key for faster rendering and writes the generated T4 template to the given directory,
     /// which helps debugging templates.
     /// </summary>
+    /// <param name="key">The key of the template.</param>
+    /// <param name="writeTo">The directory the T4 template is written to.</param>
+    /// <param name="cancellationToken">Stops the compilation.</param>
     public Task PreProcessAsync(string key, string writeTo, CancellationToken cancellationToken = default)
     {
         return Task.Run(() => PreProcess(key, writeTo, cancellationToken), cancellationToken);
@@ -169,6 +189,9 @@ public class ManiaTemplateEngine
     /// Renders a template with the given data, an object with properties or a dictionary. The template is compiled
     /// first, if it has not been compiled yet, cancelling the token stops the compilation.
     /// </summary>
+    /// <param name="key">The key of the template.</param>
+    /// <param name="data">The values of the template properties, an object with properties or a dictionary.</param>
+    /// <param name="cancellationToken">Stops the compilation.</param>
     public async Task<string> RenderAsync(string key, object data, CancellationToken cancellationToken = default)
     {
         var maniaLink = _compiledTemplates.TryGetValue(key, out var compiled) && IsCurrent(compiled)
@@ -188,6 +211,7 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Creates an empty manialink for a template-key, used to hide the rendered template from players.
     /// </summary>
+    /// <param name="key">The key of the template.</param>
     public string Hide(string key) => ManiaLink.CreateHideManialink(ManialinkNameUtils.KeyToId(key));
 
     /// <summary>
@@ -195,6 +219,8 @@ public class ManiaTemplateEngine
     /// assembly. The assembly is passed explicitly, as the calling assembly is unreliable: in release builds the JIT may
     /// turn the call into a tail call, which removes the frame of the caller.
     /// </summary>
+    /// <param name="resourcePath">The name of the embedded resource, which is also the key of the template.</param>
+    /// <param name="assembly">The assembly containing the embedded resource.</param>
     public void LoadTemplateFromEmbeddedResource(string resourcePath, Assembly assembly)
     {
         AddTemplate(resourcePath,
@@ -205,6 +231,8 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Adds a template, which is compiled into the default load context and can use the types of the host.
     /// </summary>
+    /// <param name="templateKey">The key the template is rendered and imported with.</param>
+    /// <param name="templateContent">The contents of the template.</param>
     public void AddTemplateFromString(string templateKey, string templateContent)
     {
         AddTemplate(templateKey, new RegisteredTemplate(templateContent, null, []));
@@ -215,6 +243,10 @@ public class ManiaTemplateEngine
     /// context of the assembly and can use the types of the assembly, of the referenced assemblies, of its load context
     /// and of the host. The template is removed, when the load context of one of the assemblies unloads.
     /// </summary>
+    /// <param name="templateKey">The key the template is rendered and imported with.</param>
+    /// <param name="templateContent">The contents of the template.</param>
+    /// <param name="assembly">The assembly the template was loaded from.</param>
+    /// <param name="references">Other assemblies containing types the template uses.</param>
     public void AddTemplateFromString(string templateKey, string templateContent, Assembly assembly,
         params IEnumerable<Assembly> references)
     {
@@ -241,6 +273,8 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Adds a ManiaScript to be used in components, defined by a key.
     /// </summary>
+    /// <param name="scriptKey">The key the script is used with in the resource attribute.</param>
+    /// <param name="maniaScript">The ManiaScript code.</param>
     public void AddManiaScriptFromString(string scriptKey, string maniaScript)
     {
         if (!_maniaScripts.TryAdd(scriptKey, maniaScript))
@@ -252,6 +286,7 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Gets the contents of a ManiaScript for the given key.
     /// </summary>
+    /// <param name="scriptKey">The key of the script.</param>
     public string GetManiaScript(string scriptKey)
     {
         return _maniaScripts.TryGetValue(scriptKey, out var maniaScript)
@@ -404,6 +439,7 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Removes a template, together with its compiled version and the compiled templates importing it.
     /// </summary>
+    /// <param name="name">The key of the template.</param>
     public void RemoveTemplate(string name)
     {
         if (!_templates.TryGetValue(name, out var template))
@@ -417,6 +453,7 @@ public class ManiaTemplateEngine
     /// <summary>
     /// Removes a ManiaScript. Compiled templates keep the content they were compiled with.
     /// </summary>
+    /// <param name="name">The key of the script.</param>
     public void RemoveManiaScript(string name)
     {
         if (!_maniaScripts.TryRemove(name, out _))

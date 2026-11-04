@@ -8,6 +8,7 @@ namespace ManiaTemplates.Lib;
 /// <summary>
 /// Creates the code of conditions and loops placed on nodes.
 /// </summary>
+/// <param name="maniaTemplateLanguage">The template language the code is generated in.</param>
 internal class MtControlFlowTransformer(IManiaTemplateLanguage maniaTemplateLanguage)
 {
     private int _conditionChainCount;
@@ -16,6 +17,9 @@ internal class MtControlFlowTransformer(IManiaTemplateLanguage maniaTemplateLang
     /// Throws if a node has a condition and a loop, as it is ambiguous whether the condition applies to every
     /// iteration or the whole loop.
     /// </summary>
+    /// <param name="tag">The tag of the node.</param>
+    /// <param name="loop">The loop of the node.</param>
+    /// <param name="condition">The condition of the node.</param>
     public static void EnsureLoopAndConditionAreNotCombined(string tag, MtLoop? loop, MtCondition? condition)
     {
         if (loop != null && condition != null)
@@ -29,6 +33,9 @@ internal class MtControlFlowTransformer(IManiaTemplateLanguage maniaTemplateLang
     /// Returns the name of the variable tracking whether a condition of the chain the node belongs to was met.
     /// Returns null for nodes without condition and if-conditions not continued by an else-if or else.
     /// </summary>
+    /// <param name="node">The node with the condition.</param>
+    /// <param name="condition">The condition of the node.</param>
+    /// <param name="openConditionChainVariable">The variable of the chain continued by the node, null if the previous node does not start or continue one.</param>
     public string? GetConditionChainVariable(XmlNode node, MtCondition? condition,
         string? openConditionChainVariable)
     {
@@ -65,6 +72,9 @@ internal class MtControlFlowTransformer(IManiaTemplateLanguage maniaTemplateLang
     /// Conditions of a chain are rendered as separate if-blocks sharing a variable that tracks whether a condition
     /// was met, which allows rendering comments between them.
     /// </summary>
+    /// <param name="input">The code rendering the node.</param>
+    /// <param name="condition">The condition of the node.</param>
+    /// <param name="conditionChainVariable">The variable of the condition chain, null if the condition is not part of one.</param>
     public MtCodeSnippet CreateConditionBlock(MtCodeSnippet input, MtCondition condition, string? conditionChainVariable)
     {
         var snippet = new MtCodeSnippet();
@@ -111,6 +121,8 @@ internal class MtControlFlowTransformer(IManiaTemplateLanguage maniaTemplateLang
     /// Wraps the snippet in a loop, exposing the zero-based iteration index to the loop body.
     /// The surrounding block scopes the iteration counter, so sibling loops do not collide.
     /// </summary>
+    /// <param name="input">The code rendering the node.</param>
+    /// <param name="loop">The loop of the node.</param>
     public MtCodeSnippet CreateLoopBlock(MtCodeSnippet input, MtLoop loop)
     {
         var snippet = new MtCodeSnippet();

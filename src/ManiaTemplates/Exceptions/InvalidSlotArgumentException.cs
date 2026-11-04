@@ -1,5 +1,8 @@
 ﻿namespace ManiaTemplates.Exceptions;
 
+/// <summary>
+/// Thrown when the arguments a slot passes to its contents are invalid or differ between positions of the slot.
+/// </summary>
 public class InvalidSlotArgumentException : Exception
 {
     public InvalidSlotArgumentException()

@@ -1,5 +1,8 @@
 ﻿namespace ManiaTemplates.Exceptions;
 
+/// <summary>
+/// Thrown when more than one distinct script of a manialink defines a main method.
+/// </summary>
 public class DuplicateMainManiaScriptException : Exception
 {
     public DuplicateMainManiaScriptException()

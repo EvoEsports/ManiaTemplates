@@ -4,10 +4,20 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ManiaTemplates.ControlElements;
 
+/// <summary>
+/// A for loop placed on a node with the for attribute, like <c>for="int i = 0; i &lt; 3; i++"</c>.
+/// </summary>
 public class MtFor : MtLoop
 {
     public override string Keyword => "for";
 
+    /// <summary>
+    /// Parses the value of a for attribute and creates the context of the loop body.
+    /// </summary>
+    /// <param name="forAttributeValue">The value of the for attribute.</param>
+    /// <param name="context">The variables available at the node.</param>
+    /// <param name="nodeId">The id of the node, used for the name of the loop context.</param>
+    /// <param name="depth">The nesting depth of the loop.</param>
     public static MtFor FromString(string forAttributeValue, MtDataContext context, int nodeId, int depth)
     {
         // Let the C# parser split the value into initializer, condition and iterator.

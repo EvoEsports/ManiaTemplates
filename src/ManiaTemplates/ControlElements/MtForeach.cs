@@ -4,10 +4,20 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ManiaTemplates.ControlElements;
 
+/// <summary>
+/// A foreach loop placed on a node with the foreach attribute, like foreach="string name in names".
+/// </summary>
 public class MtForeach : MtLoop
 {
     public override string Keyword => "foreach";
 
+    /// <summary>
+    /// Parses the value of a foreach attribute and creates the context of the loop body.
+    /// </summary>
+    /// <param name="foreachAttributeValue">The value of the foreach attribute.</param>
+    /// <param name="context">The variables available at the node.</param>
+    /// <param name="nodeId">The id of the node, used for the name of the loop context.</param>
+    /// <param name="depth">The nesting depth of the loop.</param>
     public static MtForeach FromString(string foreachAttributeValue, MtDataContext context, int nodeId, int depth)
     {
         // Let the C# parser split the value into the loop variables and the source.

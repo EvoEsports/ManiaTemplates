@@ -1,8 +1,18 @@
 ﻿namespace ManiaTemplates.Components;
 
+/// <summary>
+/// Generates the documentation of components as markdown.
+/// </summary>
 public class MtComponentMarkdownGenerator
 {
+    /// <summary>
+    /// The engine the components are loaded from.
+    /// </summary>
     public required ManiaTemplateEngine Engine { get; init; }
+
+    /// <summary>
+    /// The components to document.
+    /// </summary>
     public required MtComponentMap Components { get; init; }
 
     /// <summary>

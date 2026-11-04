@@ -4,6 +4,9 @@ using ManiaTemplates.Lib;
 
 namespace ManiaTemplates.Languages;
 
+/// <summary>
+/// Generates T4 templates, which are pre-processed into C# classes rendering the manialink.
+/// </summary>
 public class MtLanguageT4 : IManiaTemplateLanguage
 {
     private static readonly Regex TemplateFeatureControlRegex = new(@"#>[\n]*<#\+");

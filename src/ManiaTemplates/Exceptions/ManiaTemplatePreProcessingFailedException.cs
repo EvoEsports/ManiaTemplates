@@ -1,5 +1,8 @@
 ﻿namespace ManiaTemplates.Exceptions;
 
+/// <summary>
+/// Thrown when T4 fails to pre-process the template generated from a component.
+/// </summary>
 public class ManiaTemplatePreProcessingFailedException: Exception
 {
     public ManiaTemplatePreProcessingFailedException()

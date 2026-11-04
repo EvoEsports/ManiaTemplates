@@ -10,6 +10,11 @@ using Microsoft.CSharp;
 
 namespace ManiaTemplates.Lib;
 
+/// <summary>
+/// Transforms a component and the components it imports into a template of the template language.
+/// </summary>
+/// <param name="engine">The engine providing the imported templates.</param>
+/// <param name="maniaTemplateLanguage">The template language the code is generated in.</param>
 public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage maniaTemplateLanguage)
 {
     private readonly MtScriptTransformer _scriptTransformer = new(maniaTemplateLanguage);
@@ -37,6 +42,9 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// <summary>
     /// Creates the target language template, which can be pre-processed for faster rendering.
     /// </summary>
+    /// <param name="rootComponent">The rendered component.</param>
+    /// <param name="className">The name of the generated class and the id of the manialink.</param>
+    /// <param name="version">The version of the manialink markup.</param>
     public string BuildManialink(MtComponent rootComponent, string className, int version = 3)
     {
         _namespaces.AddRange(rootComponent.Namespaces);
