@@ -62,34 +62,17 @@ public class MtTransformerTest
     [Fact]
     public void Should_Build_Manialink()
     {
-        var components = new Dictionary<string, MtComponent>
-        {
-            {
-                "newGraph.mt",
-                new MtComponent
-                {
-                    Namespaces = new() { "GraphNamespace" },
-                    Properties =
-                        new()
-                        {
-                            { "arg1", new() { Name = "arg1", Type = "string", Default = "" } },
-                            { "arg2", new() { Name = "arg2", Type = "int", Default = "0" } },
-                            { "arg3", new() { Name = "arg3", Type = "test" } }
-                        },
-                    Scripts = new List<MtComponentScript>()
-                    {
-                        new() { Content = "GraphScript", HasMainMethod = false, Once = false },
-                        new() { Content = "GraphScript", HasMainMethod = false, Once = true },
-                    },
-                    HasSlot = false,
-                    ImportedComponents = new MtComponentMap(),
-                    TemplateContent = ""
-                }
-            }
-        };
-
-        _maniaTemplateEngine.GetType().GetField("_components", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?.SetValue(_maniaTemplateEngine, components);
+        _maniaTemplateEngine.AddTemplateFromString("newGraph.mt", """
+            <component>
+                <using namespace="GraphNamespace"/>
+                <property type="string" name="arg1" default=""/>
+                <property type="int" name="arg2" default="0"/>
+                <property type="test" name="arg3"/>
+                <template></template>
+                <script>GraphScript</script>
+                <script once="true">GraphScript</script>
+            </component>
+            """);
 
         var expected = File.ReadAllText("Lib/expected.tt");
         var result = _transformer.BuildManialink(_testComponent, "expected");
@@ -120,7 +103,6 @@ public class MtTransformerTest
     [Fact]
     public void Should_Import_Components_Recursively()
     {
-        var assemblies = new List<Assembly> { Assembly.GetExecutingAssembly() };
 
         _maniaTemplateEngine.AddTemplateFromString("Embeddable", "<component><template><el/></template></component>");
         _maniaTemplateEngine.AddTemplateFromString("RecursionElement",
@@ -128,7 +110,7 @@ public class MtTransformerTest
         _maniaTemplateEngine.AddTemplateFromString("RecursionRoot",
             "<component><import component='RecursionElement' as='REL' /><template><REL/></template></component>");
 
-        var output = _maniaTemplateEngine.RenderAsync("RecursionRoot", new { }, assemblies).Result;
+        var output = _maniaTemplateEngine.RenderAsync("RecursionRoot", new { }).Result;
         Assert.Equal(@$"<manialink version=""3"" id=""MtRecursionRoot"" name=""EvoSC#-MtRecursionRoot"">
 <el />
 </manialink>

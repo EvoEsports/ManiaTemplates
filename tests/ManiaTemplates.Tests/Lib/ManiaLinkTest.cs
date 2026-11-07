@@ -20,7 +20,9 @@ public class ManiaLinkTest
         }
         """;
 
-    private readonly ManiaLink _maniaLink = new("MtTest", TemplateSource, new[] { typeof(ManiaLink).Assembly });
+    private static readonly System.Reflection.Assembly[] Assemblies = { typeof(ManiaLink).Assembly };
+
+    private readonly ManiaLink _maniaLink = new("MtTest", TemplateSource, AssemblyLoadContext.Default, Assemblies);
 
     [Fact]
     public async Task Should_Render_Object_Data()
@@ -86,7 +88,7 @@ public class ManiaLinkTest
     {
         var maniaLink = new ManiaLink("MtNamespaced",
             "namespace Some.Namespace { public class MtNamespaced { public string TransformText() => \"<frame/>\"; } }",
-            new[] { typeof(ManiaLink).Assembly });
+            AssemblyLoadContext.Default, Assemblies);
 
         Assert.Equal("<frame/>", await maniaLink.RenderAsync(new { }));
     }
@@ -96,7 +98,7 @@ public class ManiaLinkTest
     {
         var exception = Assert.Throws<ManiaTemplateCompilationFailedException>(() =>
             new ManiaLink("MtBroken", "public class MtBroken { public string TransformText() => unknown; }",
-                new[] { typeof(ManiaLink).Assembly }));
+                AssemblyLoadContext.Default, Assemblies));
 
         Assert.Contains("unknown", exception.Message);
     }
@@ -107,11 +109,11 @@ public class ManiaLinkTest
     public void Should_Throw_Exception_For_Missing_Render_Method(string source)
     {
         Assert.Throws<ManiaTemplateCompilationFailedException>(() =>
-            new ManiaLink("MtNoTransform", source, new[] { typeof(ManiaLink).Assembly }));
+            new ManiaLink("MtNoTransform", source, AssemblyLoadContext.Default, Assemblies));
     }
 
     [Fact]
-    public async Task Should_Compile_Into_Load_Context_Of_Collectible_Assemblies()
+    public async Task Should_Compile_Into_Given_Load_Context()
     {
         var loadContext = new AssemblyLoadContext("ManiaLinkTest", isCollectible: true);
         try
@@ -125,7 +127,7 @@ public class ManiaLinkTest
                     public {{typeof(ComplexDataType).FullName}}? Data { get; set; }
                     public string TransformText() => $"<label text=\"{Data?.TestString}\"/>";
                 }
-                """, new[] { assembly });
+                """, loadContext, new[] { assembly });
 
             var data = Activator.CreateInstance(complexDataType)!;
             complexDataType.GetProperty(nameof(ComplexDataType.TestString))!.SetValue(data, "collectible");

@@ -7,10 +7,10 @@ namespace ManiaTemplates.Tests.Lib;
 public class UtilitiesTest
 {
     [Fact]
-    public async Task Should_Throw_Exception_For_Missing_Embedded_Resource()
+    public void Should_Throw_Exception_For_Missing_Embedded_Resource()
     {
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            EmbeddedResourceUtils.GetEmbeddedResourceContentAsync("Missing.Resource", typeof(ManiaTemplateEngine).Assembly));
+        Assert.Throws<InvalidOperationException>(() =>
+            EmbeddedResourceUtils.GetEmbeddedResourceContent("Missing.Resource", typeof(ManiaTemplateEngine).Assembly));
     }
 
     [Theory]

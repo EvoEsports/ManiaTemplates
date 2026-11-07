@@ -23,6 +23,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <EmbeddedResource Include="IntegrationTests\templates\embedded\*.mt" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\..\src\ManiaTemplates\ManiaTemplates.csproj" />
         <ProjectReference Include="..\ManiaTemplates.Host\ManiaTemplates.Host.csproj" />
     </ItemGroup>

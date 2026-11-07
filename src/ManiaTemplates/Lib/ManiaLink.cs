@@ -1,5 +1,6 @@
 ﻿using System.Dynamic;
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Text.RegularExpressions;
 
 namespace ManiaTemplates.Lib;
@@ -17,12 +18,14 @@ public class ManiaLink
             RegexOptions.IgnoreCase);
 
     /// <summary>
-    /// Creates an ManiaLink-instance from tag & pre-compiled template with given context.
+    /// Creates an ManiaLink-instance from a pre-compiled template, which is compiled into the given load context.
     /// </summary>
-    public ManiaLink(string className, string preCompiledTemplate, IEnumerable<Assembly> assemblies)
+    internal ManiaLink(string className, string preCompiledTemplate, AssemblyLoadContext loadContext,
+        IReadOnlyCollection<Assembly> assemblies, CancellationToken cancellationToken = default)
     {
         _className = className;
-        _textTransformer = TemplateCompiler.Compile(className, preCompiledTemplate, assemblies);
+        _textTransformer =
+            TemplateCompiler.Compile(className, preCompiledTemplate, loadContext, assemblies, cancellationToken);
     }
 
     public Task<string> RenderAsync(object data, IDictionary<string, object?>? globalVariables = null)

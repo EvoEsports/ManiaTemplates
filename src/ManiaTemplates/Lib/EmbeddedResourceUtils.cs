@@ -7,11 +7,12 @@ internal static class EmbeddedResourceUtils
     /// <summary>
     /// Gets the embedded resources contents of the given assembly.
     /// </summary>
-    public static async Task<string> GetEmbeddedResourceContentAsync(string path, Assembly assembly)
+    public static string GetEmbeddedResourceContent(string path, Assembly assembly)
     {
-        await using var stream = assembly.GetManifestResourceStream(path) ??
-                                 throw new InvalidOperationException("Could not load contents of: " + path);
+        // Embedded resources are read from the loaded assembly, so there is nothing to wait for
+        using var stream = assembly.GetManifestResourceStream(path) ??
+                           throw new InvalidOperationException("Could not load contents of: " + path);
 
-        return await new StreamReader(stream).ReadToEndAsync();
+        return new StreamReader(stream).ReadToEnd();
     }
 }
