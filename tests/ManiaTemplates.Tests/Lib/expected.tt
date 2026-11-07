@@ -31,7 +31,8 @@ Render_Component_MtContext1ForEachLoop1_(x: (20 * __index), __slotRenderer_defau
 Render_Component_MtContext1(__slotRenderer_default: () => Render_Slot_3_default());
 foreach(var maniaScriptRenderMethod in __maniaScriptRenderMethods){ maniaScriptRenderMethod(); }
 #>
-<script>scriptText1
+<script><!--
+scriptText1
 <#+
 if(!__insertedOneTimeManiaScripts.Contains("0zU/AjjFBI5iWuZPX521w2ZluB8P21bd48fEgb65Qz4=")){
 #>
@@ -41,7 +42,7 @@ __insertedOneTimeManiaScripts.Add("0zU/AjjFBI5iWuZPX521w2ZluB8P21bd48fEgb65Qz4="
 }
 #>
 scriptText3
-</script>
+--></script>
 <#+
 }
 private void Render_Component_MtContext1ForEachLoop1_(SlotRenderer_MtContext1_default? __slotRenderer_default, int zIndex = 0, double x = 0.0, double y = 0.0, double w = 0.0, double h = 0.0) {
@@ -72,7 +73,8 @@ __maniaScriptRenderMethods.Add(() => Render_ComponentScript_MtContext5(arg3,arg1
 }
 private void Render_ComponentScript_MtContext5(test arg3, string arg1 = $"", int arg2 = 0) {
 #>
-<script>GraphScript
+<script><!--
+GraphScript
 <#+
 if(!__insertedOneTimeManiaScripts.Contains("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU=")){
 #>
@@ -81,7 +83,7 @@ GraphScript
 __insertedOneTimeManiaScripts.Add("FWKSFxnFcgdsXVn9dn5IW3isD6T8z+2eK6liK8rPSpU=");
 }
 #>
-</script>
+--></script>
 <#+
 }
 private void Render_Slot_2_default(int __index, int i) {

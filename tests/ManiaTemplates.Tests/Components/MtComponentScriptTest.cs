@@ -72,4 +72,53 @@ public class MtComponentScriptTest
 
         Assert.NotEqual(script1Hash, script2Hash);
     }
+
+    [Theory]
+    [InlineData("<script>log(1 &lt;=&gt; 2);</script>")]
+    [InlineData("<script><!--log(1 <=> 2);--></script>")]
+    [InlineData("<script><!--log(1 <=>--> <!-- 2);--></script>")]
+    [InlineData("<script><![CDATA[log(1 <=> 2);]]></script>")]
+    public void Should_Read_Inline_ManiaScript_Without_Wrapper(string input)
+    {
+        var document = new XmlDocument();
+        document.LoadXml(input);
+
+        var script = MtComponentScript.FromNode(_templateEngine, document.DocumentElement!);
+
+        Assert.Equal("log(1 <=> 2);", script.Content);
+    }
+
+    [Theory]
+    [InlineData("log(1 <=> 2);", "log(1 <=> 2);")]
+    [InlineData("log(a && b);", "log(a && b);")]
+    [InlineData("log(1 &lt; 2);", "log(1 < 2);")]
+    [InlineData("\uFEFF<!--\nlog(1 <=> 2);\n-->", "\nlog(1 <=> 2);\n")]
+    [InlineData("<!-- A -->\n</script>\n<script>\n<!-- B -->", " A \n B ")]
+    [InlineData("declare Text T = \"<b>bold</b>\";", "declare Text T = \"<b>bold</b>\";")]
+    public void Should_Read_Resource_ManiaScript_Without_Wrapper(string resource, string expected)
+    {
+        _templateEngine.AddManiaScriptFromString("resource", resource);
+        var document = new XmlDocument();
+        document.LoadXml("<script resource='resource'/>");
+
+        var script = MtComponentScript.FromNode(_templateEngine, document.DocumentElement!);
+
+        Assert.Equal(expected, script.Content);
+    }
+
+    [Theory]
+    [InlineData("<script>a -- b</script>")]
+    [InlineData("<script resource='invalid'/>")]
+    [InlineData("<script resource='invalidRaw'/>")]
+    [InlineData("<script><label/></script>")]
+    public void Should_Reject_Invalid_ManiaScript(string input)
+    {
+        _templateEngine.AddManiaScriptFromString("invalid", "<!-- a -- b -->");
+        _templateEngine.AddManiaScriptFromString("invalidRaw", "if (a < b) { c -- d; }");
+        var document = new XmlDocument();
+        document.LoadXml(input);
+
+        Assert.Throws<InvalidManiaScriptException>(() =>
+            MtComponentScript.FromNode(_templateEngine, document.DocumentElement!));
+    }
 }

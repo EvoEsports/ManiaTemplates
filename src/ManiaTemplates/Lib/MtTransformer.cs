@@ -31,6 +31,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
     private static readonly Regex SlotArgumentNameRegex = new(@"^(?!__)[A-Za-z_]\w*$");
     private static readonly Regex SlotArgumentValueRegex = new(@"^\{\{\s*([A-Za-z_]\w*)\s*\}\}$");
+    private static readonly Regex NonWordCharacterRegex = new(@"\W");
 
     /// <summary>
     /// Creates the target language template, which can be pre-processed for faster rendering.
@@ -920,7 +921,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// </summary>
     private static string GetFallthroughAttributeAlias(string variableName)
     {
-        return "FT_" + Regex.Replace(variableName.Replace("-", "HYPH"), @"\W", "");
+        return "FT_" + NonWordCharacterRegex.Replace(variableName.Replace("-", "HYPH"), "");
     }
 
     /// <summary>

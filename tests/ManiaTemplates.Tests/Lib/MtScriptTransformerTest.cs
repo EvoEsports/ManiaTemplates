@@ -1,3 +1,4 @@
+using System.Xml;
 using ManiaTemplates.Components;
 using ManiaTemplates.Exceptions;
 using ManiaTemplates.Languages;
@@ -189,10 +190,62 @@ public class MtScriptTransformerTest
             </component>
             """);
 
-        var result = await engine.RenderAsync("ScriptOutput", new { value = "<b>" },
+        var result = await engine.RenderAsync("ScriptOutput", new { value = @"<""b""> \" },
             new[] { typeof(ManiaTemplateEngine).Assembly });
 
-        Assert.Contains("main() { log(\"&lt;b&gt;\"); log(\"<b>\"); }", result);
+        Assert.Contains(@"main() { log(""<\""b\""> \\""); log(""<""b""> \""); }", result);
+    }
+
+    [Fact]
+    public async Task Should_Render_ManiaScript_Inside_Of_Xml_Comment()
+    {
+        var engine = new ManiaTemplateEngine();
+        engine.AddManiaScriptFromString("Compare", "Void Compare() { log(1 <=> 2); }");
+        engine.AddTemplateFromString("CommentedScripts", """
+            <component>
+                <template><label/></template>
+                <script resource="Compare"/>
+                <script><!-- main() { Compare(); } --></script>
+            </component>
+            """);
+
+        var result = await engine.RenderAsync("CommentedScripts", new { },
+            new[] { typeof(ManiaTemplateEngine).Assembly });
+
+        var document = new XmlDocument();
+        document.LoadXml(result);
+        var script = Assert.Single(document.GetElementsByTagName("script").Cast<XmlNode>());
+        var maniaScript = Assert.IsType<XmlComment>(Assert.Single(script.ChildNodes)).Value!;
+        Assert.Equal(new[] { "Void Compare() { log(1 <=> 2); }", "main() { Compare(); }" },
+            maniaScript.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+    }
+
+    [Fact]
+    public async Task Should_Prevent_Values_From_Closing_ManiaScript_Comment()
+    {
+        var engine = new ManiaTemplateEngine();
+        engine.AddTemplateFromString("ScriptValues", """
+            <component>
+                <property type="string" name="value"/>
+                <template><label/></template>
+                <script><!-- main() { log("{{ value }}"); } --></script>
+            </component>
+            """);
+        engine.AddTemplateFromString("RawScriptValues", """
+            <component>
+                <property type="string" name="value"/>
+                <template><label/></template>
+                <script><!-- main() { log("{! value !}"); } --></script>
+            </component>
+            """);
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly };
+
+        var result = await engine.RenderAsync("ScriptValues", new { value = "a ---> b" }, assemblies);
+        Assert.Contains("log(\"a -\"^\"-\"^\"-> b\");", result);
+
+        var exception = await Record.ExceptionAsync(() =>
+            engine.RenderAsync("RawScriptValues", new { value = "a --> b" }, assemblies));
+        Assert.IsType<InvalidManiaScriptException>(exception);
     }
 
     private static MtComponent ComponentWithScripts(params string[] scripts) => new()

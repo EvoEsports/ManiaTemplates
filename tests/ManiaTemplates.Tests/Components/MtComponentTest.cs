@@ -67,7 +67,7 @@ public class MtComponentTest
                 },
             Scripts = new()
             {
-                new() { Content = "<!--main(){}-->", HasMainMethod = true, Once = false },
+                new() { Content = "main(){}", HasMainMethod = true, Once = false },
                 new() { Content = "scriptText1", HasMainMethod = false, Once = true },
                 new() { Content = "scriptText2", HasMainMethod = false, Once = true },
                 new() { Content = "scriptText3", HasMainMethod = false, Once = false }
