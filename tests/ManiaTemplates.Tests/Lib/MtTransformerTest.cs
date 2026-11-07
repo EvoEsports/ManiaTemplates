@@ -2,7 +2,6 @@
 using System.Text.RegularExpressions;
 using System.Xml;
 using ManiaTemplates.Components;
-using ManiaTemplates.Interfaces;
 using ManiaTemplates.Languages;
 using ManiaTemplates.Lib;
 using Xunit.Abstractions;
@@ -137,53 +136,12 @@ public class MtTransformerTest
     }
 
     [Fact]
-    public void Should_Wrap_Strings_In_Quotes()
-    {
-        Assert.Equal(@"$""unit test""", IStringMethods.WrapStringInQuotes("unit test"));
-        Assert.Equal(@"$""""", IStringMethods.WrapStringInQuotes(""));
-    }
-
-    [Fact]
     public void Should_Join_Feature_Blocks()
     {
         var language = new MtLanguageT4();
         
         Assert.Equal("<#+\n unittest \n#>",
             language.OptimizeOutput("<#+#><#+\n #>\n<#+ unittest \n#><#+ \n\n\n#>"));
-    }
-
-    [Fact]
-    public void Should_Convert_String_To_Xml_Node()
-    {
-        var node = IXmlMethods.NodeFromString("<unit>test</unit>");
-        Assert.Equal("test", node.InnerText);
-        Assert.Equal("<unit>test</unit>", node.InnerXml);
-        Assert.Equal("<doc><unit>test</unit></doc>", node.OuterXml);
-    }
-
-    [Fact]
-    public void Should_Create_Xml_Opening_Tag()
-    {
-        var attributeList = new MtComponentAttributes();
-        var lang = new MtLanguageT4();
-        Assert.Equal("<test />", IXmlMethods.CreateOpeningTag("test", attributeList, false, lang.InsertResult));
-        Assert.Equal("<test>", IXmlMethods.CreateOpeningTag("test", attributeList, true, lang.InsertResult));
-
-        attributeList["prop"] = new MtComponentAttribute{Value = "value"};
-        Assert.Equal("""<test prop="value" />""", IXmlMethods.CreateOpeningTag("test", attributeList, false, lang.InsertResult));
-        Assert.Equal("""<test prop="value">""", IXmlMethods.CreateOpeningTag("test", attributeList, true, lang.InsertResult));
-    }
-
-    [Fact]
-    public void Should_Convert_Xml_Node_Arguments_To_MtComponentAttributes_Instance()
-    {
-        var node = IXmlMethods.NodeFromString("""<testNode arg1="test1" arg2="test2">testContent</testNode>""");
-        Assert.NotNull(node.FirstChild);
-
-        var attributes = IXmlMethods.GetAttributes(node.FirstChild);
-        Assert.Equal(2, attributes.Count);
-        Assert.Equal("test1", attributes["arg1"].Value);
-        Assert.Equal("test2", attributes["arg2"].Value);
     }
 
     [Fact]

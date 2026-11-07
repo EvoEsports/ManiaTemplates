@@ -2,45 +2,36 @@
 
 public class MtDataContext : Dictionary<string, string>
 {
-    public MtDataContext? ParentContext { get; }
     private readonly string? _name;
 
-    public MtDataContext(string? name = null, MtDataContext? previousContext = null)
+    public MtDataContext(string? name = null)
     {
         _name = name;
-        ParentContext = previousContext;
     }
 
-    public MtDataContext NewContext(MtDataContext otherContext)
+    private MtDataContext(string? name, IDictionary<string, string> variables) : base(variables)
     {
-        var clone = new MtDataContext($"{_name}_{otherContext._name}", this);
-        
-        foreach (var (name, type) in this)
-        {
-            clone[name] = type;
-        }
-        
-        foreach (var (name, type) in otherContext)
-        {
-            clone[name] = type; //TODO: prevent duplicate?
-        }
-
-        return clone;
+        _name = name;
     }
 
     /// <summary>
-    /// Creates a context with the same name, parent and variables, which can be extended without changing this one.
+    /// Creates a context containing the variables of this and the other context, the other one takes precedence.
     /// </summary>
-    public MtDataContext Copy()
+    public MtDataContext NewContext(MtDataContext otherContext)
     {
-        var copy = new MtDataContext(_name, ParentContext);
-        foreach (var (name, type) in this)
+        var merged = new MtDataContext($"{_name}_{otherContext._name}", this);
+        foreach (var (name, type) in otherContext)
         {
-            copy[name] = type;
+            merged[name] = type;
         }
 
-        return copy;
+        return merged;
     }
+
+    /// <summary>
+    /// Creates a context with the same name and variables, which can be extended without changing this one.
+    /// </summary>
+    public MtDataContext Copy() => new(_name, this);
 
     public override string ToString()
     {

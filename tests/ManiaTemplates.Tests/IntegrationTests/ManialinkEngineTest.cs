@@ -482,7 +482,7 @@ public class ManialinkEngineTest
     [Fact]
     public void Should_Not_Pass_Loop_Variables_Into_Component_Templates()
     {
-        //The component uses a component with a slot and declares a loop variable with the same name as the outer loop
+        // The component uses a component with a slot and declares a loop variable with the same name as the outer loop
         _maniaTemplateEngine.AddTemplateFromString("LoopComponent", """
             <component>
                 <template>
@@ -842,5 +842,23 @@ public class ManialinkEngineTest
 
         await Assert.ThrowsAsync<EmptyNodeAttributeException>(() =>
             _maniaTemplateEngine.RenderAsync("EmptySlotName", new { }, new[] { typeof(ManiaTemplateEngine).Assembly }));
+    }
+
+    [Fact]
+    public async Task Should_Allow_Single_Curly_Braces_In_Conditions()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("BraceCondition", """
+            <component>
+                <property type="char" name="c"/>
+                <template>
+                    <label if="c == '{'" text="open"/>
+                    <label else-if="{{ c == '}' }}" text="close"/>
+                </template>
+            </component>
+            """);
+        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly };
+
+        Assert.Contains("<label text=\"open\" />", await _maniaTemplateEngine.RenderAsync("BraceCondition", new { c = '{' }, assemblies));
+        Assert.Contains("<label text=\"close\" />", await _maniaTemplateEngine.RenderAsync("BraceCondition", new { c = '}' }, assemblies));
     }
 }

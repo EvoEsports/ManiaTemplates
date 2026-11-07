@@ -21,4 +21,8 @@
         <PackageReference Include="Mono.TextTemplating" Version="3.0.0" />
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="ManiaTemplates.Tests" />
+    </ItemGroup>
+
 </Project>

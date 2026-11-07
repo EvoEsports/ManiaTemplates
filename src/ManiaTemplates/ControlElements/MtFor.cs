@@ -10,7 +10,7 @@ public class MtFor : MtLoop
 
     public static MtFor FromString(string forAttributeValue, MtDataContext context, int nodeId, int depth)
     {
-        //Let the C# parser split the value into initializer, condition and iterator.
+        // Let the C# parser split the value into initializer, condition and iterator.
         var statement = SyntaxFactory.ParseStatement($"for ({forAttributeValue}) {{}}");
         if (statement is not ForStatementSyntax forStatement || statement.ContainsDiagnostics)
         {
@@ -33,7 +33,7 @@ public class MtFor : MtLoop
             }));
         }
 
-        //Prevent user defining __index variable
+        // Prevent user defining __index variable
         if (UsesReservedVariableName(foundVariables))
         {
             throw new ParsingForLoopFailedException("User defined variables must not start with __.");

@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using System.Reflection;
-using System.Text.RegularExpressions;
 using ManiaTemplates.Components;
 using ManiaTemplates.Exceptions;
 using ManiaTemplates.Interfaces;
@@ -19,8 +18,6 @@ public class ManiaTemplateEngine
     private readonly ConcurrentDictionary<string, ManiaLink> _preProcessed = new();
     public readonly ConcurrentDictionary<string, object?> GlobalVariables = new();
     protected internal MtComponentMap BaseMtComponents { get; }
-
-    private static readonly Regex NamespaceWrapperMatcher = new(@"namespace ManiaTemplates \{((?:.|\n)+)\}");
 
     public ManiaTemplateEngine()
     {
@@ -83,7 +80,7 @@ public class ManiaTemplateEngine
         }
 
         AddManiaScriptFromString("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
-            Helper.GetEmbeddedResourceContentAsync("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
+            EmbeddedResourceUtils.GetEmbeddedResourceContentAsync("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
                 Assembly.GetExecutingAssembly()).Result);
 
         return coreComponents;
@@ -94,9 +91,9 @@ public class ManiaTemplateEngine
     /// </summary>
     public MtComponent GetComponent(string key)
     {
-        if (_components.ContainsKey(key))
+        if (_components.TryGetValue(key, out var cachedComponent))
         {
-            return _components[key];
+            return cachedComponent;
         }
 
         var component = MtComponent.FromTemplate(this, _templates[key]);
@@ -158,7 +155,7 @@ public class ManiaTemplateEngine
     public void LoadTemplateFromEmbeddedResource(string resourcePath)
     {
         var templateContent =
-            Helper.GetEmbeddedResourceContentAsync(resourcePath, Assembly.GetCallingAssembly()).Result;
+            EmbeddedResourceUtils.GetEmbeddedResourceContentAsync(resourcePath, Assembly.GetCallingAssembly()).Result;
         AddTemplateFromString(resourcePath, templateContent);
     }
 
@@ -175,12 +172,10 @@ public class ManiaTemplateEngine
     /// </summary>
     public void AddManiaScriptFromString(string scriptKey, string maniaScript)
     {
-        if (_maniaScripts.ContainsKey(scriptKey))
+        if (!_maniaScripts.TryAdd(scriptKey, maniaScript))
         {
             throw new ManiaScriptAlreadyExistsException($"ManiaScript '{scriptKey}' already exists.");
         }
-
-        _maniaScripts.Add(scriptKey, maniaScript);
     }
 
     /// <summary>
@@ -188,12 +183,9 @@ public class ManiaTemplateEngine
     /// </summary>
     public string GetManiaScript(string scriptKey)
     {
-        if (!_maniaScripts.ContainsKey(scriptKey))
-        {
-            throw new ManiaScriptNotFoundException($"ManiaScript '{scriptKey}' not found.");
-        }
-
-        return _maniaScripts[scriptKey];
+        return _maniaScripts.TryGetValue(scriptKey, out var maniaScript)
+            ? maniaScript
+            : throw new ManiaScriptNotFoundException($"ManiaScript '{scriptKey}' not found.");
     }
 
     /// <summary>
@@ -226,7 +218,8 @@ public class ManiaTemplateEngine
 
         templateSettings.CompilerOptions = "-nullable:enable";
         templateSettings.Name = className;
-        templateSettings.Namespace = "ManiaTemplates";
+        // Without namespace the generated class can be found by its name
+        templateSettings.Namespace = "";
 
         var preCompiledTemplate =
             generator.PreprocessTemplate(parsedTemplate, ttFilename, t4Template, templateSettings,
@@ -238,10 +231,7 @@ public class ManiaTemplateEngine
                 $"Failed to pre-process '{mtComponent.TemplateContent}'.");
         }
 
-        //Remove namespace wrapper
-        preCompiledTemplate = NamespaceWrapperMatcher.Replace(preCompiledTemplate, "$1");
-
-        //Parse null to empty strings
+        // Parse null to empty strings
         preCompiledTemplate =
             preCompiledTemplate.Replace(@"throw new global::System.ArgumentNullException(""objectToConvert"");",
                 @"return """";");
@@ -263,12 +253,11 @@ public class ManiaTemplateEngine
 
     public void RemoveTemplate(string name)
     {
-        if (!_templates.ContainsKey(name))
+        if (!_templates.Remove(name))
         {
             throw new InvalidOperationException($"Template with name '{name}' does not exist.");
         }
 
-        _templates.Remove(name);
         _components.Remove(name);
         // Drops the compiled template, which lives in the load context of the assemblies it was rendered
         // against, so unloading that context isn't blocked by a cached reference.
@@ -277,11 +266,9 @@ public class ManiaTemplateEngine
 
     public void RemoveManiaScript(string name)
     {
-        if (!_maniaScripts.ContainsKey(name))
+        if (!_maniaScripts.Remove(name))
         {
             throw new InvalidOperationException($"ManiaScript with name '{name}' does not exist.");
         }
-
-        _maniaScripts.Remove(name);
     }
 }

@@ -1,7 +1,5 @@
-﻿using System.Diagnostics;
-using System.Xml;
+﻿using System.Xml;
 using ManiaTemplates.Exceptions;
-using ManiaTemplates.Interfaces;
 using ManiaTemplates.Lib;
 
 namespace ManiaTemplates.Components;
@@ -28,13 +26,11 @@ public class MtComponent
         var maniaScripts = new List<MtComponentScript>();
         var slots = new HashSet<string>();
         var componentTemplate = "";
-        var hasSlot = false;
         string? layer = null;
         var rootNode = FindComponentNode(templateContent);
 
         foreach (XmlNode node in rootNode.ChildNodes)
         {
-            Debug.WriteLine($"Read node {node.OuterXml}");
             switch (node.Name)
             {
                 case "property":
@@ -43,7 +39,7 @@ public class MtComponent
                     break;
 
                 case "import":
-                    var componentImport = ParseImportNode(engine, node);
+                    var componentImport = ParseImportNode(node);
                     foundComponents.Add(componentImport.Tag, componentImport);
                     break;
 
@@ -58,8 +54,7 @@ public class MtComponent
 
                 case "template":
                     componentTemplate = node.InnerXml;
-                    layer = ParseDisplayLayer(node);
-                    hasSlot = NodeHasSlot(node);
+                    layer = node.Attributes?["layer"]?.Value;
                     slots = GetSlotNamesInTemplate(node);
                     break;
 
@@ -73,7 +68,7 @@ public class MtComponent
         return new MtComponent
         {
             TemplateContent = componentTemplate,
-            HasSlot = hasSlot,
+            HasSlot = slots.Count > 0,
             Slots = slots,
             ImportedComponents = foundComponents,
             Properties = foundProperties,
@@ -89,7 +84,7 @@ public class MtComponent
     private static XmlNode FindComponentNode(string templateContent)
     {
         var doc = new XmlDocument();
-        doc.LoadXml(MtSpecialCharEscaper.EscapeXmlSpecialCharsInAttributes(templateContent));
+        doc.LoadXml(XmlAttributeEscaper.EscapeXmlSpecialCharsInAttributes(templateContent));
 
         foreach (XmlNode node in doc.ChildNodes)
         {
@@ -103,134 +98,51 @@ public class MtComponent
     }
 
     /// <summary>
-    /// Parse an import-node and load the referenced component from the given directory.
+    /// Parses an import-node, the tag defaults to the name of the template key like "Folder.Component.mt".
     /// </summary>
-    private static MtComponentImport ParseImportNode(ManiaTemplateEngine engine, XmlNode node)
+    private static MtComponentImport ParseImportNode(XmlNode node)
     {
-        string? tag = null, resource = null;
-
-        foreach (XmlAttribute attribute in node.Attributes!)
-        {
-            switch (attribute.Name)
-            {
-                case "component":
-                    resource = attribute.Value;
-                    break;
-
-                case "as":
-                    tag = attribute.Value;
-                    break;
-            }
-        }
-
-        if (resource == null)
-        {
-            throw new MissingAttributeException(
-                $"Missing required attribute 'component' for element '{node.OuterXml}'.");
-        }
-
-        tag ??= resource.Split('.')[^2];
+        var resource = node.Attributes?["component"]?.Value ?? throw new MissingAttributeException(
+            $"Missing required attribute 'component' for element '{node.OuterXml}'.");
 
         return new MtComponentImport
         {
             TemplateKey = resource,
-            Tag = tag,
+            Tag = node.Attributes["as"]?.Value ?? resource.Split('.')[^2],
         };
     }
 
     /// <summary>
-    /// Gets the layer value of a template node in a component file.
-    /// </summary>
-    private static string? ParseDisplayLayer(XmlNode node)
-    {
-        return (from XmlAttribute attribute in node.Attributes! where attribute.Name == "layer" select attribute.Value)
-            .FirstOrDefault();
-    }
-
-    /// <summary>
-    /// Get the namespace of a XML-node, or throw an exception if none present.
+    /// Get the namespace of a using-node, or throw an exception if none present.
     /// </summary>
     private static string ParseComponentUsingStatement(XmlNode node)
     {
-        var nameSpace = GetNameSpaceAttributeValue(node.Attributes);
-
-        if (nameSpace == null)
-        {
-            throw new MissingAttributeException($"Missing attribute 'namespace' for element '{node.OuterXml}'.");
-        }
-
-        return nameSpace;
+        return node.Attributes?["namespace"]?.Value ??
+               throw new MissingAttributeException($"Missing attribute 'namespace' for element '{node.OuterXml}'.");
     }
 
     /// <summary>
-    /// Returns the namespace-attribute value of a given XmlAttributeCollection.
+    /// Parses a property-node, which needs a name and type.
     /// </summary>
-    private static string? GetNameSpaceAttributeValue(XmlAttributeCollection? attributes)
-    {
-        return (from XmlAttribute attribute in attributes! where attribute.Name == "namespace" select attribute.Value)
-            .FirstOrDefault();
-    }
-
-
     private static MtComponentProperty ParseComponentProperty(XmlNode node)
     {
-        string? name = null, type = null, defaultValue = null;
+        var name = node.Attributes?["name"]?.Value ??
+                   throw new MissingAttributeException($"Missing attribute 'name' for element '{node.OuterXml}'.");
+        var type = node.Attributes["type"]?.Value ??
+                   throw new MissingAttributeException($"Missing attribute 'type' for element '{node.OuterXml}'.");
 
-        foreach (XmlAttribute attribute in node.Attributes!)
-        {
-            switch (attribute.Name)
-            {
-                case "name":
-                    name = attribute.Value;
-                    break;
-
-                case "type":
-                    type = attribute.Value;
-                    break;
-
-                case "default":
-                    defaultValue = attribute.Value;
-                    break;
-            }
-        }
-
-        if (name == null)
-        {
-            throw new MissingAttributeException($"Missing attribute 'name' for element '{node.OuterXml}'.");
-        }
-
-        if (type == null)
-        {
-            throw new MissingAttributeException($"Missing attribute 'type' for element '{node.OuterXml}'.");
-        }
-
-        if (!IStringMethods.IsVariableName(name))
+        if (!StringUtils.IsVariableName(name))
         {
             throw new InvalidPropertyNameException(
                 $"The property name '{name}' must be a valid C# variable name, not a C# keyword and not starting with __.");
         }
 
-        var property = new MtComponentProperty
+        return new MtComponentProperty
         {
             Type = type,
             Name = name,
-            Default = defaultValue
+            Default = node.Attributes["default"]?.Value
         };
-
-        Debug.WriteLine($"Loaded property '{property.Name}' (default:{property.Default ?? "null"})");
-
-        return property;
-    }
-
-    private static bool NodeHasSlot(XmlNode node)
-    {
-        if (node.Name == "slot")
-        {
-            return true;
-        }
-
-        return node.ChildNodes.Cast<XmlNode>()
-            .Any(NodeHasSlot);
     }
 
     /// <summary>

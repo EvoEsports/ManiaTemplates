@@ -5,7 +5,7 @@ using ManiaTemplates.Exceptions;
 
 namespace ManiaTemplates.Lib;
 
-public abstract class Security
+public static class MtEscaper
 {
     private static readonly Regex ConsecutiveDashRegex = new("-(?=-)");
 

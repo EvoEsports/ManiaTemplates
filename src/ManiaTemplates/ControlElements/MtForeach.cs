@@ -10,7 +10,7 @@ public class MtForeach : MtLoop
 
     public static MtForeach FromString(string foreachAttributeValue, MtDataContext context, int nodeId, int depth)
     {
-        //Let the C# parser split the value into the loop variables and the source.
+        // Let the C# parser split the value into the loop variables and the source.
         var statement = SyntaxFactory.ParseStatement($"foreach ({foreachAttributeValue}) {{}}");
         if (statement.ContainsDiagnostics)
         {
@@ -19,18 +19,18 @@ public class MtForeach : MtLoop
 
         var foundVariables = statement switch
         {
-            //foreach (int i in numbers)
+            // foreach (int i in numbers)
             ForEachStatementSyntax foreachStatement =>
                 [CreateVariable(foreachStatement.Type, foreachStatement.Identifier.Text)],
 
-            //foreach ((int a, string b) in pairs)
+            // foreach ((int a, string b) in pairs)
             ForEachVariableStatementSyntax foreachVariableStatement =>
                 GetDeconstructedVariables(foreachVariableStatement.Variable).ToList(),
 
             _ => throw new ParsingForeachLoopFailedException($"Failed to parse foreach loop: {foreachAttributeValue}")
         };
 
-        //Prevent user defining __index variable
+        // Prevent user defining __index variable
         if (UsesReservedVariableName(foundVariables))
         {
             throw new ParsingForeachLoopFailedException("User defined variables must not start with __.");
@@ -65,10 +65,10 @@ public class MtForeach : MtLoop
             DeclarationExpressionSyntax { Designation: SingleVariableDesignationSyntax designation } declaration =>
                 [CreateVariable(declaration.Type, designation.Identifier.Text)],
 
-            //Discards (int _) and existing variables (a, _) do not declare new variables
+            // Discards (int _) and existing variables (a, _) do not declare new variables
             DeclarationExpressionSyntax { Designation: DiscardDesignationSyntax } or IdentifierNameSyntax => [],
 
-            //var (a, b) has no explicit types
+            // var (a, b) has no explicit types
             DeclarationExpressionSyntax { Type.IsVar: true } => throw new ParsingForeachLoopFailedException(
                 "You may not use var in foreach loops, please specify type."),
 
@@ -86,7 +86,7 @@ public class MtForeach : MtLoop
 
         return new MtLoopVariable
         {
-            //Loop variables are passed to slots by value, so ref modifiers are dropped
+            // Loop variables are passed to slots by value, so ref modifiers are dropped
             Type = (type is RefTypeSyntax refType ? refType.Type : type).ToString(),
             Name = name
         };

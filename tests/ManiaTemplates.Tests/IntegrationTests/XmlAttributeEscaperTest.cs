@@ -2,7 +2,7 @@
 
 namespace ManiaTemplates.Tests.IntegrationTests;
 
-public class SpecialCharEscaperTest
+public class XmlAttributeEscaperTest
 {
     private readonly ManiaTemplateEngine _maniaTemplateEngine = new();
 
@@ -15,7 +15,7 @@ public class SpecialCharEscaperTest
             { "two", "test2" },
         };
 
-        var flipped = MtSpecialCharEscaper.FlipMapping(mapping);
+        var flipped = XmlAttributeEscaper.FlipMapping(mapping);
         Assert.Equal("one", flipped["test1"]);
         Assert.Equal("two", flipped["test2"]);
     }
@@ -29,17 +29,17 @@ public class SpecialCharEscaperTest
             { "match2", "test" },
         };
 
-        var processed = MtSpecialCharEscaper.SubstituteStrings("Hello match1 this is a match2.", mapping);
+        var processed = XmlAttributeEscaper.SubstituteStrings("Hello match1 this is a match2.", mapping);
         Assert.Equal("Hello Unit this is a test.", processed);
     }
 
     [Fact]
     public void Should_Find_And_Escape_Attributes_In_Xml_Node()
     {
-        var processedSingleQuotes = MtSpecialCharEscaper.FindAndEscapeAttributes("<SomeNode some-attribute='test&'/>", MtSpecialCharEscaper.XmlTagAttributeMatcherSingleQuote);
+        var processedSingleQuotes = XmlAttributeEscaper.FindAndEscapeAttributes("<SomeNode some-attribute='test&'/>", XmlAttributeEscaper.XmlTagAttributeMatcherSingleQuote);
         Assert.Equal("<SomeNode some-attribute='test&amp;'/>", processedSingleQuotes);
         
-        var processedDoubleQuotes = MtSpecialCharEscaper.FindAndEscapeAttributes("<SomeNode attribute=\"test>\"/>", MtSpecialCharEscaper.XmlTagAttributeMatcherDoubleQuote);
+        var processedDoubleQuotes = XmlAttributeEscaper.FindAndEscapeAttributes("<SomeNode attribute=\"test>\"/>", XmlAttributeEscaper.XmlTagAttributeMatcherDoubleQuote);
         Assert.Equal("<SomeNode attribute=\"test&gt;\"/>", processedDoubleQuotes);
     }
 
@@ -51,7 +51,7 @@ public class SpecialCharEscaperTest
     [InlineData("<a x=\"1 > 0\"/><b x=\"1 > 0\"/><c x=\"\"/>", "<a x=\"1 &gt; 0\"/><b x=\"1 &gt; 0\"/><c x=\"\"/>")]
     public void Should_Only_Escape_Attribute_Values(string input, string expected)
     {
-        Assert.Equal(expected, MtSpecialCharEscaper.EscapeXmlSpecialCharsInAttributes(input));
+        Assert.Equal(expected, XmlAttributeEscaper.EscapeXmlSpecialCharsInAttributes(input));
     }
 
     [Fact]

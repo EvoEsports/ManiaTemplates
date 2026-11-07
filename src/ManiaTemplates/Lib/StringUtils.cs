@@ -1,8 +1,8 @@
-﻿using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp;
 
-namespace ManiaTemplates.Interfaces;
+namespace ManiaTemplates.Lib;
 
-public interface IStringMethods
+internal static class StringUtils
 {
     /// <summary>
     /// Determines whether a component property is a string type.

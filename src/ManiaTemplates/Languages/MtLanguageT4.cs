@@ -20,12 +20,12 @@ public class MtLanguageT4 : IManiaTemplateLanguage
 
     public string InsertResultEscaped(string content)
     {
-        return $"<#= Security.Escape({content}) #>";
+        return $"<#= MtEscaper.Escape({content}) #>";
     }
 
-    public Snippet FeatureBlock(string content)
+    public MtCodeSnippet FeatureBlock(string content)
     {
-        return new Snippet()
+        return new MtCodeSnippet()
             .AppendLine(FeatureBlockStart())
             .AppendLine(content)
             .AppendLine(FeatureBlockEnd());
@@ -52,7 +52,7 @@ public class MtLanguageT4 : IManiaTemplateLanguage
     private static string JoinFeatureBlocks(string manialink)
     {
         var match = TemplateFeatureControlRegex.Match(manialink);
-        var output = new Snippet();
+        var output = new MtCodeSnippet();
 
         while (match.Success)
         {
