@@ -91,6 +91,7 @@ public class MtComponentScriptTest
     [Theory]
     [InlineData("log(1 <=> 2);", "log(1 <=> 2);")]
     [InlineData("log(a && b);", "log(a && b);")]
+    [InlineData("log(1 &lt; 2);", "log(1 < 2);")]
     [InlineData("\uFEFF<!--\nlog(1 <=> 2);\n-->", "\nlog(1 <=> 2);\n")]
     [InlineData("<!-- A -->\n</script>\n<script>\n<!-- B -->", " A \n B ")]
     [InlineData("declare Text T = \"<b>bold</b>\";", "declare Text T = \"<b>bold</b>\";")]
