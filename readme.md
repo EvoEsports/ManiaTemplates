@@ -101,6 +101,8 @@ A component is used like any other node, its properties are set using attributes
 <DescriptionBox description="Shown in the box"/>
 ````
 
+Property names must be valid C# variable names, must not be C# keywords like `class` and must not start with `__`.
+
 ### Expressions
 
 Attribute values can contain C# expressions inside `{{ }}`. You can use the properties of the component, the variables

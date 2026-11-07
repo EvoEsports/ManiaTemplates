@@ -1,4 +1,6 @@
-﻿namespace ManiaTemplates.Interfaces;
+﻿using Microsoft.CodeAnalysis.CSharp;
+
+namespace ManiaTemplates.Interfaces;
 
 public interface IStringMethods
 {
@@ -15,6 +17,14 @@ public interface IStringMethods
 
         return type is "string" or "String" or "System.String";
     }
+
+    /// <summary>
+    /// Checks whether the name can be used as variable of the generated code: a valid identifier, not a C# keyword and
+    /// not starting with __, as these names are used for internal variables.
+    /// </summary>
+    public static bool IsVariableName(string name) =>
+        SyntaxFacts.IsValidIdentifier(name) && SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None &&
+        !name.StartsWith("__");
 
     /// <summary>
     /// Wraps a string in quotes.
