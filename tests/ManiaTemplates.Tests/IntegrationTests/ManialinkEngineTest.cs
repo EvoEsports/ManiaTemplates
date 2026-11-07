@@ -72,7 +72,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Fill_Consecutive_Named_Slots()
+    public async Task Should_Fill_Consecutive_Named_Slots()
     {
         var componentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component-multi-slot.mt");
         var namedSlotsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/consecutive-named-slots.mt");
@@ -87,7 +87,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Apply_Conditions_And_Loops_To_Slot_Templates()
+    public async Task Should_Apply_Conditions_And_Loops_To_Slot_Templates()
     {
         var componentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component-multi-slot.mt");
         var slotTemplates = await File.ReadAllTextAsync("IntegrationTests/templates/slot-templates.mt");
@@ -102,14 +102,14 @@ public class ManialinkEngineTest
     }
 
     [Theory]
-    [InlineData("<template slot=\"footer\" if=\"true\"><label/></template>", null)]
-    [InlineData("<template slot=\"footer\" foreach=\"int i in list\"><label/></template>", null)]
-    [InlineData("<label/><template slot=\"footer\" text=\"ignored\"><label/></template>", null)]
-    [InlineData("<template slot=\"default\" if=\"true\"><label/></template>", null)]
-    public async void Should_Throw_Exception_For_Control_Flow_On_Slot_Templates(string slotContent, string? componentTemplate)
+    [InlineData("<template slot=\"footer\" if=\"true\"><label/></template>")]
+    [InlineData("<template slot=\"footer\" foreach=\"int i in list\"><label/></template>")]
+    [InlineData("<label/><template slot=\"footer\" text=\"ignored\"><label/></template>")]
+    [InlineData("<template slot=\"default\" if=\"true\"><label/></template>")]
+    public async Task Should_Throw_Exception_For_Control_Flow_On_Slot_Templates(string slotContent)
     {
         _maniaTemplateEngine.AddTemplateFromString("SlotsComponent",
-            $"<component><template>{componentTemplate ?? "<frame><slot/><slot name=\"footer\"/></frame>"}</template></component>");
+            "<component><template><frame><slot/><slot name=\"footer\"/></frame></template></component>");
         _maniaTemplateEngine.AddTemplateFromString("ControlFlowOnSlot", $"""
             <component>
                 <import component="SlotsComponent" as="SlotsComponent"/>
@@ -211,7 +211,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Throw_Exception_For_Multiple_Templates_Of_Same_Slot()
+    public async Task Should_Throw_Exception_For_Multiple_Templates_Of_Same_Slot()
     {
         var componentTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/component-multi-slot.mt");
         _maniaTemplateEngine.AddTemplateFromString("SlotsComponent", componentTemplate);
@@ -296,7 +296,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Render_Component_Without_Content_For_Slot()
+    public async Task Should_Render_Component_Without_Content_For_Slot()
     {
         var slotRecursionOuterTwoTemplate =
             await File.ReadAllTextAsync("IntegrationTests/templates/slot-recursion-outer-two.mt");
@@ -316,7 +316,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Pass_Properties_To_Components_And_Slots()
+    public async Task Should_Pass_Properties_To_Components_And_Slots()
     {
         var propertyTestTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/property-test.mt");
         var testWrapperTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");
@@ -336,7 +336,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Fill_All_Slots()
+    public async Task Should_Fill_All_Slots()
     {
         var baseTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slots/base.mt");
         var containerTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slots/container.mt");
@@ -353,7 +353,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Component_Properties_Should_Not_Collide_With_Loop_Variables()
+    public async Task Component_Properties_Should_Not_Collide_With_Loop_Variables()
     {
         var testComponent = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test-component.mt");
         var testComponentWithLoop = await File.ReadAllTextAsync("IntegrationTests/templates/component-with-loop.mt");
@@ -370,7 +370,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Render_For_Loops()
+    public async Task Should_Render_For_Loops()
     {
         var testComponent = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test-component.mt");
         var forLoopTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/for-loop-test.mt");
@@ -389,7 +389,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Pass_Foreach_Variables_To_Slots()
+    public async Task Should_Pass_Foreach_Variables_To_Slots()
     {
         var testComponent = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test-component.mt");
         var foreachTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/foreach-variables-test.mt");
@@ -408,7 +408,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Render_Condition_Chains()
+    public async Task Should_Render_Condition_Chains()
     {
         var testComponent = await File.ReadAllTextAsync("IntegrationTests/templates/loop-test-component.mt");
         var conditionsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/conditions-test.mt");
@@ -436,7 +436,7 @@ public class ManialinkEngineTest
     [InlineData("<label if=\"true\"/><label else-if=\"true\" for=\"int i = 0; i < 1; i++\"/>")]
     [InlineData("<label if=\"true\" else=\"\"/>")]
     [InlineData("<label if=\"true\"/><label else=\"false\"/>")]
-    public async void Should_Throw_Exception_For_Invalid_Condition_Chain(string templateContent)
+    public async Task Should_Throw_Exception_For_Invalid_Condition_Chain(string templateContent)
     {
         _maniaTemplateEngine.AddTemplateFromString("InvalidCondition",
             $"<component><property type=\"List<int>\" name=\"list\"/><template>{templateContent}</template></component>");
@@ -447,7 +447,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Render_Fragment_Children_Only()
+    public async Task Should_Render_Fragment_Children_Only()
     {
         var slotsComponent = await File.ReadAllTextAsync("IntegrationTests/templates/component-multi-slot.mt");
         var fragmentRootComponent = await File.ReadAllTextAsync("IntegrationTests/templates/component-fragment-root.mt");
@@ -469,7 +469,7 @@ public class ManialinkEngineTest
     [Theory]
     [InlineData("<template pos=\"1 2\"><label/></template>")]
     [InlineData("<frame><template slot=\"footer\"><label/></template></frame>")]
-    public async void Should_Throw_Exception_For_Fragment_Attributes(string templateContent)
+    public async Task Should_Throw_Exception_For_Fragment_Attributes(string templateContent)
     {
         _maniaTemplateEngine.AddTemplateFromString("InvalidFragment",
             $"<component><template>{templateContent}</template></component>");
@@ -511,7 +511,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Throw_Exception_For_Variable_Reused_In_Nested_Loop()
+    public async Task Should_Throw_Exception_For_Variable_Reused_In_Nested_Loop()
     {
         _maniaTemplateEngine.AddTemplateFromString("ReusedVariable", """
             <component>
@@ -558,7 +558,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Pass_Slot_Arguments_To_Slot_Contents()
+    public async Task Should_Pass_Slot_Arguments_To_Slot_Contents()
     {
         var itemListComponent = await File.ReadAllTextAsync("IntegrationTests/templates/item-list.mt");
         var slotArgumentsTemplate = await File.ReadAllTextAsync("IntegrationTests/templates/slot-arguments-test.mt");
@@ -723,32 +723,32 @@ public class ManialinkEngineTest
     }
 
     [Theory]
-    [InlineData("<slot item=\"{{ title + 1 }}\"/>", "<label/>")]
-    [InlineData("<slot item=\"{{ unknown }}\"/>", "<label/>")]
-    [InlineData("<slot item=\"title\"/>", "<label/>")]
-    [InlineData("<slot __item=\"{{ title }}\"/>", "<label/>")]
-    [InlineData("<slot item=\"{{ title }}\"/><slot/>", "<label/>")]
-    public async void Should_Throw_Exception_For_Invalid_Slot_Arguments(string componentTemplate, string usage)
+    [InlineData("<slot item=\"{{ title + 1 }}\"/>")]
+    [InlineData("<slot item=\"{{ unknown }}\"/>")]
+    [InlineData("<slot item=\"title\"/>")]
+    [InlineData("<slot __item=\"{{ title }}\"/>")]
+    [InlineData("<slot item=\"{{ title }}\"/><slot/>")]
+    [InlineData("<slot item=\"{{ title }}\"/><slot foreach=\"int i in new[] { 1 }\" item=\"{{ i }}\"/>")]
+    public async Task Should_Throw_Exception_For_Invalid_Slot_Arguments(string componentTemplate)
     {
         _maniaTemplateEngine.AddTemplateFromString("SlotComponent",
             $"<component><property type=\"string\" name=\"title\"/><template>{componentTemplate}</template></component>");
         _maniaTemplateEngine.AddTemplateFromString("InvalidSlotArguments", $"""
             <component>
                 <import component="SlotComponent" as="SlotComponent"/>
-                <property type="List<string>" name="names"/>
                 <template>
-                    <SlotComponent title="T">{usage}</SlotComponent>
+                    <SlotComponent title="T"><label/></SlotComponent>
                 </template>
             </component>
             """);
 
         await Assert.ThrowsAsync<InvalidSlotArgumentException>(() =>
-            _maniaTemplateEngine.RenderAsync("InvalidSlotArguments", new { names = new List<string>() },
+            _maniaTemplateEngine.RenderAsync("InvalidSlotArguments", new { },
                 new[] { typeof(ManiaTemplateEngine).Assembly }));
     }
 
     [Fact]
-    public async void Should_Throw_Exception_For_Slot_Argument_Named_Like_Variable()
+    public async Task Should_Throw_Exception_For_Slot_Argument_Named_Like_Variable()
     {
         var itemListComponent = await File.ReadAllTextAsync("IntegrationTests/templates/item-list.mt");
         _maniaTemplateEngine.AddTemplateFromString("ItemList", itemListComponent);
@@ -769,7 +769,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Throw_Exception_For_Loop_Variable_Named_Like_Slot_Argument()
+    public async Task Should_Throw_Exception_For_Loop_Variable_Named_Like_Slot_Argument()
     {
         var itemListComponent = await File.ReadAllTextAsync("IntegrationTests/templates/item-list.mt");
         _maniaTemplateEngine.AddTemplateFromString("ItemList", itemListComponent);
@@ -789,7 +789,7 @@ public class ManialinkEngineTest
     }
 
     [Fact]
-    public async void Should_Pass_Unmapped_Node_Attributes_To_Component_Root_Element()
+    public async Task Should_Pass_Unmapped_Node_Attributes_To_Component_Root_Element()
     {
         var wrapperComponent = await File.ReadAllTextAsync("IntegrationTests/templates/wrapper.mt");
         var fallthroughAttributesTestComponent = await File.ReadAllTextAsync("IntegrationTests/templates/fallthrough-attributes.mt");
@@ -803,5 +803,43 @@ public class ManialinkEngineTest
         
         var template = _maniaTemplateEngine.RenderAsync("FallthroughTest", new { }, assemblies).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
+    }
+
+    [Fact]
+    public async Task Should_Overwrite_Root_Element_Attributes_With_Fallthrough_Attributes()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("HelloLabel",
+            "<component><template><label text=\"hello\" textcolor=\"000\"/></template></component>");
+        _maniaTemplateEngine.AddTemplateFromString("FallthroughOverwrite", """
+            <component>
+                <import component="HelloLabel" as="HelloLabel"/>
+                <template>
+                    <HelloLabel textcolor="FF0058"/>
+                </template>
+            </component>
+            """);
+
+        var result = await _maniaTemplateEngine.RenderAsync("FallthroughOverwrite", new { },
+            new[] { typeof(ManiaTemplateEngine).Assembly });
+
+        Assert.Contains("<label text=\"hello\" textcolor=\"FF0058\" />", result);
+    }
+
+    [Fact]
+    public async Task Should_Throw_Exception_For_Empty_Slot_Name()
+    {
+        _maniaTemplateEngine.AddTemplateFromString("SlotsComponent",
+            "<component><template><frame><slot/></frame></template></component>");
+        _maniaTemplateEngine.AddTemplateFromString("EmptySlotName", """
+            <component>
+                <import component="SlotsComponent" as="SlotsComponent"/>
+                <template>
+                    <SlotsComponent><template slot=" "><label/></template></SlotsComponent>
+                </template>
+            </component>
+            """);
+
+        await Assert.ThrowsAsync<EmptyNodeAttributeException>(() =>
+            _maniaTemplateEngine.RenderAsync("EmptySlotName", new { }, new[] { typeof(ManiaTemplateEngine).Assembly }));
     }
 }

@@ -138,6 +138,11 @@ public class ManiaTemplateEngine
         return await _preProcessed[key].RenderAsync(data, GlobalVariables);
     }
 
+    /// <summary>
+    /// Creates an empty manialink for a template-key, used to hide the rendered template from players.
+    /// </summary>
+    public string Hide(string key) => ManiaLink.CreateHideManialink(ManialinkNameUtils.KeyToId(key));
+
     private async Task CheckPreprocessingAsync(string key, IEnumerable<Assembly> assemblies)
     {
         var assemblyList = assemblies.ToList();
@@ -241,11 +246,6 @@ public class ManiaTemplateEngine
             preCompiledTemplate.Replace(@"throw new global::System.ArgumentNullException(""objectToConvert"");",
                 @"return """";");
 
-        if (writeTo != null)
-        {
-            // await File.WriteAllTextAsync(writeTo + ".cs", preCompiledTemplate);
-        }
-
         return new ManiaLink(className, preCompiledTemplate, assemblies);
     }
 
@@ -259,7 +259,7 @@ public class ManiaTemplateEngine
     /// Generates the contents for a markdown file describing all base components shipped with the template engine.
     /// </summary>
     public string GenerateComponentsMarkdown() =>
-        new MtComponentMarkdownGenerator { Components = BaseMtComponents }.Generate();
+        new MtComponentMarkdownGenerator { Engine = this, Components = BaseMtComponents }.Generate();
 
     public void RemoveTemplate(string name)
     {

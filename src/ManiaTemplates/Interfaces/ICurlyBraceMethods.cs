@@ -59,29 +59,24 @@ public interface ICurlyBraceMethods
     /// </summary>
     public static void PreventInterpolationRecursion(string value)
     {
-        //TODO: find proper algorithm
-        // var openCurlyBraces = 0;
-        // foreach (var character in value.ToCharArray())
-        // {
-        //     if (character == '{')
-        //     {
-        //         openCurlyBraces++;
-        //
-        //         if (openCurlyBraces >= 4)
-        //         {
-        //             throw new InterpolationRecursionException(
-        //                 $"Double interpolation found in: {value}. You must not use double curly braces inside other double curly braces.");
-        //         }
-        //     }
-        //     else if (character == '}')
-        //     {
-        //         openCurlyBraces--;
-        //     }
-        // }
+        var start = value.IndexOf("{{", StringComparison.Ordinal);
+        while (start >= 0)
+        {
+            var end = value.IndexOf("}}", start + 2, StringComparison.Ordinal);
+            var nextStart = value.IndexOf("{{", start + 2, StringComparison.Ordinal);
+
+            if (nextStart >= 0 && (end < 0 || nextStart < end))
+            {
+                throw new InterpolationRecursionException(
+                    $"Double interpolation found in: {value}. You must not use double curly braces inside other double curly braces.");
+            }
+
+            start = end < 0 ? -1 : value.IndexOf("{{", end + 2, StringComparison.Ordinal);
+        }
     }
 
     /// <summary>
-    /// Checks whether double interpolation exists ({{ {{ a }} {{ b }} }}) and throws exception if so.
+    /// Checks whether opening and closing curly braces are balanced and throws exception if not.
     /// </summary>
     public static void PreventCurlyBraceCountMismatch(string value)
     {

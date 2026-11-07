@@ -4,30 +4,26 @@ namespace ManiaTemplates.Tests.Components;
 
 public class MtComponentMapTest
 {
-    private readonly MtComponentMap _mtComponentMap = new();
-
-    [Fact]
-    public void Should_Contain_Single_Component_Import()
-    {
-        _mtComponentMap["test"] = new MtComponentImport { Tag = "preTest", TemplateKey = "preTest" };
-        Assert.Single(_mtComponentMap);
-    }
-
     [Fact]
     public void Should_Overload_Entries()
     {
-        var test = new MtComponentImport { Tag = "test", TemplateKey = "test" };
-        var entry = new MtComponentImport { Tag = "entry", TemplateKey = "entry" };
-        var overload = new Dictionary<string, MtComponentImport>
-        {
-            { "test", test },
-            { "entry", entry }
-        };
+        var original = new MtComponentImport { Tag = "test", TemplateKey = "original" };
+        var kept = new MtComponentImport { Tag = "kept", TemplateKey = "kept" };
+        var replacement = new MtComponentImport { Tag = "test", TemplateKey = "replacement" };
+        var added = new MtComponentImport { Tag = "added", TemplateKey = "added" };
+        var map = new MtComponentMap { { "test", original }, { "kept", kept } };
 
-        var result = _mtComponentMap.Overload(overload);
-        Assert.NotEqual(_mtComponentMap, result);
-        Assert.Equal(2, result.Count);
-        Assert.Equal(test, result["test"]);
-        Assert.Equal(entry, result["entry"]);
+        var result = map.Overload(new Dictionary<string, MtComponentImport>
+        {
+            { "test", replacement },
+            { "added", added }
+        });
+
+        Assert.Equal(3, result.Count);
+        Assert.Same(replacement, result["test"]);
+        Assert.Same(kept, result["kept"]);
+        Assert.Same(added, result["added"]);
+        Assert.Same(original, map["test"]);
+        Assert.Equal(2, map.Count);
     }
 }

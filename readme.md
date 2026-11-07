@@ -43,6 +43,12 @@ The data can also be an `IDictionary<string, object?>`.
 Templates embedded in your assembly can be added using `LoadTemplateFromEmbeddedResource`, see
 [embedded resources](#embedded-resources).
 
+To remove the rendered manialink from the players' screens, send them the empty manialink returned by `Hide`:
+
+````csharp
+var hideXml = engine.Hide("MapList");
+````
+
 Values that every template needs, like the server name, can be set once as global variables:
 
 ````csharp
@@ -261,6 +267,32 @@ Components can include ManiaScript using `<script>` nodes, either inline or from
 ````
 
 With the `once` attribute the script is added only a single time, even if the component is used multiple times.
+
+Scripts can use expressions too. `{{ }}` inserts the XML escaped value, `{! !}` inserts the raw value:
+
+````xml
+<component>
+    <property type="string" name="title"/>
+    <property type="int" name="maxPlayers"/>
+
+    <template>
+        <label id="title"/>
+    </template>
+
+    <script><!--
+        main() {
+            declare Text Title = "{{ title }}";
+            declare Integer MaxPlayers = {! maxPlayers !};
+        }
+    --></script>
+</component>
+````
+
+Use `{! !}` only for values you control, it is not escaped. A ManiaLink may contain only one script with a `main()`
+method.
+
+`#Include`, `#Const` and `#Struct` directives of all scripts are moved to the top of the ManiaLink, so components can
+share them. Defining the same name twice with a different value throws an exception.
 
 ## How it works
 

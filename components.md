@@ -1,21 +1,23 @@
-﻿# Component list
+# Component list
+
 This list contains available components and their attributes.
 
-``<Pagination />``
+## Pagination
 
+`<Pagination />`
 
-
-| Attribute  | Type   | Default |
-|------------|--------|---------|
+| Attribute | Type | Default |
+|-----------|------|---------|
 | x | double | 0.0 |
 | y | double | 0.0 |
 | zIndex | int | 0 |
-``<Graph> ... </Graph>``
 
+## Graph
 
+`<Graph> ... </Graph>`
 
-| Attribute  | Type   | Default |
-|------------|--------|---------|
+| Attribute | Type | Default |
+|-----------|------|---------|
 | x | double | 0.0 |
 | y | double | 0.0 |
 | w | double | 0.0 |
@@ -24,12 +26,13 @@ This list contains available components and their attributes.
 | valign | string | center |
 | zIndex | int | 0 |
 | events | int | 0 |
-``<Label />``
 
+## Label
 
+`<Label />`
 
-| Attribute  | Type   | Default |
-|------------|--------|---------|
+| Attribute | Type | Default |
+|-----------|------|---------|
 | x | double | 0.0 |
 | y | double | 0.0 |
 | w | double | 0.0 |
@@ -56,12 +59,13 @@ This list contains available components and their attributes.
 | translate | int | 0 |
 | textid | string |  |
 | id | string |  |
-``<Quad />``
 
+## Quad
 
+`<Quad />`
 
-| Attribute  | Type   | Default |
-|------------|--------|---------|
+| Attribute | Type | Default |
+|-----------|------|---------|
 | halign | string | left |
 | valign | string | center |
 | x | double | 0.0 |
@@ -76,6 +80,7 @@ This list contains available components and their attributes.
 | manialink | string |  |
 | image | string |  |
 | imagefocus | string |  |
+| color | string |  |
 | style | string |  |
 | substyle | string |  |
 | styleselected | string |  |
@@ -83,12 +88,13 @@ This list contains available components and their attributes.
 | modulatecolor | string |  |
 | autoscale | int | 0 |
 | keepratio | string | Inactive |
-``<RoundedQuad />``
 
+## RoundedQuad
 
+`<RoundedQuad />`
 
-| Attribute  | Type   | Default |
-|------------|--------|---------|
+| Attribute | Type | Default |
+|-----------|------|---------|
 | x | double | 0.0 |
 | y | double | 0.0 |
 | w | double | 0.0 |
@@ -101,34 +107,49 @@ This list contains available components and their attributes.
 | tl | bool | true |
 | zIndex | int | 1 |
 | color | string | FFF |
-``<Frame> ... </Frame>``
 
+## Frame
 
+`<Frame> ... </Frame>`
 
-| Attribute  | Type   | Default |
-|------------|--------|---------|
+| Attribute | Type | Default |
+|-----------|------|---------|
+| zIndex | int | 0 |
+| x | double | 0.0 |
+| y | double | 0.0 |
+| w | double | 0.0 |
+| h | double | 0.0 |
+
+## Widget
+
+`<Widget />`
+
+| Attribute | Type | Default |
+|-----------|------|---------|
 | zIndex | int |  |
-| w | double |  |
-| h | double |  |
 | x | double |  |
 | y | double |  |
-``<Widget />``
-
-
-
-| Attribute  | Type   | Default |
-|------------|--------|---------|
-| zIndex | int |  |
-| x | double |  |
-| y | double |  |
 | w | double |  |
 | h | double |  |
-``<Window> ... </Window>``
 
+## WindowTitleBar
 
+`<WindowTitleBar />`
 
-| Attribute  | Type   | Default |
-|------------|--------|---------|
+| Attribute | Type | Default |
+|-----------|------|---------|
+| w | double |  |
+| h | double |  |
+| zIndex | int | 0 |
+| title | string | $iMissing title |
+| color | string | 333 |
+
+## Window
+
+`<Window> ... </Window>`
+
+| Attribute | Type | Default |
+|-----------|------|---------|
 | zIndex | int |  |
 | x | double |  |
 | y | double |  |

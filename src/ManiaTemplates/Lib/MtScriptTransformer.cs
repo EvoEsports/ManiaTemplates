@@ -12,10 +12,12 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
     private readonly Dictionary<string, string> _maniaScriptIncludes = new();
     private readonly Dictionary<string, string> _maniaScriptConstants = new();
     private readonly Dictionary<string, string> _maniaScriptStructs = new();
+    private string? _mainScriptHash;
 
     private static readonly Regex ManiaScriptIncludeRegex = new(@"#Include\s+""(.+?)""\s+as\s+([_a-zA-Z]+)");
     private static readonly Regex ManiaScriptConstantRegex = new(@"#Const\s+([a-zA-Z_:]+)\s+.+");
     private static readonly Regex ManiaScriptStructRegex = new(@"(?s)#Struct\s+([_a-zA-Z]+)\s*\{.+?\}");
+    private static readonly Regex WhitespaceRegex = new(@"\s+");
 
     public string CreateManiaScriptBlock(MtComponent component)
     {
@@ -23,6 +25,8 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
 
         foreach (var script in component.Scripts)
         {
+            EnsureSingleMainMethod(script);
+
             if (script.Once)
             {
                 renderMethod.AppendLine(templateLanguage.FeatureBlockStart())
@@ -48,6 +52,26 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
         }
 
         return renderMethod.AppendLine("</script>").ToString();
+    }
+
+    /// <summary>
+    /// Ensures that only one distinct script in the ManiaLink declares a main method.
+    /// </summary>
+    private void EnsureSingleMainMethod(MtComponentScript script)
+    {
+        if (!script.HasMainMethod)
+        {
+            return;
+        }
+
+        var scriptHash = script.ContentHash();
+        if (_mainScriptHash != null && _mainScriptHash != scriptHash)
+        {
+            throw new DuplicateMainManiaScriptException(
+                $"Found multiple scripts with a main method, only one is allowed per ManiaLink: {script.Content}");
+        }
+
+        _mainScriptHash = scriptHash;
     }
 
     /// <summary>
@@ -107,9 +131,23 @@ public class MtScriptTransformer(IManiaTemplateLanguage templateLanguage) : ICur
         while (constantMatcher.Success)
         {
             var match = constantMatcher.ToString();
-            _maniaScriptConstants.TryAdd(constantMatcher.Groups[1].Value, match);
+            var constantName = constantMatcher.Groups[1].Value;
+            var constantDefinition = match.Trim();
+
+            if (_maniaScriptConstants.TryGetValue(constantName, out var existingConstantDefinition))
+            {
+                if (WhitespaceRegex.Replace(constantDefinition, " ") != WhitespaceRegex.Replace(existingConstantDefinition, " "))
+                {
+                    throw new DuplicateManiaScriptConstantException(
+                        $"Can't redefine constant {constantName}, because it is already defined as: {existingConstantDefinition}.");
+                }
+            }
+            else
+            {
+                _maniaScriptConstants.Add(constantName, constantDefinition);
+            }
+
             output = output.Replace(match, "");
-            //TODO: exceptions double constant
 
             constantMatcher = constantMatcher.NextMatch();
         }

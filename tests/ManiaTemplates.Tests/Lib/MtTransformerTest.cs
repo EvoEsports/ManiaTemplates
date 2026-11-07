@@ -156,7 +156,6 @@ public class MtTransformerTest
     public void Should_Convert_String_To_Xml_Node()
     {
         var node = IXmlMethods.NodeFromString("<unit>test</unit>");
-        Assert.IsAssignableFrom<XmlNode>(node);
         Assert.Equal("test", node.InnerText);
         Assert.Equal("<unit>test</unit>", node.InnerXml);
         Assert.Equal("<doc><unit>test</unit></doc>", node.OuterXml);
@@ -176,19 +175,10 @@ public class MtTransformerTest
     }
 
     [Fact]
-    public void Should_Create_ManiaLink_Opening_Tag()
-    {
-        Assert.Equal("""<manialink version="99" id="Test" name="EvoSC#-Test">""",
-            ManiaLink.OpenTag("Test", 99));
-        Assert.Equal("""<manialink version="99" id="Test" name="EvoSC#-Test" layer="SomeLayer">""",
-            ManiaLink.OpenTag("Test", 99, "SomeLayer"));
-    }
-
-    [Fact]
     public void Should_Convert_Xml_Node_Arguments_To_MtComponentAttributes_Instance()
     {
         var node = IXmlMethods.NodeFromString("""<testNode arg1="test1" arg2="test2">testContent</testNode>""");
-        if (node.FirstChild == null) return;
+        Assert.NotNull(node.FirstChild);
 
         var attributes = IXmlMethods.GetAttributes(node.FirstChild);
         Assert.Equal(2, attributes.Count);

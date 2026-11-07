@@ -8,6 +8,4 @@ public static class ManialinkNameUtils
 
     public static string KeyToId(string key) =>
         "Mt" + ClassNameSlugifier.Replace(key, "");
-
-    public static string KeyToName(string key) => $"EvoSC#-{KeyToId(key)}";
 }

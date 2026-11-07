@@ -10,5 +10,5 @@ public interface IManiaTemplateLanguage
     public Snippet FeatureBlock(string content);
     public string FeatureBlockStart();
     public string FeatureBlockEnd();
-    public string OptimizeOutput(string generatedContent) => generatedContent;
+    public string OptimizeOutput(string generatedContent);
 }

@@ -286,7 +286,7 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
 
                         if (hasChildren)
                         {
-                            subSnippet.AppendLine(1,
+                            subSnippet.AppendLine(
                                 ProcessNode(childNode, componentMap, currentContext, rootComponent,
                                     parentComponent: parentComponent));
                             subSnippet.AppendLine(IXmlMethods.CreateClosingTag(tag));
@@ -592,21 +592,12 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     /// <summary>
     /// Creates a method to render template contents.
     /// </summary>
-    private string CreateRenderMethod(string name, IEnumerable<string> arguments, string body,
-        IEnumerable<string>? localVariableDeclarations = null)
+    private string CreateRenderMethod(string name, IEnumerable<string> arguments, string body)
     {
         var renderMethod = new StringBuilder(maniaTemplateLanguage.FeatureBlockStart())
             .Append($"private void {name}(")
             .Append(string.Join(", ", arguments))
             .AppendLine(") {");
-
-        if (localVariableDeclarations != null)
-        {
-            foreach (var declaration in localVariableDeclarations)
-            {
-                renderMethod.AppendLine(declaration);
-            }
-        }
 
         return renderMethod.AppendLine(maniaTemplateLanguage.FeatureBlockEnd())
             .AppendLine(body)
@@ -841,39 +832,39 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
         var snippet = new Snippet();
         var expression = ICurlyBraceMethods.TemplateInterpolationRegex.Replace(condition.Expression, "$1");
 
-        snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());
+        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart());
 
         if (conditionChainVariable == null)
         {
-            snippet.AppendLine(null, $"if ({expression}) {{");
+            snippet.AppendLine($"if ({expression}) {{");
         }
         else
         {
             switch (condition.Type)
             {
                 case MtConditionType.If:
-                    snippet.AppendLine(null, $"var {conditionChainVariable} = false;");
-                    snippet.AppendLine(null, $"if ({expression}) {{");
+                    snippet.AppendLine($"var {conditionChainVariable} = false;");
+                    snippet.AppendLine($"if ({expression}) {{");
                     break;
                 case MtConditionType.ElseIf:
-                    snippet.AppendLine(null, $"if (!{conditionChainVariable} && ({expression})) {{");
+                    snippet.AppendLine($"if (!{conditionChainVariable} && ({expression})) {{");
                     break;
                 default:
-                    snippet.AppendLine(null, $"if (!{conditionChainVariable}) {{");
+                    snippet.AppendLine($"if (!{conditionChainVariable}) {{");
                     break;
             }
 
             if (condition.Type != MtConditionType.Else)
             {
-                snippet.AppendLine(null, $"{conditionChainVariable} = true;");
+                snippet.AppendLine($"{conditionChainVariable} = true;");
             }
         }
 
-        snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockEnd());
+        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
-        snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, "}");
-        snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockEnd());
+        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart());
+        snippet.AppendLine("}");
+        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
 
         return snippet;
     }
@@ -885,17 +876,17 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private Snippet CreateLoopBlock(Snippet input, MtLoop loop)
     {
         var snippet = new Snippet();
-        snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, "{");
-        snippet.AppendLine(null, $"var {loop.CounterVariableName} = 0;");
-        snippet.AppendLine(null, $"{loop.Keyword} ({loop.Condition}) {{");
-        snippet.AppendLine(null, $"var {loop.IndexVariableName} = {loop.CounterVariableName}++;");
-        snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockEnd());
+        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart());
+        snippet.AppendLine("{");
+        snippet.AppendLine($"var {loop.CounterVariableName} = 0;");
+        snippet.AppendLine($"{loop.Keyword} ({loop.Condition}) {{");
+        snippet.AppendLine($"var {loop.IndexVariableName} = {loop.CounterVariableName}++;");
+        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
         snippet.AppendSnippet(input);
-        snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockStart());
-        snippet.AppendLine(null, "}");
-        snippet.AppendLine(null, "}");
-        snippet.AppendLine(null, maniaTemplateLanguage.FeatureBlockEnd());
+        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockStart());
+        snippet.AppendLine("}");
+        snippet.AppendLine("}");
+        snippet.AppendLine(maniaTemplateLanguage.FeatureBlockEnd());
 
         return snippet;
     }

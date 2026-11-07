@@ -55,7 +55,7 @@ public class SpecialCharEscaperTest
     }
 
     [Fact]
-    public async void Should_Escape_Special_Chars_In_Attributes()
+    public async Task Should_Escape_Special_Chars_In_Attributes()
     {
         var escapeTestComponent = await File.ReadAllTextAsync("IntegrationTests/templates/escape-test.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/escape-test.xml");

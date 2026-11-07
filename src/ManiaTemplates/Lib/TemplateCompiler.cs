@@ -167,7 +167,24 @@ internal static class TemplateCompiler
             Add(assembly);
         }
 
+        // Assemblies of the framework and the host are only loaded when they are used, so the ones that are not
+        // loaded yet are referenced by their files. Loaded assemblies come first, as they are used at runtime.
+        foreach (var path in GetPlatformAssemblyPaths())
+        {
+            references.TryAdd(Path.GetFileNameWithoutExtension(path), GetFileReference(path));
+        }
+
         return references.Values.ToList();
+    }
+
+    /// <summary>
+    /// Returns the files of the assemblies the default load context resolves, which are the assemblies of the
+    /// framework and of the host.
+    /// </summary>
+    private static string[] GetPlatformAssemblyPaths()
+    {
+        return (AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") as string)?.Split(Path.PathSeparator,
+            StringSplitOptions.RemoveEmptyEntries) ?? [];
     }
 
     private static MetadataReference GetFileReference(string path)
