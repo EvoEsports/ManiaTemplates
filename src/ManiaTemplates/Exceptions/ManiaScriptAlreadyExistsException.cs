@@ -1,5 +1,8 @@
 ﻿namespace ManiaTemplates.Exceptions;
 
+/// <summary>
+/// Thrown when adding a ManiaScript with a key that is already registered.
+/// </summary>
 public class ManiaScriptAlreadyExistsException : Exception
 {
     public ManiaScriptAlreadyExistsException()

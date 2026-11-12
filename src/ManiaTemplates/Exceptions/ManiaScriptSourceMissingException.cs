@@ -1,5 +1,8 @@
 ﻿namespace ManiaTemplates.Exceptions;
 
+/// <summary>
+/// Thrown when a script tag has neither content nor a resource attribute.
+/// </summary>
 public class ManiaScriptSourceMissingException : Exception
 {
     public ManiaScriptSourceMissingException()

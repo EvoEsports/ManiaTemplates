@@ -3,6 +3,9 @@ using ManiaTemplates.Exceptions;
 
 namespace ManiaTemplates.Components;
 
+/// <summary>
+/// The attributes of a node, mapped by their names.
+/// </summary>
 public class MtComponentAttributes : Dictionary<string, MtComponentAttribute>
 {
     /// <summary>
@@ -51,6 +54,9 @@ public class MtComponentAttributes : Dictionary<string, MtComponentAttribute>
     /// <summary>
     /// Checks the attribute list for loop-condition and if found removes & returns it, else null.
     /// </summary>
+    /// <param name="context">The variables available at the node.</param>
+    /// <param name="nodeId">The id of the node, used for the name of the loop context.</param>
+    /// <param name="depth">The nesting depth of the loop, starting at 1 for the outermost loop.</param>
     public MtLoop? PullLoop(MtDataContext context, int nodeId, int depth)
     {
         var hasForeach = ContainsKey("foreach");
@@ -77,6 +83,10 @@ public class MtComponentAttributes : Dictionary<string, MtComponentAttribute>
         return ContainsKey("name") ? Pull("name") : "default";
     }
 
+    /// <summary>
+    /// Removes the attribute with the given name and returns its value.
+    /// </summary>
+    /// <param name="name">The name of the attribute.</param>
     public string Pull(string name)
     {
         var value = this[name];

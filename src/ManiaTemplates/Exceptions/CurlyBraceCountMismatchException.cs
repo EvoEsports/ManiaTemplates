@@ -1,5 +1,8 @@
 ﻿namespace ManiaTemplates.Exceptions;
 
+/// <summary>
+/// Thrown when the opening and closing curly braces of an interpolation do not match.
+/// </summary>
 public class CurlyBraceCountMismatchException : Exception
 {
     public CurlyBraceCountMismatchException()

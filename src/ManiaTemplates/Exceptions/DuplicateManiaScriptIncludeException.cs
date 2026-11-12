@@ -1,5 +1,8 @@
 ﻿namespace ManiaTemplates.Exceptions;
 
+/// <summary>
+/// Thrown when scripts of a manialink include different libraries under the same alias.
+/// </summary>
 public class DuplicateManiaScriptIncludeException : Exception
 {
     public DuplicateManiaScriptIncludeException()
