@@ -18,7 +18,16 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     private readonly List<string> _namespaces = [];
     private readonly Dictionary<string, string> _renderMethods = new();
     private readonly Dictionary<string, string> _maniaScriptRenderMethods = new();
+    // Components are loaded once per manialink, as the names of their render methods depend on the instance
+    private readonly Dictionary<string, (ManiaTemplateEngine.RegisteredTemplate Template, MtComponent Component)>
+        _importedComponents = new();
     private int _loopDepth;
+
+    /// <summary>
+    /// The templates of the components imported while building the manialink, with the content that was used.
+    /// </summary>
+    internal IReadOnlyDictionary<string, ManiaTemplateEngine.RegisteredTemplate> ImportedTemplates =>
+        _importedComponents.ToDictionary(imported => imported.Key, imported => imported.Value.Template);
 
     /// <summary>
     /// Tag of nodes that only render their children, without producing an element themselves.
@@ -210,7 +219,13 @@ public class MtTransformer(ManiaTemplateEngine engine, IManiaTemplateLanguage ma
     {
         if (componentMap.TryGetValue(node.Name, out var importedComponent))
         {
-            var component = engine.GetComponent(importedComponent.TemplateKey);
+            if (!_importedComponents.TryGetValue(importedComponent.TemplateKey, out var imported))
+            {
+                imported = engine.GetComponentWithTemplate(importedComponent.TemplateKey);
+                _importedComponents.Add(importedComponent.TemplateKey, imported);
+            }
+
+            var component = imported.Component;
             return new StringBuilder()
                 .AppendLine(maniaTemplateLanguage.FeatureBlockStart())
                 .AppendLine(ProcessComponentNode(node, component, parentComponent, context, attributeList,

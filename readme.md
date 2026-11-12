@@ -29,18 +29,36 @@ var engine = new ManiaTemplateEngine();
 engine.AddTemplateFromString("MapRow", mapRowTemplate);
 engine.AddTemplateFromString("MapList", mapListTemplate);
 
-//Assemblies containing the types your templates use
-var assemblies = new[] { typeof(Map).Assembly };
-
 //Optional: pre-process the template, so the first render is fast
-await engine.PreProcessAsync("MapList", assemblies);
+await engine.PreProcessAsync("MapList");
 
 //Render the manialink as an XML string, the data fills the properties of the template
-var xml = await engine.RenderAsync("MapList", new { maps = GetMaps(), title = "Maps" }, assemblies);
+var xml = await engine.RenderAsync("MapList", new { maps = GetMaps(), title = "Maps" });
 ````
 
+The engine is thread-safe. Compiling a template takes a moment, so `PreProcessAsync` and the first `RenderAsync` of a
+template compile it on the thread pool. Pre-processing many templates in parallel speeds up loading:
+
+````csharp
+await Task.WhenAll(templateKeys.Select(key => engine.PreProcessAsync(key)));
+````
+
+Both methods accept a `CancellationToken`, which stops the compilation of the template.
+
+Templates can use the types of the host application. A template of a plugin is added together with the assembly it
+was loaded from and the assemblies containing the types it uses:
+
+````csharp
+engine.AddTemplateFromString("MapList", mapListTemplate, typeof(MapListPlugin).Assembly, typeof(Map).Assembly);
+````
+
+The template is compiled into the load context of its assembly, so it can use the types of collectible load contexts.
+When the load context of one of its assemblies unloads, the template is removed, so the context can be collected.
+Removing or replacing a template also drops the compiled templates importing it.
+
 The data can also be an `IDictionary<string, object?>`.
-Templates embedded in your assembly can be added using `LoadTemplateFromEmbeddedResource`, see
+Templates embedded in your assembly can be added using `LoadTemplateFromEmbeddedResource`, which uses the load context
+of your assembly, see
 [embedded resources](#embedded-resources).
 
 To remove the rendered manialink from the players' screens, send them the empty manialink returned by `Hide`:

@@ -12,9 +12,11 @@ public static class MtEscaper
     /// <summary>
     /// Converts any given input to an XML safe string.
     /// </summary>
-    public static string Escape(dynamic input)
+    public static string Escape(object? input)
     {
-        return SecurityElement.Escape(Convert.ToString(input, CultureInfo.InvariantCulture))
+        // Not dynamic, as the runtime binder caches the types it is called with, which would keep collectible load
+        // contexts alive
+        return SecurityElement.Escape(Convert.ToString(input, CultureInfo.InvariantCulture) ?? "")
             .Replace("--", "&#45;&#45;");
     }
 
@@ -22,9 +24,9 @@ public static class MtEscaper
     /// Converts any given input to a string for a ManiaScript string literal, which is rendered inside of XML comments.
     /// Consecutive dashes are split by concatenating strings, as XML comments must not contain --.
     /// </summary>
-    public static string EscapeManiaScript(dynamic input)
+    public static string EscapeManiaScript(object? input)
     {
-        string output = Convert.ToString(input, CultureInfo.InvariantCulture) ?? "";
+        var output = Convert.ToString(input, CultureInfo.InvariantCulture) ?? "";
 
         return ConsecutiveDashRegex.Replace(output.Replace(@"\", @"\\").Replace("\"", "\\\""), "-\"^\"");
     }
@@ -32,9 +34,9 @@ public static class MtEscaper
     /// <summary>
     /// Converts any given input to a string for raw output in ManiaScript, which is rendered inside of XML comments.
     /// </summary>
-    public static string EscapeRawManiaScript(dynamic input)
+    public static string EscapeRawManiaScript(object? input)
     {
-        string output = Convert.ToString(input, CultureInfo.InvariantCulture) ?? "";
+        var output = Convert.ToString(input, CultureInfo.InvariantCulture) ?? "";
 
         if (output.Contains("--"))
         {

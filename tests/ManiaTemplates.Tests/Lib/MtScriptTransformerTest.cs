@@ -167,7 +167,7 @@ public class MtScriptTransformerTest
             </component>
             """);
 
-        var result = await engine.RenderAsync("ScriptParent", new { }, new[] { typeof(ManiaTemplateEngine).Assembly });
+        var result = await engine.RenderAsync("ScriptParent", new { });
 
         Assert.Equal(1, CountOccurrences(result, "#Include \"TextLib\" as TextLib"));
         Assert.Equal(1, CountOccurrences(result, "#Const C_Size 10"));
@@ -190,8 +190,7 @@ public class MtScriptTransformerTest
             </component>
             """);
 
-        var result = await engine.RenderAsync("ScriptOutput", new { value = @"<""b""> \" },
-            new[] { typeof(ManiaTemplateEngine).Assembly });
+        var result = await engine.RenderAsync("ScriptOutput", new { value = @"<""b""> \" });
 
         Assert.Contains(@"main() { log(""<\""b\""> \\""); log(""<""b""> \""); }", result);
     }
@@ -209,8 +208,7 @@ public class MtScriptTransformerTest
             </component>
             """);
 
-        var result = await engine.RenderAsync("CommentedScripts", new { },
-            new[] { typeof(ManiaTemplateEngine).Assembly });
+        var result = await engine.RenderAsync("CommentedScripts", new { });
 
         var document = new XmlDocument();
         document.LoadXml(result);
@@ -238,13 +236,12 @@ public class MtScriptTransformerTest
                 <script><!-- main() { log("{! value !}"); } --></script>
             </component>
             """);
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly };
 
-        var result = await engine.RenderAsync("ScriptValues", new { value = "a ---> b" }, assemblies);
+        var result = await engine.RenderAsync("ScriptValues", new { value = "a ---> b" });
         Assert.Contains("log(\"a -\"^\"-\"^\"-> b\");", result);
 
         var exception = await Record.ExceptionAsync(() =>
-            engine.RenderAsync("RawScriptValues", new { value = "a --> b" }, assemblies));
+            engine.RenderAsync("RawScriptValues", new { value = "a --> b" }));
         Assert.IsType<InvalidManiaScriptException>(exception);
     }
 

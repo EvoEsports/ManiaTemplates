@@ -59,14 +59,13 @@ public class XmlAttributeEscaperTest
     {
         var escapeTestComponent = await File.ReadAllTextAsync("IntegrationTests/templates/escape-test.mt");
         var expected = await File.ReadAllTextAsync("IntegrationTests/expected/escape-test.xml");
-        var assemblies = new[] { typeof(ManiaTemplateEngine).Assembly, typeof(ComplexDataType).Assembly };
 
         _maniaTemplateEngine.AddTemplateFromString("EscapeTest", escapeTestComponent);
 
         var template = _maniaTemplateEngine.RenderAsync("EscapeTest", new
         {
             data = Enumerable.Range(0, 4).ToList()
-        }, assemblies).Result;
+        }).Result;
         Assert.Equal(expected, template, ignoreLineEndingDifferences: true);
     }
 }
