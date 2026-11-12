@@ -57,8 +57,8 @@ When the load context of one of its assemblies unloads, the template is removed,
 Removing or replacing a template also drops the compiled templates importing it.
 
 The data can also be an `IDictionary<string, object?>`.
-Templates embedded in your assembly can be added using `LoadTemplateFromEmbeddedResource`, which uses the load context
-of your assembly, see
+Templates embedded in your assembly can be added using `LoadTemplateFromEmbeddedResource` together with your assembly,
+whose load context they are compiled into, see
 [embedded resources](#embedded-resources).
 
 To remove the rendered manialink from the players' screens, send them the empty manialink returned by `Hide`:
@@ -363,5 +363,5 @@ To add a whole directory, add the following to the *.csproj* file:
 Add embedded files to the engine using their resource path, which also serves as their key:
 
 ````csharp
-engine.LoadTemplateFromEmbeddedResource("MyModule.Templates.MapRow.mt");
+engine.LoadTemplateFromEmbeddedResource("MyModule.Templates.MapRow.mt", typeof(MyModule).Assembly);
 ````

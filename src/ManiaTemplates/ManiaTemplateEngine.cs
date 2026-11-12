@@ -109,7 +109,7 @@ public class ManiaTemplateEngine
 
         foreach (var coreComponent in coreComponents.Values)
         {
-            LoadTemplateFromEmbeddedResource(coreComponent.TemplateKey);
+            LoadTemplateFromEmbeddedResource(coreComponent.TemplateKey, typeof(ManiaTemplateEngine).Assembly);
         }
 
         AddManiaScriptFromString("ManiaTemplates.ManiaScripts.Wrapper.Window.ms",
@@ -191,14 +191,12 @@ public class ManiaTemplateEngine
     public string Hide(string key) => ManiaLink.CreateHideManialink(ManialinkNameUtils.KeyToId(key));
 
     /// <summary>
-    /// Adds a template from an embedded resource of the calling assembly, which is compiled into the load context of
-    /// that assembly.
+    /// Adds a template from an embedded resource of the given assembly, which is compiled into the load context of that
+    /// assembly. The assembly is passed explicitly, as the calling assembly is unreliable: in release builds the JIT may
+    /// turn the call into a tail call, which removes the frame of the caller.
     /// </summary>
-    // Not inlined, as the calling assembly would be the one of the caller's caller otherwise
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public void LoadTemplateFromEmbeddedResource(string resourcePath)
+    public void LoadTemplateFromEmbeddedResource(string resourcePath, Assembly assembly)
     {
-        var assembly = Assembly.GetCallingAssembly();
         AddTemplate(resourcePath,
             new RegisteredTemplate(EmbeddedResourceUtils.GetEmbeddedResourceContent(resourcePath, assembly), assembly,
                 []));
