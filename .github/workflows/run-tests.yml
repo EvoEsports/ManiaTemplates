@@ -23,7 +23,7 @@ jobs:
         run: dotnet restore $SOLUTION
       
       - name: Build Solution
-        run: dotnet build $SOLUTION --configuration Debug --no-restore
+        run: dotnet build $SOLUTION --configuration Release --no-restore
         
       - name: Run Tests
-        run: dotnet test $SOLUTION /p:Configuration=Debug --no-restore --no-build --verbosity normal
+        run: dotnet test $SOLUTION --configuration Release --no-restore --no-build --verbosity normal
