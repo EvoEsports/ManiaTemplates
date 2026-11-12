@@ -131,7 +131,7 @@ public class CollectibleLoadContextTest
     }
 
     [Fact]
-    public async Task Should_Load_Embedded_Template_Into_Load_Context_Of_Calling_Assembly()
+    public async Task Should_Load_Embedded_Template_Into_Load_Context_Of_Its_Assembly()
     {
         var (loadContext, assembly) = LoadModule("CollectibleLoadContextTest.Embedded");
         try
